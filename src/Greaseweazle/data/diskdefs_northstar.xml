@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="northstar.">
+  <!--prefix: northstar.-->
+  <disk name="fm.ss">
+    <option key="cyls" value="35" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="northstar">
+      <option key="mode" value="fm" />
+      <option key="secs" value="10" />
+    </tracks>
+  </disk>
+  <disk name="fm.ds">
+    <option key="cyls" value="35" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="northstar">
+      <option key="mode" value="fm" />
+      <option key="secs" value="10" />
+    </tracks>
+  </disk>
+  <disk name="mfm.ss">
+    <option key="cyls" value="35" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="northstar">
+      <option key="mode" value="mfm" />
+      <option key="secs" value="10" />
+    </tracks>
+  </disk>
+  <disk name="mfm.ds">
+    <option key="cyls" value="35" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="northstar">
+      <option key="mode" value="mfm" />
+      <option key="secs" value="10" />
+    </tracks>
+  </disk>
+</diskdefs>

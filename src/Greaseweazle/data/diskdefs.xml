@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs>
+  <!--Greaseweazle disk definitions.-->
+  <!--Syntax should be fairly obvious from the examples in this folder.-->
+  <!--A disk definition is declared by "disk <name>"; scope extends to-->
+  <!--the matching "end". Each disk definition must contain the following:-->
+  <!--cyls: Number of cylinders (1-255)-->
+  <!--heads: Number of heads/sides (1-2)-->
+  <!--Each non-empty track in a disk requires a track definition:-->
+  <!--"tracks <track-list> <format>"-->
+  <!--Where:-->
+  <!--format      ::= ibm.fm | ibm.mfm-->
+  <!--track-list  ::= * | <track-range>[,<track-list>]-->
+  <!--track-range ::= <cylinder>[.<head>] | <cylinder>-<cylinder>[.<head>]-->
+  <!--cylinder    ::= [0-9][0-9]*-->
+  <!--head        ::= 0|1-->
+  <!--"*" means match all otherwise-unmatched tracks (ie. this is the default track-->
+  <!--definition). If no head is specified in a track-range, then all heads are-->
+  <!--assumed. Scope of a track definition extends to the matching "end".-->
+  <!--The ibm.fm and ibm.mfm formats accept the following parameters:-->
+  <!--secs: Number of sectors (0-256, default: 0)-->
+  <!--bps: Bytes per sector (128, 256, 512, 1024, 2048, 4096, 8192)-->
+  <!--List all sizes if the size varies (eg. see "ensoniq.mirage" below)-->
+  <!--iam: Index Address Mark (yes|no, default: yes)-->
+  <!--cskew: Sector skew per cylinder (0-255, default: 0)-->
+  <!--hskew: Sector skew per head (0-255, default: 0)-->
+  <!--interleave: Sector interleave, N:1 (1-255, default: 1)-->
+  <!--id: Sector ID (aka R) of logical first sector (0-255, default: 1)-->
+  <!--h: Head (aka H) byte value in each sector header (0-255, default: auto)-->
+  <!--gap1: Post-IAM Gap size (0-255, default: auto)-->
+  <!--gap2: Post-IDAM Gap size (0-255, default: auto)-->
+  <!--gap3: Post-DAM Gap size (0-255, default: auto)-->
+  <!--gap4a: Post-Index Gap size (0-255, default: auto)-->
+  <!--gapbyte: Byte value used to fill the above gaps (0-255, default: auto)-->
+  <!--rate: Data rate in kbps (1-2000, default: auto)-->
+  <!--eg. 250kbps is MFM DD, 500kbps is MFM HD, 1000kbps is MFM ED-->
+  <!--rpm: Disk spin speed in RPM (1-2000, default: 300)-->
+  <!--img_bps: Bytes per sector in IMG file (short sectors are padded)-->
+  <!--Sub-files can be imported by "import [<prefix>] "<file>"". Any definition-->
+  <!--names from the imported file will be prefixed by the optional <prefix>.-->
+  <import prefix="acorn." file="diskdefs_acorn.xml" />
+  <import prefix="akai." file="diskdefs_akai.xml" />
+  <import prefix="amiga." file="diskdefs_amiga.xml" />
+  <import prefix="apple2." file="diskdefs_apple2.xml" />
+  <import prefix="atari." file="diskdefs_atari.xml" />
+  <import prefix="atarist." file="diskdefs_atarist.xml" />
+  <import prefix="coco." file="diskdefs_coco.xml" />
+  <import prefix="commodore." file="diskdefs_commodore.xml" />
+  <import prefix="datageneral." file="diskdefs_datageneral.xml" />
+  <import prefix="dec." file="diskdefs_dec.xml" />
+  <import prefix="dragon." file="diskdefs_dragon.xml" />
+  <import prefix="eagle." file="diskdefs_eagle.xml" />
+  <import prefix="ensoniq." file="diskdefs_ensoniq.xml" />
+  <import prefix="epson." file="diskdefs_epson.xml" />
+  <import prefix="gem." file="diskdefs_gem.xml" />
+  <import prefix="hp." file="diskdefs_hp.xml" />
+  <import prefix="ibm." file="diskdefs_ibm.xml" />
+  <import prefix="kaypro." file="diskdefs_kaypro.xml" />
+  <import prefix="luxor." file="diskdefs_luxor.xml" />
+  <import prefix="mac." file="diskdefs_mac.xml" />
+  <import prefix="micropolis." file="diskdefs_micropolis.xml" />
+  <import prefix="mm1." file="diskdefs_mm1.xml" />
+  <import prefix="msx." file="diskdefs_msx.xml" />
+  <import prefix="northstar." file="diskdefs_northstar.xml" />
+  <import prefix="occ1." file="diskdefs_occ1.xml" />
+  <import prefix="olivetti." file="diskdefs_olivetti.xml" />
+  <import prefix="pc98." file="diskdefs_pc98.xml" />
+  <import prefix="raw." file="diskdefs_raw.xml" />
+  <import prefix="rm." file="diskdefs_rm.xml" />
+  <import prefix="sci." file="diskdefs_sci.xml" />
+  <import prefix="sega." file="diskdefs_sega.xml" />
+  <import prefix="sharp." file="diskdefs_sharp.xml" />
+  <import prefix="thomson." file="diskdefs_thomson.xml" />
+  <import prefix="tsc." file="diskdefs_tsc.xml" />
+  <import prefix="xerox." file="diskdefs_xerox.xml" />
+  <import prefix="zx." file="diskdefs_zx.xml" />
+  <import prefix="apricot." file="diskdefs_apricot.xml" />
+</diskdefs>

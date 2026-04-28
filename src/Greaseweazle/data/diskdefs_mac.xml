@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="mac.">
+  <!--prefix: mac.-->
+  <disk name="400">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="0-15" format="mac.gcr">
+      <option key="clock" value="2.63" />
+      <option key="secs" value="12" />
+      <option key="format" value="0x02" />
+      <option key="interleave" value="2" />
+    </tracks>
+    <tracks spec="16-31" format="mac.gcr">
+      <option key="clock" value="2.89" />
+      <option key="secs" value="11" />
+      <option key="format" value="0x02" />
+      <option key="interleave" value="2" />
+    </tracks>
+    <tracks spec="32-47" format="mac.gcr">
+      <option key="clock" value="3.20" />
+      <option key="secs" value="10" />
+      <option key="format" value="0x02" />
+      <option key="interleave" value="2" />
+    </tracks>
+    <tracks spec="48-63" format="mac.gcr">
+      <option key="clock" value="3.57" />
+      <option key="secs" value="9" />
+      <option key="format" value="0x02" />
+      <option key="interleave" value="2" />
+    </tracks>
+    <tracks spec="*" format="mac.gcr">
+      <option key="clock" value="3.98" />
+      <option key="secs" value="8" />
+      <option key="format" value="0x02" />
+      <option key="interleave" value="2" />
+    </tracks>
+  </disk>
+  <disk name="800">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="0-15" format="mac.gcr">
+      <option key="clock" value="2.63" />
+      <option key="secs" value="12" />
+      <option key="format" value="0x22" />
+      <option key="interleave" value="2" />
+    </tracks>
+    <tracks spec="16-31" format="mac.gcr">
+      <option key="clock" value="2.89" />
+      <option key="secs" value="11" />
+      <option key="format" value="0x22" />
+      <option key="interleave" value="2" />
+    </tracks>
+    <tracks spec="32-47" format="mac.gcr">
+      <option key="clock" value="3.20" />
+      <option key="secs" value="10" />
+      <option key="format" value="0x22" />
+      <option key="interleave" value="2" />
+    </tracks>
+    <tracks spec="48-63" format="mac.gcr">
+      <option key="clock" value="3.57" />
+      <option key="secs" value="9" />
+      <option key="format" value="0x22" />
+      <option key="interleave" value="2" />
+    </tracks>
+    <tracks spec="*" format="mac.gcr">
+      <option key="clock" value="3.98" />
+      <option key="secs" value="8" />
+      <option key="format" value="0x22" />
+      <option key="interleave" value="2" />
+    </tracks>
+  </disk>
+</diskdefs>

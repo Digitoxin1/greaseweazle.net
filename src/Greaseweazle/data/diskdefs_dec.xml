@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="dec.">
+  <!--prefix: dec.-->
+  <disk name="rx01">
+    <option key="cyls" value="77" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="26" />
+      <option key="bps" value="128" />
+      <option key="gap3" value="26" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+  <disk name="rx02">
+    <option key="cyls" value="77" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="dec.rx02">
+      <option key="secs" value="26" />
+      <option key="bps" value="128" />
+      <!--Actually 256 bytes, at double rate, MMFM coded-->
+      <option key="gap3" value="26" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+  <!--one side, 80 tracks, 10 sectors per track, MFM encoding-->
+  <disk name="rx50">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="rpm" value="300" />
+    </tracks>
+  </disk>
+</diskdefs>

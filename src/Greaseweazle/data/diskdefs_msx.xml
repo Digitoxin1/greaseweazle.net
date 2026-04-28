@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="msx.">
+  <!--prefix: msx.-->
+  <disk name="1d">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="9" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="1dd">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="9" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="2d">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="9" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="2dd">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="9" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+</diskdefs>

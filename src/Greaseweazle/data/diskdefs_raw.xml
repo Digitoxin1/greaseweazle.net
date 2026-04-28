@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="raw.">
+  <!--prefix: raw.-->
+  <disk name="125">
+    <option key="cyls" value="81" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="bitcell">
+      <option key="clock" value="4.0" />
+    </tracks>
+  </disk>
+  <!--125kbps (eg. FM, 5.25")-->
+  <disk name="250">
+    <option key="cyls" value="81" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="bitcell">
+      <option key="clock" value="2.0" />
+    </tracks>
+  </disk>
+  <!--250 kbps (eg. MFM DD, 3.5")-->
+  <disk name="500">
+    <option key="cyls" value="81" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="bitcell">
+      <option key="clock" value="1.0" />
+    </tracks>
+  </disk>
+  <!--500 kbps (eg. MFM HD, 3.5")-->
+</diskdefs>

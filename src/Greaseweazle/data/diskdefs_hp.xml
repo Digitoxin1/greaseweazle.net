@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="hp.">
+  <!--prefix: hp.-->
+  <!--HP 9885 Flexible Disk Drive-->
+  <disk name="mmfm.9885">
+    <option key="cyls" value="67" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="hp.mmfm">
+      <option key="secs" value="30" />
+      <option key="interleave" value="4" />
+      <option key="cskew" value="4" />
+      <option key="hskew" value="1" />
+    </tracks>
+  </disk>
+  <!--HP 9895 (and 7902) Flexible Disk Drive-->
+  <disk name="mmfm.9895">
+    <option key="cyls" value="77" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="hp.mmfm">
+      <option key="secs" value="30" />
+      <option key="interleave" value="4" />
+      <option key="cskew" value="4" />
+      <option key="hskew" value="1" />
+    </tracks>
+  </disk>
+</diskdefs>

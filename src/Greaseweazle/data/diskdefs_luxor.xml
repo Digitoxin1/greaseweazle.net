@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="luxor.">
+  <!--prefix: luxor.-->
+  <disk name="80">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="16" />
+      <option key="bps" value="128" />
+      <option key="gap3" value="0" />
+      <option key="rate" value="125" />
+      <option key="iam" value="no" />
+    </tracks>
+  </disk>
+  <disk name="160">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="42" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="320">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="42" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="640">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="42" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="1000.data">
+    <option key="cyls" value="77" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="26" />
+      <option key="bps" value="256" />
+      <option key="rate" value="500" />
+      <option key="gap3" value="84" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+  <disk name="1000.program">
+    <option key="cyls" value="77" />
+    <option key="heads" value="2" />
+    <tracks spec="0.0" format="ibm.fm">
+      <option key="secs" value="26" />
+      <option key="bps" value="128" />
+      <option key="gap3" value="42" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="26" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="500" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+  <disk name="1000.abcnet">
+    <option key="cyls" value="77" />
+    <option key="heads" value="1" />
+    <tracks spec="0.0" format="ibm.fm">
+      <option key="secs" value="26" />
+      <option key="bps" value="128" />
+      <option key="gap3" value="42" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="26" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="500" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+</diskdefs>

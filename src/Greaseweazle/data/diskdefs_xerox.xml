@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="xerox.">
+  <!--prefix: xerox.-->
+  <!--Xerox 860, 8-inch SS/SD-->
+  <disk name="860.ss">
+    <option key="cyls" value="77" />
+    <option key="heads" value="1" />
+    <tracks spec="0" format="ibm.fm">
+      <option key="secs" value="26" />
+      <option key="bps" value="128" />
+      <option key="interleave" value="1" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="8" />
+      <option key="bps" value="512" />
+      <option key="interleave" value="2" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+  <!--Xerox 860, 8-inch DS/SD-->
+  <disk name="860.dssd">
+    <option key="cyls" value="77" />
+    <option key="heads" value="2" />
+    <tracks spec="0.0" format="ibm.fm">
+      <option key="secs" value="26" />
+      <option key="bps" value="128" />
+      <option key="interleave" value="2" />
+      <option key="h" value="0" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+    <tracks spec="0.1" format="ibm.fm">
+      <option key="secs" value="26" />
+      <option key="bps" value="128" />
+      <option key="interleave" value="2" />
+      <option key="h" value="0" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+    <tracks spec="1-76.0" format="ibm.fm">
+      <option key="secs" value="8" />
+      <option key="bps" value="512" />
+      <option key="interleave" value="4" />
+      <option key="h" value="0" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+    <tracks spec="1-76.1" format="ibm.fm">
+      <option key="secs" value="8" />
+      <option key="bps" value="512" />
+      <option key="interleave" value="4" />
+      <option key="h" value="0" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+</diskdefs>

@@ -1,0 +1,13 @@
+{
+  "cases": [
+    {
+      "name": "check_false",
+      "error_type": "Fatal",
+      "message": "expected fatal"
+    },
+    {
+      "name": "check_true",
+      "result": "pass"
+    }
+  ]
+}

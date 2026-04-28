@@ -1,0 +1,98 @@
+{
+  "print_info_cases": [
+    {
+      "name": "Select Delay",
+      "value": "250us",
+      "tab": 0,
+      "line": "Select Delay: 250us"
+    },
+    {
+      "name": "Step Delay",
+      "value": "10us",
+      "tab": 2,
+      "line": "  Step Delay: 10us"
+    }
+  ],
+  "runtime_cases": [
+    {
+      "args": [
+        "--test"
+      ],
+      "ok": true,
+      "lines": []
+    },
+    {
+      "args": [
+        "--test",
+        "--step",
+        "10",
+        "--watchdog",
+        "500"
+      ],
+      "ok": true,
+      "lines": []
+    },
+    {
+      "args": [
+        "--test",
+        "--step=10",
+        "--watchdog=500",
+        "--device=COM5"
+      ],
+      "ok": true,
+      "lines": []
+    },
+    {
+      "args": [
+        "--step",
+        "-1"
+      ],
+      "ok": false,
+      "error_prefix": "invalid value for --step: -1"
+    },
+    {
+      "args": [
+        "--weird"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --weird"
+    },
+    {
+      "args": [
+        "extra"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: extra"
+    },
+    {
+      "args": [
+        "--step",
+        "--watchdog"
+      ],
+      "ok": false,
+      "error_prefix": "missing value for option --step"
+    },
+    {
+      "args": [
+        "--test=1"
+      ],
+      "ok": false,
+      "error_prefix": "argument --test: ignored explicit argument '1'"
+    },
+    {
+      "args": [
+        "--"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --"
+    },
+    {
+      "args": [
+        "--",
+        "extra"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: -- extra"
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "cases": [
+    {
+      "spec": "type=mfm:0=50:40=125",
+      "repr": "Precomp MFM, 0-:50ns, 40-:125ns",
+      "list": [
+        {
+          "cyl": 0,
+          "ns": 50
+        },
+        {
+          "cyl": 40,
+          "ns": 125
+        }
+      ],
+      "type": 0,
+      "resolved": [
+        {
+          "type": 0,
+          "ns": 50
+        },
+        {
+          "type": 0,
+          "ns": 50
+        },
+        {
+          "type": 0,
+          "ns": 125
+        },
+        {
+          "type": 0,
+          "ns": 125
+        }
+      ]
+    },
+    {
+      "spec": "type=gcr:10=80",
+      "repr": "Precomp GCR, 10-:80ns",
+      "list": [
+        {
+          "cyl": 10,
+          "ns": 80
+        }
+      ],
+      "type": 2,
+      "resolved": [
+        null,
+        {
+          "type": 2,
+          "ns": 80
+        },
+        {
+          "type": 2,
+          "ns": 80
+        },
+        {
+          "type": 2,
+          "ns": 80
+        }
+      ]
+    },
+    {
+      "spec": "0=125:60=250",
+      "repr": "Precomp MFM, 0-:125ns, 60-:250ns",
+      "list": [
+        {
+          "cyl": 0,
+          "ns": 125
+        },
+        {
+          "cyl": 60,
+          "ns": 250
+        }
+      ],
+      "type": 0,
+      "resolved": [
+        {
+          "type": 0,
+          "ns": 125
+        },
+        {
+          "type": 0,
+          "ns": 125
+        },
+        {
+          "type": 0,
+          "ns": 125
+        },
+        {
+          "type": 0,
+          "ns": 250
+        }
+      ]
+    }
+  ]
+}

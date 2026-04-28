@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="epson.">
+  <!--prefix: epson.-->
+  <!--This is a slightly odd format with sevral unformatted tracks.-->
+  <!--I've seen this used with logo professor and a few other pieces-->
+  <!--of software.-->
+  <disk name="qx10.logo">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="0-1,4" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+    </tracks>
+    <tracks spec="5,6" format="ibm.mfm">
+      <option key="id" value="2" />
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="rate" value="250" />
+    </tracks>
+    <tracks spec="2,8-39" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <!--This is a format used with several self-booting games.-->
+  <disk name="qx10.booter">
+    <option key="cyls" value="15" />
+    <option key="heads" value="1" />
+    <tracks spec="0" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+    </tracks>
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="17" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <!--This is the QX+ format used with CPM Plus on the QX-10. Does not support system disks.-->
+  <disk name="qx10.400">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="5" />
+      <option key="bps" value="1024" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <!--This is a less common format with only track 0 using 16 256 byte sectors.-->
+  <disk name="qx10.399">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="0.0" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+    </tracks>
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <!--Newer more common format capable of 396k of storage.-->
+  <disk name="qx10.396">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="0-1" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+    </tracks>
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <!--Original Epson QX-10 format providing 320k of storage.-->
+  <disk name="qx10.320">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+</diskdefs>

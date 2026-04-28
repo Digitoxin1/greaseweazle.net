@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="sega.">
+  <!--prefix: sega.-->
+  <disk name="sf7000">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="42" />
+      <option key="id" value="1" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+</diskdefs>

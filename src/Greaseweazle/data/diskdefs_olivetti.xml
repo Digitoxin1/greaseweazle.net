@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="olivetti.">
+  <!--prefix: olivetti.-->
+  <!--Olivetti M20 360kB DD floppies-->
+  <disk name="m20">
+    <option key="cyls" value="35" />
+    <option key="heads" value="2" />
+    <tracks spec="0.0" format="ibm.fm">
+      <option key="secs" value="16" />
+      <option key="bps" value="128" />
+      <option key="rate" value="125" />
+      <option key="img_bps" value="256" />
+    </tracks>
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+</diskdefs>

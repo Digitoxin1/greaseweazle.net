@@ -1,0 +1,64 @@
+{
+  "cue_at_index": {
+    "index_list": [
+      100.0,
+      100.0
+    ],
+    "flux_list": [
+      20.0,
+      30.0,
+      40.0,
+      60.0
+    ]
+  },
+  "summary": {
+    "summary": "Raw Flux (6 flux in 200.00ms)",
+    "ticks_per_rev": 100.0
+  },
+  "reverse": {
+    "index_list": [
+      100.0,
+      100.0
+    ],
+    "flux_list": [
+      50.0,
+      30.0,
+      20.0,
+      50.0,
+      30.0,
+      20.0
+    ],
+    "index_cued": true
+  },
+  "set_nr_revs": {
+    "index_list": [
+      100.0
+    ],
+    "flux_list": [
+      20.0,
+      30.0,
+      50.0
+    ]
+  },
+  "writeout": {
+    "ticks_to_index": 100.0,
+    "list": [
+      20.0,
+      30.0,
+      50.0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "index_cued": true,
+    "terminate_at_index": true,
+    "summary": "Flux: 100.0ms period, 110.0 ms total, Terminate at index"
+  }
+}

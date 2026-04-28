@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="ensoniq.">
+  <!--prefix: ensoniq.-->
+  <disk name="800">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="30" />
+      <option key="id" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="1600">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="20" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="40" />
+      <option key="id" value="0" />
+      <option key="rate" value="500" />
+    </tracks>
+  </disk>
+  <disk name="mirage">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <!--The sectors are a tight fit so squeeze the post-index gaps a little-->
+      <option key="gap1" value="20" />
+      <option key="gap4a" value="20" />
+      <option key="secs" value="6" />
+      <option key="bps" value="1024*5,512" />
+      <option key="id" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+</diskdefs>

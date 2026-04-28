@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="pc98.">
+  <!--prefix: pc98.-->
+  <disk name="2d">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="8" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="57" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="300" />
+    </tracks>
+  </disk>
+  <disk name="2dd">
+    <option key="cyls" value="77" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="8" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="57" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+  <disk name="2hd">
+    <option key="cyls" value="77" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="8" />
+      <option key="bps" value="1024" />
+      <option key="gap3" value="116" />
+      <option key="rate" value="500" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+  <!--Used by N88-Basic disks for NEC PC-98-->
+  <disk name="n88basic.hd">
+    <option key="cyls" value="77" />
+    <option key="heads" value="2" />
+    <tracks spec="0.0" format="ibm.fm">
+      <option key="secs" value="26" />
+      <option key="bps" value="128" />
+      <option key="gap3" value="26" />
+      <option key="rate" value="250" />
+      <option key="rpm" value="360" />
+    </tracks>
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="26" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="26" />
+      <option key="rate" value="500" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+  <disk name="2hs">
+    <option key="cyls" value="81" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="9" />
+      <option key="bps" value="1024" />
+      <option key="gap3" value="116" />
+      <option key="rate" value="500" />
+      <option key="rpm" value="300" />
+    </tracks>
+  </disk>
+</diskdefs>

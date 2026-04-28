@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="mm1.">
+  <!--prefix: mm1.-->
+  <!--MM/1 3.5" HD 32SPT Microware OS-9-->
+  <disk name="os9.80dshd_32">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="32" />
+      <option key="bps" value="256" />
+      <option key="id" value="0" />
+      <option key="gap2" value="22" />
+      <option key="gap3" value="24" />
+      <option key="gap4a" value="32" />
+      <option key="interleave" value="3" />
+      <option key="iam" value="no" />
+      <option key="rate" value="500" />
+    </tracks>
+  </disk>
+  <!--MM/1 3.5" HD 33SPT Microware OS-9-->
+  <disk name="os9.80dshd_33">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="33" />
+      <option key="bps" value="256" />
+      <option key="id" value="0" />
+      <option key="gap2" value="22" />
+      <option key="gap3" value="24" />
+      <option key="gap4a" value="32" />
+      <option key="interleave" value="3" />
+      <option key="iam" value="no" />
+      <option key="rate" value="500" />
+    </tracks>
+  </disk>
+  <!--MM/1 3.5" HD 36SPT Microware OS-9-->
+  <disk name="os9.80dshd_36">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="36" />
+      <option key="bps" value="256" />
+      <option key="id" value="0" />
+      <option key="gap2" value="22" />
+      <option key="gap3" value="24" />
+      <option key="gap4a" value="32" />
+      <option key="interleave" value="3" />
+      <option key="iam" value="no" />
+      <option key="rate" value="500" />
+    </tracks>
+  </disk>
+  <!--MM/1 3.5" HD 37SPT Microware OS-9-->
+  <disk name="os9.80dshd_37">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="37" />
+      <option key="bps" value="256" />
+      <option key="id" value="0" />
+      <option key="gap2" value="22" />
+      <option key="gap3" value="24" />
+      <option key="gap4a" value="32" />
+      <option key="interleave" value="3" />
+      <option key="iam" value="no" />
+      <option key="rate" value="500" />
+    </tracks>
+  </disk>
+</diskdefs>

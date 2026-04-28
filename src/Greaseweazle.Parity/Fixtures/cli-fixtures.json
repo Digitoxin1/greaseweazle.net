@@ -1,0 +1,348 @@
+{
+  "actions": [
+    "info",
+    "read",
+    "write",
+    "convert",
+    "erase",
+    "clean",
+    "seek",
+    "delays",
+    "update",
+    "pin",
+    "reset",
+    "bandwidth",
+    "rpm",
+    "align"
+  ],
+  "top_usage": [
+    "Usage: gw [--time] [action] [-h] ...",
+    "  --time      Print elapsed time after action is executed",
+    "  -h, --help  Show help message for specified action",
+    "Actions:"
+  ],
+  "help_cases": [
+    {
+      "action": "info",
+      "usage_line": "usage: generate_parity_fixtures.py info [options]",
+      "description_line": "Display information about the Greaseweazle setup.",
+      "sections": [
+        "options:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--bootloader"
+      ],
+      "positional_lines": [],
+      "example_lines": []
+    },
+    {
+      "action": "read",
+      "usage_line": "usage: generate_parity_fixtures.py read [options] file",
+      "description_line": "Read a disk to the specified image file.",
+      "sections": [
+        "options:",
+        "positional arguments:",
+        "DRIVE: Drive (and bus) identifier:",
+        "SPEED: Track rotation time specified as:",
+        "TSPEC: Colon-separated list of:",
+        "PLLSPEC: Colon-separated list of:",
+        "FORMAT options:",
+        "Supported file suffixes:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--drive",
+        "--diskdefs",
+        "--format",
+        "--revs",
+        "--tracks",
+        "--raw",
+        "--fake-index",
+        "--hard-sectors",
+        "--adjust-speed",
+        "--retries",
+        "--seek-retries",
+        "-n",
+        "--no-clobber",
+        "--pll",
+        "--densel",
+        "--dd",
+        "--gen-tg43",
+        "--reverse"
+      ],
+      "positional_lines": [
+        "  file                  output filename"
+      ],
+      "example_lines": []
+    },
+    {
+      "action": "write",
+      "usage_line": "usage: generate_parity_fixtures.py write [options] file",
+      "description_line": "Write a disk from the specified image file.",
+      "sections": [
+        "options:",
+        "positional arguments:",
+        "DRIVE: Drive (and bus) identifier:",
+        "SPEED: Track rotation time specified as:",
+        "TSPEC: Colon-separated list of:",
+        "FORMAT options:",
+        "Supported file suffixes:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--drive",
+        "--diskdefs",
+        "--format",
+        "--tracks",
+        "--pre-erase",
+        "--erase-empty",
+        "--fake-index",
+        "--hard-sectors",
+        "--no-verify",
+        "--retries",
+        "--precomp",
+        "--reverse",
+        "--densel",
+        "--dd",
+        "--gen-tg43"
+      ],
+      "positional_lines": [
+        "  file                  input filename"
+      ],
+      "example_lines": []
+    },
+    {
+      "action": "convert",
+      "usage_line": "usage: generate_parity_fixtures.py convert [options] in_file out_file",
+      "description_line": "Convert between image formats.",
+      "sections": [
+        "options:",
+        "positional arguments:",
+        "SPEED: Track rotation time specified as:",
+        "TSPEC: Colon-separated list of:",
+        "PLLSPEC: Colon-separated list of:",
+        "FORMAT options:",
+        "Supported file suffixes:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--diskdefs",
+        "--format",
+        "--tracks",
+        "--out-tracks",
+        "--adjust-speed",
+        "-n",
+        "--no-clobber",
+        "--pll",
+        "--hard-sectors",
+        "--reverse"
+      ],
+      "positional_lines": [
+        "  in_file               input filename",
+        "  out_file              output filename"
+      ],
+      "example_lines": []
+    },
+    {
+      "action": "erase",
+      "usage_line": "usage: generate_parity_fixtures.py erase [options]",
+      "description_line": "Erase a disk.",
+      "sections": [
+        "options:",
+        "DRIVE: Drive (and bus) identifier:",
+        "SPEED: Track rotation time specified as:",
+        "TSPEC: Colon-separated list of:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--drive",
+        "--revs",
+        "--tracks",
+        "--hfreq",
+        "--fake-index"
+      ],
+      "positional_lines": [],
+      "example_lines": []
+    },
+    {
+      "action": "clean",
+      "usage_line": "usage: generate_parity_fixtures.py clean [options]",
+      "description_line": "Clean a drive in a zig-zag pattern using a cleaning disk.",
+      "sections": [
+        "options:",
+        "DRIVE: Drive (and bus) identifier:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--drive",
+        "--cyls",
+        "--passes",
+        "--linger"
+      ],
+      "positional_lines": [],
+      "example_lines": []
+    },
+    {
+      "action": "seek",
+      "usage_line": "usage: generate_parity_fixtures.py seek [options] cylinder",
+      "description_line": "Seek to the specified cylinder.",
+      "sections": [
+        "options:",
+        "positional arguments:",
+        "DRIVE: Drive (and bus) identifier:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--drive",
+        "--force",
+        "--motor-on"
+      ],
+      "positional_lines": [
+        "  cylinder         cylinder to seek"
+      ],
+      "example_lines": []
+    },
+    {
+      "action": "delays",
+      "usage_line": "usage: generate_parity_fixtures.py delays [options]",
+      "description_line": "Display (and optionally modify) drive-delay parameters.",
+      "sections": [
+        "options:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--select",
+        "--step",
+        "--settle",
+        "--motor",
+        "--watchdog",
+        "--pre-write",
+        "--post-write",
+        "--index-mask"
+      ],
+      "positional_lines": [],
+      "example_lines": []
+    },
+    {
+      "action": "update",
+      "usage_line": "usage: generate_parity_fixtures.py update [options]",
+      "description_line": "Update the Greaseweazle device firmware to latest (or specified) version.",
+      "sections": [
+        "options:",
+        "Examples:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--file",
+        "--tag",
+        "--device",
+        "--force",
+        "--bootloader"
+      ],
+      "positional_lines": [],
+      "example_lines": [
+        "  gw update",
+        "  gw update --force --tag v1.0",
+        "  gw update --file greaseweazle-firmware-v1.0.upd"
+      ]
+    },
+    {
+      "action": "pin",
+      "usage_line": "usage: gw pin get|set [-h] ...",
+      "description_line": "get|set  Get or set a pin",
+      "sections": [],
+      "option_tokens": [],
+      "positional_lines": [],
+      "example_lines": []
+    },
+    {
+      "action": "reset",
+      "usage_line": "usage: generate_parity_fixtures.py reset [options]",
+      "description_line": "Reset the Greaseweazle device to power-on default state.",
+      "sections": [
+        "options:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--delays"
+      ],
+      "positional_lines": [],
+      "example_lines": []
+    },
+    {
+      "action": "bandwidth",
+      "usage_line": "usage: generate_parity_fixtures.py bandwidth [options]",
+      "description_line": "Report the available USB bandwidth for the Greaseweazle device.",
+      "sections": [
+        "options:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device"
+      ],
+      "positional_lines": [],
+      "example_lines": []
+    },
+    {
+      "action": "rpm",
+      "usage_line": "usage: generate_parity_fixtures.py rpm [options]",
+      "description_line": "Measure RPM of drive spindle.",
+      "sections": [
+        "options:",
+        "DRIVE: Drive (and bus) identifier:"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--drive",
+        "--nr"
+      ],
+      "positional_lines": [],
+      "example_lines": []
+    },
+    {
+      "action": "align",
+      "usage_line": "usage: generate_parity_fixtures.py align [options]",
+      "description_line": "Repeatedly read the same track for floppy drive alignment.",
+      "sections": [
+        "options:",
+        "DRIVE: Drive (and bus) identifier:",
+        "SPEED: Track rotation time specified as:",
+        "TSPEC: Colon-separated list of:",
+        "PLLSPEC: Colon-separated list of:",
+        "FORMAT options:",
+        "Note: TRACKS can specify one track (e.g., c=40:h=0) or multiple heads on same cylinder (e.g., c=40:h=0,1) to alternate between heads"
+      ],
+      "option_tokens": [
+        "--help",
+        "--device",
+        "--drive",
+        "--diskdefs",
+        "--format",
+        "--revs",
+        "--tracks",
+        "--reads",
+        "--raw",
+        "--fake-index",
+        "--hard-sectors",
+        "--adjust-speed",
+        "--pll",
+        "--densel",
+        "--dd",
+        "--gen-tg43",
+        "--reverse"
+      ],
+      "positional_lines": [],
+      "example_lines": []
+    }
+  ]
+}

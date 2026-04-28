@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="datageneral.">
+  <!--prefix: datageneral.-->
+  <disk name="2f">
+    <option key="cyls" value="77" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="datageneral" />
+  </disk>
+</diskdefs>

@@ -1,0 +1,41 @@
+{
+  "master_flux": {
+    "bitrate": 40.0,
+    "summary": "Bitcells (8 bits, 0.0 kbit/s, 300.0 rpm)",
+    "flux_index_list": [
+      8,
+      8
+    ],
+    "flux_list": [
+      2,
+      1,
+      2,
+      2,
+      3,
+      1,
+      2,
+      2
+    ],
+    "flux_splice": 2,
+    "flux_sample_freq": 40.0
+  },
+  "master_writeout": {
+    "ticks_to_index": 8,
+    "list": [
+      2,
+      1,
+      2,
+      1
+    ],
+    "terminate_at_index": true
+  },
+  "pll_track": {
+    "nr_revs": 2,
+    "rev_bits": [
+      99999,
+      100000
+    ],
+    "total_bits": 200002,
+    "total_times": 200002
+  }
+}

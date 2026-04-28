@@ -1,0 +1,289 @@
+{
+  "write_scale_cases": [
+    {
+      "flux_list": [
+        100,
+        101,
+        99,
+        250
+      ],
+      "factor": 1.25,
+      "scaled": [
+        125,
+        126,
+        124,
+        312
+      ],
+      "final_remainder": 0.5
+    },
+    {
+      "flux_list": [
+        7,
+        7,
+        7,
+        7,
+        7
+      ],
+      "factor": 0.9,
+      "scaled": [
+        6,
+        7,
+        6,
+        6,
+        6
+      ],
+      "final_remainder": 0.4999999999999991
+    },
+    {
+      "flux_list": [
+        333,
+        666,
+        999
+      ],
+      "factor": 0.3333,
+      "scaled": [
+        111,
+        222,
+        333
+      ],
+      "final_remainder": -0.066599999999994
+    }
+  ],
+  "fake_index_cases": [
+    {
+      "revs": 2,
+      "ticks": 0,
+      "drive_ticks_per_rev": 100000,
+      "sample_freq": 24000000,
+      "effective_ticks": 224000,
+      "index_list": [
+        12000,
+        100000,
+        100000
+      ]
+    },
+    {
+      "revs": 3,
+      "ticks": 450000,
+      "drive_ticks_per_rev": 120000,
+      "sample_freq": 20000000,
+      "effective_ticks": 450000,
+      "index_list": [
+        10000,
+        120000,
+        120000,
+        120000
+      ]
+    },
+    {
+      "revs": 1,
+      "ticks": 0,
+      "drive_ticks_per_rev": 80000,
+      "sample_freq": 16000000,
+      "effective_ticks": 96000,
+      "index_list": [
+        8000,
+        80000
+      ]
+    }
+  ],
+  "runtime_cases": {
+    "read": [
+      {
+        "args": [
+          "--test",
+          "out.scp"
+        ],
+        "ok": true,
+        "lines": [
+          "Reading c=0-81:h=0-1 revs=3"
+        ]
+      },
+      {
+        "args": [
+          "--test",
+          "--tracks",
+          "c=40:h=0",
+          "--revs",
+          "2",
+          "--format",
+          "ibm.1440",
+          "out.scp"
+        ],
+        "ok": true,
+        "lines": [
+          "Reading c=40:h=0 revs=2",
+          "Format ibm.1440"
+        ]
+      },
+      {
+        "args": [
+          "--test",
+          "--tracks=c=40:h=0",
+          "--revs=2",
+          "--format=ibm.1440",
+          "out.scp"
+        ],
+        "ok": true,
+        "lines": [
+          "Reading c=40:h=0 revs=2",
+          "Format ibm.1440"
+        ]
+      },
+      {
+        "args": [
+          "out.dim"
+        ],
+        "ok": false,
+        "error_prefix": "out.dim: Cannot create DIM image files"
+      },
+      {
+        "args": [
+          "out.dmk"
+        ],
+        "ok": false,
+        "error_prefix": "out.dmk: Cannot create DMK image files"
+      },
+      {
+        "args": [
+          "out.a2r"
+        ],
+        "ok": false,
+        "error_prefix": "out.a2r: Cannot create A2R image files"
+      },
+      {
+        "args": [
+          "--revs",
+          "0",
+          "out.scp"
+        ],
+        "ok": false,
+        "error_prefix": "--revs must be >= 1"
+      },
+      {
+        "args": [
+          "--weird",
+          "out.scp"
+        ],
+        "ok": false,
+        "error_prefix": "unrecognized arguments: --weird"
+      },
+      {
+        "args": [
+          "--tracks",
+          "--revs",
+          "2",
+          "out.scp"
+        ],
+        "ok": false,
+        "error_prefix": "missing value for option --tracks"
+      },
+      {
+        "args": [
+          "--test=1",
+          "out.scp"
+        ],
+        "ok": false,
+        "error_prefix": "argument --test: ignored explicit argument '1'"
+      },
+      {
+        "args": [],
+        "ok": false,
+        "error_prefix": "read requires output file argument"
+      }
+    ],
+    "write": [
+      {
+        "args": [
+          "--test",
+          "in.scp"
+        ],
+        "ok": true,
+        "lines": [
+          "Writing c=0-81:h=0-1"
+        ]
+      },
+      {
+        "args": [
+          "--test",
+          "--tracks",
+          "c=40:h=1",
+          "--format",
+          "ibm.1440",
+          "in.scp"
+        ],
+        "ok": true,
+        "lines": [
+          "Format ibm.1440",
+          "Writing c=40:h=1"
+        ]
+      },
+      {
+        "args": [
+          "--test",
+          "--tracks=c=40:h=1",
+          "--format=ibm.1440",
+          "in.scp"
+        ],
+        "ok": true,
+        "lines": [
+          "Format ibm.1440",
+          "Writing c=40:h=1"
+        ]
+      },
+      {
+        "args": [
+          "--test",
+          "--precomp",
+          "type=mfm:0=50",
+          "in.scp"
+        ],
+        "ok": true,
+        "lines": [
+          "Writing c=0-81:h=0-1",
+          "Precomp MFM, 0-:50ns"
+        ]
+      },
+      {
+        "args": [
+          "--format",
+          "bad.format",
+          "in.scp"
+        ],
+        "ok": false,
+        "error_prefix": "Unknown format 'bad.format'"
+      },
+      {
+        "args": [
+          "--weird",
+          "in.scp"
+        ],
+        "ok": false,
+        "error_prefix": "unrecognized arguments: --weird"
+      },
+      {
+        "args": [
+          "--tracks",
+          "--format",
+          "ibm.1440",
+          "in.scp"
+        ],
+        "ok": false,
+        "error_prefix": "missing value for option --tracks"
+      },
+      {
+        "args": [
+          "--reverse=1",
+          "in.scp"
+        ],
+        "ok": false,
+        "error_prefix": "argument --reverse: ignored explicit argument '1'"
+      },
+      {
+        "args": [],
+        "ok": false,
+        "error_prefix": "write requires input file argument"
+      }
+    ]
+  }
+}

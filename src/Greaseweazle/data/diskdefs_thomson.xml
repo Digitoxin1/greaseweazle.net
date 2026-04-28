@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="thomson.">
+  <!--prefix: thomson.-->
+  <!--Disk formats for Thomson MO5, MO6, TO7, TO7/70, TO8, TO8D, TO9(+) computers:-->
+  <!--5.25" single density, 1 side = 80 kB-->
+  <!--@fplanque: Tested Read only-->
+  <disk name="1s80">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="16" />
+      <option key="bps" value="128" />
+      <option key="rate" value="250" />
+      <option key="interleave" value="7" />
+      <option key="rpm" value="300" />
+    </tracks>
+  </disk>
+  <!--Note: Thomson never released 5.25" single-density doubled-sided drives-->
+  <!--5.25" double density, 1 side = 160 kB-->
+  <disk name="1s160">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+      <option key="interleave" value="7" />
+      <option key="rpm" value="300" />
+    </tracks>
+  </disk>
+  <!--Thomson 5.25" double density, 2 sides = 2x160 kB-->
+  <!--Note: on Thomson each side is addressed independently, so it's really 2x160-->
+  <!--and not 320.-->
+  <disk name="2s160">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+      <option key="interleave" value="7" />
+      <option key="rpm" value="300" />
+    </tracks>
+  </disk>
+  <!--Thomson 3.5" double density, 1 side = 320 kB-->
+  <!--@fplanque: Tested Read and Write-->
+  <disk name="1s320">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+      <option key="interleave" value="7" />
+      <option key="rpm" value="300" />
+    </tracks>
+  </disk>
+  <!--Thomson 3.5" double density, 2 sides = 2x320 kB-->
+  <!--Note: on Thomson each side is addressed independently, so it's really 2x320-->
+  <!--and not 640.-->
+  <disk name="2s320">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="rate" value="250" />
+      <option key="interleave" value="7" />
+      <option key="rpm" value="300" />
+    </tracks>
+  </disk>
+</diskdefs>

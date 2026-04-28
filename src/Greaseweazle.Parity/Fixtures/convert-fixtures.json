@@ -1,0 +1,911 @@
+{
+  "track_summary_cases": [
+    {
+      "cyl": 0,
+      "head": 0,
+      "physical_cyl": 0,
+      "physical_head": 0,
+      "summary": "T0.0"
+    },
+    {
+      "cyl": 40,
+      "head": 1,
+      "physical_cyl": 39,
+      "physical_head": 0,
+      "summary": "T40.1 <- Image 39.0"
+    }
+  ],
+  "convert_header_cases": [
+    {
+      "tracks": "c=0-81:h=0-1",
+      "out_tracks": "c=0-81:h=0-1",
+      "line": "Converting c=0-81:h=0-1 -> c=0-81:h=0-1"
+    },
+    {
+      "tracks": "c=0-39:h=0",
+      "out_tracks": "c=0-79:h=0-1",
+      "line": "Converting c=0-39:h=0 -> c=0-79:h=0-1"
+    }
+  ],
+  "format_resolution_cases": [
+    {
+      "explicit_format": null,
+      "input_default": "ibm.1440",
+      "output_default": "amiga.amigados",
+      "resolved_format": "ibm.1440"
+    },
+    {
+      "explicit_format": null,
+      "input_default": null,
+      "output_default": "amiga.amigados",
+      "resolved_format": "amiga.amigados"
+    },
+    {
+      "explicit_format": "c64.gcr",
+      "input_default": "ibm.1440",
+      "output_default": "amiga.amigados",
+      "resolved_format": "c64.gcr"
+    }
+  ],
+  "track_resolution_cases": [
+    {
+      "format_tracks": "c=0-79:h=0-1",
+      "tracks": null,
+      "out_tracks": null,
+      "resolved_tracks": "c=0-79:h=0-1",
+      "resolved_out_tracks": "c=0-79:h=0-1"
+    },
+    {
+      "format_tracks": "c=0-79:h=0-1",
+      "tracks": "c=0-39:h=0",
+      "out_tracks": null,
+      "resolved_tracks": "c=0-39:h=0",
+      "resolved_out_tracks": "c=0-39:h=0"
+    },
+    {
+      "format_tracks": "c=0-79:h=0-1",
+      "tracks": "c=0-39:h=0",
+      "out_tracks": "c=40-79:h=1",
+      "resolved_tracks": "c=0-39:h=0",
+      "resolved_out_tracks": "c=40-79:h=1"
+    },
+    {
+      "format_tracks": null,
+      "tracks": "c=10-12:h=1",
+      "out_tracks": "c=8-9:h=0",
+      "resolved_tracks": "c=10-12:h=1",
+      "resolved_out_tracks": "c=8-9:h=0"
+    }
+  ],
+  "loop_cases": [
+    {
+      "out_tracks": [
+        {
+          "cyl": 0,
+          "head": 0,
+          "physical_cyl": 0,
+          "physical_head": 0
+        },
+        {
+          "cyl": 1,
+          "head": 0,
+          "physical_cyl": 1,
+          "physical_head": 0
+        }
+      ],
+      "in_tracks": [
+        {
+          "cyl": 0,
+          "head": 0
+        },
+        {
+          "cyl": 1,
+          "head": 0
+        }
+      ],
+      "available_tracks": [
+        {
+          "cyl": 0,
+          "head": 0
+        },
+        {
+          "cyl": 1,
+          "head": 0
+        }
+      ],
+      "cache_enabled": false,
+      "process_calls": [
+        "0.0",
+        "1.0"
+      ],
+      "emit_targets": [
+        "0.0<=0.0",
+        "1.0<=1.0"
+      ],
+      "cache_keys": []
+    },
+    {
+      "out_tracks": [
+        {
+          "cyl": 2,
+          "head": 1,
+          "physical_cyl": 2,
+          "physical_head": 1
+        },
+        {
+          "cyl": 2,
+          "head": 1,
+          "physical_cyl": 5,
+          "physical_head": 0
+        }
+      ],
+      "in_tracks": [
+        {
+          "cyl": 2,
+          "head": 1
+        }
+      ],
+      "available_tracks": [
+        {
+          "cyl": 2,
+          "head": 1
+        }
+      ],
+      "cache_enabled": true,
+      "process_calls": [
+        "2.1"
+      ],
+      "emit_targets": [
+        "2.1<=2.1",
+        "5.0<=2.1"
+      ],
+      "cache_keys": [
+        "2.1"
+      ]
+    },
+    {
+      "out_tracks": [
+        {
+          "cyl": 3,
+          "head": 0,
+          "physical_cyl": 3,
+          "physical_head": 0
+        },
+        {
+          "cyl": 4,
+          "head": 0,
+          "physical_cyl": 4,
+          "physical_head": 0
+        }
+      ],
+      "in_tracks": [
+        {
+          "cyl": 3,
+          "head": 0
+        }
+      ],
+      "available_tracks": [
+        {
+          "cyl": 3,
+          "head": 0
+        }
+      ],
+      "cache_enabled": true,
+      "process_calls": [
+        "3.0"
+      ],
+      "emit_targets": [
+        "3.0<=3.0"
+      ],
+      "cache_keys": [
+        "3.0"
+      ]
+    },
+    {
+      "out_tracks": [
+        {
+          "cyl": 6,
+          "head": 1,
+          "physical_cyl": 6,
+          "physical_head": 1
+        }
+      ],
+      "in_tracks": [
+        {
+          "cyl": 6,
+          "head": 1
+        }
+      ],
+      "available_tracks": [],
+      "cache_enabled": true,
+      "process_calls": [
+        "6.1"
+      ],
+      "emit_targets": [],
+      "cache_keys": []
+    }
+  ],
+  "runtime_cases": [
+    {
+      "args": [
+        "--format",
+        "ibm.1440",
+        "--tracks",
+        "c=0-3:h=0",
+        "in.scp",
+        "out.img"
+      ],
+      "ok": true,
+      "lines": [
+        "Format ibm.1440",
+        "Converting c=0-3:h=0 -> c=0-3:h=0"
+      ]
+    },
+    {
+      "args": [
+        "--tracks",
+        "c=40:h=0,1",
+        "--out-tracks",
+        "c=40:h=1",
+        "in.scp",
+        "out.scp"
+      ],
+      "ok": true,
+      "lines": [
+        "Converting c=40:h=0-1 -> c=40:h=1"
+      ]
+    },
+    {
+      "args": [
+        "--format=ibm.1440",
+        "--tracks=c=0-3:h=0",
+        "in.scp",
+        "out.img"
+      ],
+      "ok": true,
+      "lines": [
+        "Format ibm.1440",
+        "Converting c=0-3:h=0 -> c=0-3:h=0"
+      ]
+    },
+    {
+      "args": [
+        "--format",
+        "bad.format",
+        "in.scp",
+        "out.img"
+      ],
+      "ok": false,
+      "error_prefix": "Unknown format 'bad.format'"
+    },
+    {
+      "args": [
+        "--weird",
+        "in.scp",
+        "out.img"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --weird"
+    },
+    {
+      "args": [
+        "--format",
+        "ibm.1440",
+        "in.scp"
+      ],
+      "ok": false,
+      "error_prefix": "convert requires input and output files"
+    },
+    {
+      "args": [
+        "--tracks",
+        "--out-tracks",
+        "c=0:h=0",
+        "in.scp",
+        "out.img"
+      ],
+      "ok": false,
+      "error_prefix": "missing value for option --tracks"
+    },
+    {
+      "args": [
+        "--no-clobber=true",
+        "in.scp",
+        "out.img"
+      ],
+      "ok": false,
+      "error_prefix": "argument --no-clobber: ignored explicit argument 'true'"
+    },
+    {
+      "args": [
+        "--"
+      ],
+      "ok": false,
+      "error_prefix": "convert requires input and output files"
+    },
+    {
+      "args": [
+        "--",
+        "in.scp",
+        "out.img"
+      ],
+      "ok": false,
+      "error_prefix": "convert requires input and output files"
+    }
+  ],
+  "scp_track_cases": [
+    {
+      "index_count": 1,
+      "flux_count": 5,
+      "flux_total": 100002.0,
+      "flux_prefix": [
+        1999.0,
+        2501.0,
+        3000.0,
+        3501.0,
+        89001.0
+      ],
+      "name": "from_raw"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 75012,
+      "flux_total": 15999840.0,
+      "flux_prefix": [
+        80.0,
+        240.0,
+        240.0,
+        240.0,
+        160.0,
+        160.0,
+        240.0,
+        240.0
+      ],
+      "name": "from_dmk"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 75242,
+      "flux_total": 15999840.0,
+      "flux_prefix": [
+        80.0,
+        240.0,
+        240.0,
+        240.0,
+        160.0,
+        160.0,
+        240.0,
+        240.0
+      ],
+      "name": "from_td0"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 125820,
+      "flux_total": 13333253.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_fdi"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 125232,
+      "flux_total": 13333253.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_nfd"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 125820,
+      "flux_total": 13333253.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_dcp"
+    },
+    {
+      "index_count": 1,
+      "flux_count": 16,
+      "flux_total": 880.0,
+      "flux_prefix": [
+        160.0,
+        134.0,
+        1.0,
+        64.0,
+        13.0,
+        3.0,
+        10.0,
+        20.0
+      ],
+      "name": "from_a2r"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 75878,
+      "flux_total": 15999840.0,
+      "flux_prefix": [
+        80.0,
+        240.0,
+        240.0,
+        240.0,
+        160.0,
+        160.0,
+        240.0,
+        240.0
+      ],
+      "name": "from_msa"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 75922,
+      "flux_total": 15999840.0,
+      "flux_prefix": [
+        80.0,
+        240.0,
+        240.0,
+        240.0,
+        160.0,
+        160.0,
+        240.0,
+        240.0
+      ],
+      "name": "from_apridisk"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 79460,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        80.0,
+        160.0,
+        160.0,
+        160.0,
+        160.0,
+        160.0,
+        160.0,
+        160.0
+      ],
+      "name": "from_nsi"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 82074,
+      "flux_total": 15999921.0,
+      "flux_prefix": [
+        79.0,
+        158.0,
+        158.0,
+        158.0,
+        157.0,
+        158.0,
+        158.0,
+        158.0
+      ],
+      "name": "from_adf"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 71490,
+      "flux_total": 15999840.0,
+      "flux_prefix": [
+        80.0,
+        240.0,
+        240.0,
+        240.0,
+        160.0,
+        160.0,
+        240.0,
+        240.0
+      ],
+      "name": "from_d81"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 118652,
+      "flux_total": 13333253.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_dim"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_st"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_ima"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_imd"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_hfe"
+    },
+    {
+      "index_count": 1,
+      "flux_count": 71879,
+      "flux_total": 8000002.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        79.0,
+        80.0,
+        120.0,
+        122.0
+      ],
+      "name": "from_imd_raw"
+    },
+    {
+      "index_count": 1,
+      "flux_count": 71879,
+      "flux_total": 8000002.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        79.0,
+        80.0,
+        120.0,
+        122.0
+      ],
+      "name": "from_hfe_raw"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_hfe_imd"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_imd_hfe"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 71490,
+      "flux_total": 15999840.0,
+      "flux_prefix": [
+        80.0,
+        240.0,
+        240.0,
+        240.0,
+        160.0,
+        160.0,
+        240.0,
+        240.0
+      ],
+      "name": "from_d1m"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 141996,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_d2m"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 283998,
+      "flux_total": 15999960.0,
+      "flux_prefix": [
+        20.0,
+        60.0,
+        60.0,
+        60.0,
+        40.0,
+        40.0,
+        60.0,
+        60.0
+      ],
+      "name": "from_d4m"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_ssd"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_dsd"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_ads"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_adm"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_adl"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_fd"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_mgt"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_sf7"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_hdm"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_xdf"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_2d"
+    },
+    {
+      "index_count": 2,
+      "flux_count": 143756,
+      "flux_total": 15999920.0,
+      "flux_prefix": [
+        40.0,
+        120.0,
+        120.0,
+        120.0,
+        80.0,
+        80.0,
+        120.0,
+        120.0
+      ],
+      "name": "from_dsk"
+    }
+  ]
+}

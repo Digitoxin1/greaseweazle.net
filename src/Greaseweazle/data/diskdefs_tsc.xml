@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="tsc.">
+  <!--prefix: tsc.-->
+  <!--TSC FLEX: DS/DD with SD (FM) cylinder 0.-->
+  <!--Sector numbering and interleave is continuous across drive heads. Since-->
+  <!--there is no direct way to flag this, we implement it here by explicitly-->
+  <!--specifying head 1 track formats: with sector @id following on from head 0,-->
+  <!--and with @hskew shifting the first sector of side 1 the correct amount to-->
+  <!--simulate cross-track interleave.-->
+  <disk name="flex.dsdd">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="0.0" format="ibm.fm">
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="16" />
+      <option key="gap4a" value="16" />
+      <option key="secs" value="10" />
+      <option key="interleave" value="4" />
+      <option key="id" value="1" />
+      <option key="h" value="0" />
+    </tracks>
+    <tracks spec="0.1" format="ibm.fm">
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="16" />
+      <option key="gap4a" value="16" />
+      <option key="secs" value="10" />
+      <option key="interleave" value="4" />
+      <option key="hskew" value="1" />
+      <option key="id" value="11" />
+      <!--Follows on from head 0 (1..10 -> 11..20)-->
+      <option key="h" value="0" />
+    </tracks>
+    <tracks spec="1-79.0" format="ibm.mfm">
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="16" />
+      <option key="gap4a" value="16" />
+      <option key="secs" value="18" />
+      <option key="interleave" value="6" />
+      <option key="id" value="1" />
+      <option key="h" value="1" />
+    </tracks>
+    <tracks spec="1-79.1" format="ibm.mfm">
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="16" />
+      <option key="gap4a" value="16" />
+      <option key="secs" value="18" />
+      <option key="interleave" value="6" />
+      <option key="hskew" value="5" />
+      <option key="id" value="19" />
+      <!--Follows on from head 0 (1..18 -> 19..36)-->
+      <option key="h" value="1" />
+    </tracks>
+  </disk>
+  <!--TSC FLEX: SS/DD with SD (FM) cylinder 0.-->
+  <!--Definition is a simplified version of the DS/DD format.-->
+  <disk name="flex.ssdd">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="0.0" format="ibm.fm">
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="16" />
+      <option key="gap4a" value="16" />
+      <option key="secs" value="10" />
+      <option key="interleave" value="4" />
+      <option key="id" value="1" />
+      <option key="h" value="0" />
+    </tracks>
+    <tracks spec="1-79.0" format="ibm.mfm">
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="16" />
+      <option key="gap4a" value="16" />
+      <option key="secs" value="18" />
+      <option key="interleave" value="6" />
+      <option key="id" value="1" />
+      <option key="h" value="1" />
+    </tracks>
+  </disk>
+</diskdefs>

@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="amiga.">
+  <!--prefix: amiga.-->
+  <disk name="amigados">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="amiga.amigados">
+      <option key="secs" value="11" />
+    </tracks>
+  </disk>
+  <disk name="amigados_hd">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="amiga.amigados">
+      <option key="secs" value="22" />
+    </tracks>
+  </disk>
+</diskdefs>

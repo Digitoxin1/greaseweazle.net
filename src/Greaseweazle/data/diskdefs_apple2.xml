@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="apple2.">
+  <!--prefix: apple2.-->
+  <!--Physical sector order in raw sector image file (no assumed filesystem)-->
+  <disk name="nofs.140">
+    <option key="cyls" value="35" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="apple2.gcr">
+      <option key="clock" value="3.92" />
+      <option key="secs" value="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15" />
+    </tracks>
+  </disk>
+  <!--AppleDOS sector order in raw sector image file (.DO image layout)-->
+  <disk name="appledos.140">
+    <option key="cyls" value="35" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="apple2.gcr">
+      <option key="clock" value="3.92" />
+      <option key="secs" value="0,13,11,9,7,5,3,1,14,12,10,8,6,4,2,15" />
+    </tracks>
+  </disk>
+  <!--ProDOS sector order in raw sector image file (.PO image layout)-->
+  <disk name="prodos.140">
+    <option key="cyls" value="35" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="apple2.gcr">
+      <option key="clock" value="3.92" />
+      <option key="secs" value="0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15" />
+    </tracks>
+  </disk>
+</diskdefs>

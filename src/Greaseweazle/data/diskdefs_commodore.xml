@@ -1,0 +1,124 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="commodore.">
+  <!--prefix: commodore.-->
+  <disk name="1541">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="0-16" format="c64.gcr">
+      <option key="clock" value="3.25" />
+      <option key="secs" value="21" />
+    </tracks>
+    <tracks spec="17-23" format="c64.gcr">
+      <option key="clock" value="3.50" />
+      <option key="secs" value="19" />
+    </tracks>
+    <tracks spec="24-29" format="c64.gcr">
+      <option key="clock" value="3.75" />
+      <option key="secs" value="18" />
+    </tracks>
+    <tracks spec="*" format="c64.gcr">
+      <option key="clock" value="4.00" />
+      <option key="secs" value="17" />
+    </tracks>
+  </disk>
+  <disk name="1571">
+    <option key="cyls" value="35" />
+    <option key="heads" value="2" />
+    <tracks spec="0-16" format="c64.gcr">
+      <option key="clock" value="3.25" />
+      <option key="secs" value="21" />
+    </tracks>
+    <tracks spec="17-23" format="c64.gcr">
+      <option key="clock" value="3.50" />
+      <option key="secs" value="19" />
+    </tracks>
+    <tracks spec="24-29" format="c64.gcr">
+      <option key="clock" value="3.75" />
+      <option key="secs" value="18" />
+    </tracks>
+    <tracks spec="*" format="c64.gcr">
+      <option key="clock" value="4.00" />
+      <option key="secs" value="17" />
+    </tracks>
+  </disk>
+  <disk name="1581">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="0-79.0" format="ibm.mfm">
+      <option key="iam" value="no" />
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="30" />
+      <option key="rate" value="250" />
+      <option key="h" value="1" />
+    </tracks>
+    <tracks spec="0-79.1" format="ibm.mfm">
+      <option key="iam" value="no" />
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="30" />
+      <option key="rate" value="250" />
+      <option key="h" value="0" />
+    </tracks>
+  </disk>
+  <disk name="cmd.fd2000.dd">
+    <option key="cyls" value="81" />
+    <option key="heads" value="2" />
+    <tracks spec="0-80.0" format="ibm.mfm">
+      <option key="iam" value="no" />
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="30" />
+      <option key="rate" value="250" />
+      <option key="h" value="1" />
+    </tracks>
+    <tracks spec="0-80.1" format="ibm.mfm">
+      <option key="iam" value="no" />
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="30" />
+      <option key="rate" value="250" />
+      <option key="h" value="0" />
+    </tracks>
+  </disk>
+  <disk name="cmd.fd2000.hd">
+    <option key="cyls" value="81" />
+    <option key="heads" value="2" />
+    <tracks spec="0-80.0" format="ibm.mfm">
+      <option key="iam" value="no" />
+      <option key="secs" value="10" />
+      <option key="bps" value="1024" />
+      <option key="gap3" value="116" />
+      <option key="rate" value="500" />
+      <option key="h" value="1" />
+    </tracks>
+    <tracks spec="0-80.1" format="ibm.mfm">
+      <option key="iam" value="no" />
+      <option key="secs" value="10" />
+      <option key="bps" value="1024" />
+      <option key="gap3" value="116" />
+      <option key="rate" value="500" />
+      <option key="h" value="0" />
+    </tracks>
+  </disk>
+  <disk name="cmd.fd4000.ed">
+    <option key="cyls" value="81" />
+    <option key="heads" value="2" />
+    <tracks spec="0-80.0" format="ibm.mfm">
+      <option key="iam" value="no" />
+      <option key="secs" value="20" />
+      <option key="bps" value="1024" />
+      <option key="gap3" value="116" />
+      <option key="rate" value="1000" />
+      <option key="h" value="1" />
+    </tracks>
+    <tracks spec="0-80.1" format="ibm.mfm">
+      <option key="iam" value="no" />
+      <option key="secs" value="20" />
+      <option key="bps" value="1024" />
+      <option key="gap3" value="116" />
+      <option key="rate" value="1000" />
+      <option key="h" value="0" />
+    </tracks>
+  </disk>
+</diskdefs>

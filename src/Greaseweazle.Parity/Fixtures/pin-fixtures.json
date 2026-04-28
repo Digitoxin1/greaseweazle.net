@@ -1,0 +1,161 @@
+{
+  "usage_lines": [
+    "usage: gw pin get|set [-h] ...",
+    "  get|set  Get or set a pin"
+  ],
+  "pin_value_messages": [
+    {
+      "pin": 2,
+      "level": false,
+      "message": "Pin 2 is Low (0v)"
+    },
+    {
+      "pin": 2,
+      "level": true,
+      "message": "Pin 2 is High (5v)"
+    }
+  ],
+  "dispatch_cases": [
+    {
+      "argv": [
+        "gw",
+        "pin",
+        "get"
+      ],
+      "action": "get"
+    },
+    {
+      "argv": [
+        "gw",
+        "pin",
+        "set"
+      ],
+      "action": "set"
+    },
+    {
+      "argv": [
+        "gw",
+        "pin",
+        "other"
+      ],
+      "action": "usage"
+    },
+    {
+      "argv": [
+        "gw",
+        "pin"
+      ],
+      "action": "usage"
+    }
+  ],
+  "runtime_cases": [
+    {
+      "args": [],
+      "ok": true,
+      "rc": 1,
+      "lines": [
+        "usage: gw pin get|set [-h] ...",
+        "  get|set  Get or set a pin"
+      ]
+    },
+    {
+      "args": [
+        "set",
+        "2",
+        "H",
+        "--test"
+      ],
+      "ok": true,
+      "lines": [
+        "Pin 2 is set High (5v)"
+      ]
+    },
+    {
+      "args": [
+        "set",
+        "--device=COM5",
+        "2",
+        "H",
+        "--test"
+      ],
+      "ok": true,
+      "lines": [
+        "Pin 2 is set High (5v)"
+      ]
+    },
+    {
+      "args": [
+        "get",
+        "2",
+        "--test"
+      ],
+      "ok": true,
+      "lines": []
+    },
+    {
+      "args": [
+        "set",
+        "2"
+      ],
+      "ok": false,
+      "error_prefix": "pin set requires <pin> <level>"
+    },
+    {
+      "args": [
+        "get"
+      ],
+      "ok": false,
+      "error_prefix": "pin get requires <pin>"
+    },
+    {
+      "args": [
+        "set",
+        "2",
+        "X"
+      ],
+      "ok": false,
+      "error_prefix": "invalid pin level: 'X'"
+    },
+    {
+      "args": [
+        "set",
+        "-1",
+        "H"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: -1"
+    },
+    {
+      "args": [
+        "set",
+        "--drive",
+        "--test",
+        "2",
+        "H"
+      ],
+      "ok": false,
+      "error_prefix": "missing value for option --drive"
+    },
+    {
+      "args": [
+        "set",
+        "--test=1",
+        "2",
+        "H"
+      ],
+      "ok": false,
+      "error_prefix": "argument --test: ignored explicit argument '1'"
+    },
+    {
+      "args": [
+        "nope"
+      ],
+      "ok": true,
+      "rc": 1,
+      "lines": [
+        "usage: gw pin get|set [-h] ...",
+        "  get|set  Get or set a pin"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="kaypro.">
+  <!--prefix: kaypro.-->
+  <!--200kB: SSDD, 40 cyl-->
+  <disk name="ssdd.40">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="interleave" value="3" />
+      <option key="id" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <!--400kB: DSDD, 40 cyl-->
+  <disk name="dsdd.40">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="0-39.0" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="interleave" value="3" />
+      <option key="id" value="0" />
+      <option key="h" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+    <tracks spec="0-39.1" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="interleave" value="3" />
+      <option key="id" value="10" />
+      <option key="h" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <!--800kB: DSDD, 80 cyl-->
+  <disk name="dsdd.80">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="0-79.0" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="interleave" value="3" />
+      <option key="id" value="0" />
+      <option key="h" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+    <tracks spec="0-79.1" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="interleave" value="3" />
+      <option key="id" value="10" />
+      <option key="h" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+</diskdefs>

@@ -1,0 +1,137 @@
+{
+  "tag_cases": [
+    {
+      "tag": "v1.2",
+      "major": 1,
+      "minor": 2,
+      "matched": true
+    },
+    {
+      "tag": "v12.34",
+      "major": 12,
+      "minor": 34,
+      "matched": true
+    },
+    {
+      "tag": "v0.31-beta",
+      "major": 0,
+      "minor": 31,
+      "matched": true
+    },
+    {
+      "tag": "v7.7",
+      "major": 7,
+      "minor": 7,
+      "matched": true
+    }
+  ],
+  "line_cases": [
+    {
+      "name": "Host Tools",
+      "value": "1.0",
+      "tab": 0,
+      "output": "Host Tools: 1.0"
+    },
+    {
+      "name": "Port",
+      "value": "COM5",
+      "tab": 2,
+      "output": "  Port:     COM5"
+    },
+    {
+      "name": "Firmware",
+      "value": "1.2",
+      "tab": 4,
+      "output": "    Firmware:1.2"
+    }
+  ],
+  "runtime_cases": [
+    {
+      "args": [
+        "--test"
+      ],
+      "ok": true,
+      "lines": [
+        "Host Tools: {HOST_VERSION}",
+        "Device:"
+      ]
+    },
+    {
+      "args": [
+        "--test",
+        "--bootloader"
+      ],
+      "ok": true,
+      "lines": [
+        "Host Tools: {HOST_VERSION}",
+        "Device:"
+      ]
+    },
+    {
+      "args": [
+        "--test",
+        "--device",
+        "COM3"
+      ],
+      "ok": true,
+      "lines": [
+        "Host Tools: {HOST_VERSION}",
+        "Device:"
+      ]
+    },
+    {
+      "args": [
+        "--test",
+        "--device=COM3"
+      ],
+      "ok": true,
+      "lines": [
+        "Host Tools: {HOST_VERSION}",
+        "Device:"
+      ]
+    },
+    {
+      "args": [
+        "--weird"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --weird"
+    },
+    {
+      "args": [
+        "extra"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: extra"
+    },
+    {
+      "args": [
+        "--device"
+      ],
+      "ok": false,
+      "error_prefix": "missing value for option --device"
+    },
+    {
+      "args": [
+        "--test=1"
+      ],
+      "ok": false,
+      "error_prefix": "argument --test: ignored explicit argument '1'"
+    },
+    {
+      "args": [
+        "--"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --"
+    },
+    {
+      "args": [
+        "--",
+        "extra"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: -- extra"
+    }
+  ]
+}

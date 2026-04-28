@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="atari.">
+  <!--prefix: atari.-->
+  <disk name="90">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="18" />
+      <option key="bps" value="128" />
+      <option key="iam" value="yes" />
+      <option key="gap1" value="6" />
+      <option key="gap3" value="17" />
+      <option key="id" value="1" />
+      <option key="cskew" value="3" />
+      <option key="rate" value="130" />
+    </tracks>
+  </disk>
+  <disk name="130">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="26" />
+      <option key="bps" value="128" />
+      <option key="iam" value="yes" />
+      <option key="gap1" value="6" />
+      <option key="gap3" value="17" />
+      <option key="id" value="1" />
+      <option key="cskew" value="3" />
+      <option key="rate" value="260" />
+    </tracks>
+  </disk>
+</diskdefs>

@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="eagle.">
+  <!--prefix: eagle.-->
+  <disk name="ssqd.400">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="5" />
+      <option key="bps" value="1024" />
+      <option key="rpm" value="300" />
+      <option key="id" value="1" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="dsqd.800">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="5" />
+      <option key="bps" value="1024" />
+      <option key="rpm" value="300" />
+      <option key="id" value="1" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+</diskdefs>

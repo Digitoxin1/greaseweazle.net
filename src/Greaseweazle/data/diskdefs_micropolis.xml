@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="micropolis.">
+  <!--prefix: micropolis.-->
+  <disk name="48tpi.ss">
+    <option key="cyls" value="35" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="micropolis">
+      <option key="secs" value="16" />
+      <option key="img_bps" value="256" />
+    </tracks>
+  </disk>
+  <disk name="48tpi.ds">
+    <option key="cyls" value="35" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="micropolis">
+      <option key="secs" value="16" />
+      <option key="img_bps" value="256" />
+    </tracks>
+  </disk>
+  <disk name="48tpi.ss.275">
+    <option key="cyls" value="35" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="micropolis">
+      <option key="secs" value="16" />
+      <option key="img_bps" value="275" />
+    </tracks>
+  </disk>
+  <disk name="48tpi.ds.275">
+    <option key="cyls" value="35" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="micropolis">
+      <option key="secs" value="16" />
+      <option key="img_bps" value="275" />
+    </tracks>
+  </disk>
+  <disk name="100tpi.ss">
+    <option key="cyls" value="77" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="micropolis">
+      <option key="secs" value="16" />
+      <option key="img_bps" value="256" />
+    </tracks>
+  </disk>
+  <disk name="100tpi.ds">
+    <option key="cyls" value="77" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="micropolis">
+      <option key="secs" value="16" />
+      <option key="img_bps" value="256" />
+    </tracks>
+  </disk>
+  <disk name="100tpi.ss.275">
+    <option key="cyls" value="77" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="micropolis">
+      <option key="secs" value="16" />
+      <option key="img_bps" value="275" />
+    </tracks>
+  </disk>
+  <disk name="100tpi.ds.275">
+    <option key="cyls" value="77" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="micropolis">
+      <option key="secs" value="16" />
+      <option key="img_bps" value="275" />
+    </tracks>
+  </disk>
+</diskdefs>

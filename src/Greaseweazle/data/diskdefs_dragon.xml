@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="dragon.">
+  <!--prefix: dragon.-->
+  <disk name="40ss">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="18" />
+      <option key="bps" value="256" />
+      <option key="id" value="1" />
+      <option key="gap2" value="22" />
+      <option key="gap3" value="24" />
+      <option key="gap4a" value="32" />
+      <option key="interleave" value="2" />
+      <option key="iam" value="no" />
+    </tracks>
+  </disk>
+  <disk name="40ds">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="18" />
+      <option key="bps" value="256" />
+      <option key="id" value="1" />
+      <option key="gap2" value="22" />
+      <option key="gap3" value="24" />
+      <option key="gap4a" value="32" />
+      <option key="interleave" value="2" />
+      <option key="iam" value="no" />
+    </tracks>
+  </disk>
+  <disk name="80ss">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="18" />
+      <option key="bps" value="256" />
+      <option key="id" value="1" />
+      <option key="gap2" value="22" />
+      <option key="gap3" value="24" />
+      <option key="gap4a" value="32" />
+      <option key="interleave" value="2" />
+      <option key="iam" value="no" />
+    </tracks>
+  </disk>
+  <disk name="80ds">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="18" />
+      <option key="bps" value="256" />
+      <option key="id" value="1" />
+      <option key="gap2" value="22" />
+      <option key="gap3" value="24" />
+      <option key="gap4a" value="32" />
+      <option key="interleave" value="2" />
+      <option key="iam" value="no" />
+    </tracks>
+  </disk>
+</diskdefs>

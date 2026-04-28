@@ -1,0 +1,198 @@
+{
+  "pattern_cases": [
+    {
+      "cyls": 80,
+      "passes": 1,
+      "step": 10,
+      "pass_sequences": [
+        [
+          9,
+          0,
+          19,
+          10,
+          29,
+          20,
+          39,
+          30,
+          49,
+          40,
+          59,
+          50,
+          69,
+          60,
+          79,
+          70
+        ]
+      ]
+    },
+    {
+      "cyls": 9,
+      "passes": 2,
+      "step": 2,
+      "pass_sequences": [
+        [
+          1,
+          0,
+          3,
+          2,
+          5,
+          4,
+          7,
+          6,
+          8,
+          8
+        ],
+        [
+          1,
+          0,
+          3,
+          2,
+          5,
+          4,
+          7,
+          6,
+          8,
+          8
+        ]
+      ]
+    },
+    {
+      "cyls": 16,
+      "passes": 1,
+      "step": 2,
+      "pass_sequences": [
+        [
+          1,
+          0,
+          3,
+          2,
+          5,
+          4,
+          7,
+          6,
+          9,
+          8,
+          11,
+          10,
+          13,
+          12,
+          15,
+          14
+        ]
+      ]
+    }
+  ],
+  "seek_cases": [
+    {
+      "cylinder": 10,
+      "cyls": 80,
+      "seek_target": 10
+    },
+    {
+      "cylinder": 85,
+      "cyls": 80,
+      "seek_target": 79
+    },
+    {
+      "cylinder": 0,
+      "cyls": 1,
+      "seek_target": 0
+    },
+    {
+      "cylinder": 3,
+      "cyls": 3,
+      "seek_target": 2
+    }
+  ],
+  "runtime_cases": [
+    {
+      "args": [
+        "--test",
+        "--cyls",
+        "8",
+        "--passes",
+        "2"
+      ],
+      "ok": true,
+      "lines": [
+        "Pass 0: 1 0 3 2 5 4 7 6 ",
+        "Pass 1: 1 0 3 2 5 4 7 6 "
+      ]
+    },
+    {
+      "args": [
+        "--test",
+        "--passes",
+        "0"
+      ],
+      "ok": true,
+      "lines": []
+    },
+    {
+      "args": [
+        "--test",
+        "--cyls=8",
+        "--passes=2",
+        "--linger=100",
+        "--device=COM5"
+      ],
+      "ok": true,
+      "lines": [
+        "Pass 0: 1 0 3 2 5 4 7 6 ",
+        "Pass 1: 1 0 3 2 5 4 7 6 "
+      ]
+    },
+    {
+      "args": [
+        "--weird"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --weird"
+    },
+    {
+      "args": [
+        "--cyls",
+        "-1"
+      ],
+      "ok": false,
+      "error_prefix": "--cyls must be >= 0"
+    },
+    {
+      "args": [
+        "file.img"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: file.img"
+    },
+    {
+      "args": [
+        "--cyls",
+        "--passes"
+      ],
+      "ok": false,
+      "error_prefix": "missing value for option --cyls"
+    },
+    {
+      "args": [
+        "--test=1"
+      ],
+      "ok": false,
+      "error_prefix": "argument --test: ignored explicit argument '1'"
+    },
+    {
+      "args": [
+        "--"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --"
+    },
+    {
+      "args": [
+        "--",
+        "file.img"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: -- file.img"
+    }
+  ]
+}

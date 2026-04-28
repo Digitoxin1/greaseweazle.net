@@ -1,0 +1,234 @@
+{
+  "tspec_cases": [
+    {
+      "cyl": 40,
+      "head": 0,
+      "physical_cyl": 40,
+      "physical_head": 0,
+      "tspec": "T40.0"
+    },
+    {
+      "cyl": 40,
+      "head": 1,
+      "physical_cyl": 39,
+      "physical_head": 0,
+      "tspec": "T40.1 <- Drive 39.0"
+    }
+  ],
+  "header_single_cases": [
+    {
+      "tspec": "T40.0",
+      "reads": 10,
+      "revs": 3,
+      "line": "Aligning T40.0, reading 10 times, revs=3"
+    },
+    {
+      "tspec": "T40.1 <- Drive 39.0",
+      "reads": 5,
+      "revs": 2,
+      "line": "Aligning T40.1 <- Drive 39.0, reading 5 times, revs=2"
+    }
+  ],
+  "header_multi_cases": [
+    {
+      "cyl": 40,
+      "heads": [
+        0,
+        1
+      ],
+      "reads": 10,
+      "revs": 3,
+      "line": "Aligning T40 (alternating heads 0,1), reading 10 times, revs=3"
+    }
+  ],
+  "validate_cases": [
+    {
+      "tracks": [],
+      "ok": false,
+      "error": "Align command requires at least one track (e.g., c=40:h=0)"
+    },
+    {
+      "tracks": [
+        {
+          "cyl": 40,
+          "head": 0
+        },
+        {
+          "cyl": 40,
+          "head": 1
+        }
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "tracks": [
+        {
+          "cyl": 40,
+          "head": 0
+        },
+        {
+          "cyl": 41,
+          "head": 1
+        }
+      ],
+      "ok": false,
+      "error": "All tracks must be on the same cylinder for alignment"
+    }
+  ],
+  "alternation_cases": [
+    {
+      "read_num": 1,
+      "track_count": 2,
+      "index": 0
+    },
+    {
+      "read_num": 2,
+      "track_count": 2,
+      "index": 1
+    },
+    {
+      "read_num": 5,
+      "track_count": 3,
+      "index": 1
+    }
+  ],
+  "hard_sector_cases": [
+    {
+      "hard_sectors": 8,
+      "revs": 3,
+      "effective_revs": 36,
+      "effective_ticks": 0
+    },
+    {
+      "hard_sectors": 16,
+      "revs": 1,
+      "effective_revs": 34,
+      "effective_ticks": 0
+    }
+  ],
+  "runtime_cases": [
+    {
+      "args": [
+        "--test",
+        "--tracks",
+        "c=40:h=0",
+        "--reads",
+        "4",
+        "--revs",
+        "2"
+      ],
+      "ok": true,
+      "lines": [
+        "Aligning T40.0, reading 4 times, revs=2"
+      ]
+    },
+    {
+      "args": [
+        "--test",
+        "--tracks",
+        "c=40:h=0,1",
+        "--reads",
+        "3"
+      ],
+      "ok": true,
+      "lines": [
+        "Aligning T40 (alternating heads 0,1), reading 3 times, revs=3"
+      ]
+    },
+    {
+      "args": [
+        "--test",
+        "--tracks=c=40:h=0",
+        "--reads=4",
+        "--revs=2"
+      ],
+      "ok": true,
+      "lines": [
+        "Aligning T40.0, reading 4 times, revs=2"
+      ]
+    },
+    {
+      "args": [
+        "--test",
+        "--tracks",
+        "c=40:h=0",
+        "--format",
+        "ibm.1440"
+      ],
+      "ok": true,
+      "lines": [
+        "Aligning T40.0, reading 10 times, revs=2",
+        "Format ibm.1440"
+      ]
+    },
+    {
+      "args": [
+        "--format",
+        "ibm.1440"
+      ],
+      "ok": false,
+      "error_prefix": "align requires --tracks"
+    },
+    {
+      "args": [
+        "--tracks",
+        "c=40:h=0",
+        "--format",
+        "bad.format"
+      ],
+      "ok": false,
+      "error_prefix": "Unknown format 'bad.format'"
+    },
+    {
+      "args": [
+        "--tracks",
+        "c=40:h=0",
+        "--weird"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --weird"
+    },
+    {
+      "args": [
+        "--tracks",
+        "--reads",
+        "1"
+      ],
+      "ok": false,
+      "error_prefix": "missing value for option --tracks"
+    },
+    {
+      "args": [
+        "--reads",
+        "1"
+      ],
+      "ok": false,
+      "error_prefix": "align requires --tracks"
+    },
+    {
+      "args": [
+        "--tracks",
+        "c=40:h=0",
+        "--test=1"
+      ],
+      "ok": false,
+      "error_prefix": "argument --test: ignored explicit argument '1'"
+    },
+    {
+      "args": [
+        "--"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --"
+    },
+    {
+      "args": [
+        "--",
+        "input.img"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: -- input.img"
+    }
+  ]
+}

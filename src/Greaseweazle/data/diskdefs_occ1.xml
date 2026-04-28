@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="occ1.">
+  <!--prefix: occ1.-->
+  <!--Osborne 1 Single Density-->
+  <disk name="sd">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="10" />
+      <option key="bps" value="256" />
+      <option key="rate" value="125" />
+    </tracks>
+  </disk>
+  <!--Osborne 1 Double Density-->
+  <disk name="dd">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="5" />
+      <option key="bps" value="1024" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+</diskdefs>

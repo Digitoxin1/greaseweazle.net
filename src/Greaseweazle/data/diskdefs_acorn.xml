@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="acorn.">
+  <!--prefix: acorn.-->
+  <disk name="adfs.160">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="57" />
+      <option key="id" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="adfs.320">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="57" />
+      <option key="id" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="adfs.640">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="16" />
+      <option key="bps" value="256" />
+      <option key="gap3" value="57" />
+      <option key="id" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="adfs.800">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="5" />
+      <option key="bps" value="1024" />
+      <option key="gap3" value="116" />
+      <option key="id" value="0" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="adfs.1600">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="1024" />
+      <option key="gap3" value="116" />
+      <option key="id" value="0" />
+      <option key="rate" value="500" />
+    </tracks>
+  </disk>
+  <disk name="dfs.ss">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="10" />
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="21" />
+      <option key="id" value="0" />
+      <option key="cskew" value="3" />
+      <option key="rate" value="125" />
+    </tracks>
+  </disk>
+  <disk name="dfs.ss80">
+    <option key="cyls" value="80" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="10" />
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="21" />
+      <option key="id" value="0" />
+      <option key="cskew" value="3" />
+      <option key="rate" value="125" />
+    </tracks>
+  </disk>
+  <disk name="dfs.ds">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="10" />
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="21" />
+      <option key="id" value="0" />
+      <option key="cskew" value="3" />
+      <option key="rate" value="125" />
+      <option key="h" value="0" />
+    </tracks>
+  </disk>
+  <disk name="dfs.ds80">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.fm">
+      <option key="secs" value="10" />
+      <option key="bps" value="256" />
+      <option key="iam" value="no" />
+      <option key="gap3" value="21" />
+      <option key="id" value="0" />
+      <option key="cskew" value="3" />
+      <option key="rate" value="125" />
+      <option key="h" value="0" />
+    </tracks>
+  </disk>
+</diskdefs>

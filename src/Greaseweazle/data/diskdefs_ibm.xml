@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diskdefs prefix="ibm.">
+  <!--prefix: ibm.-->
+  <disk name="160">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="8" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="180">
+    <option key="cyls" value="40" />
+    <option key="heads" value="1" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="9" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="320">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="8" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="360">
+    <option key="cyls" value="40" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="9" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="720">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="9" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="800">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="10" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="30" />
+      <option key="rate" value="250" />
+    </tracks>
+  </disk>
+  <disk name="1200">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="15" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="84" />
+      <option key="rate" value="500" />
+      <option key="rpm" value="360" />
+    </tracks>
+  </disk>
+  <disk name="1440">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="18" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="108" />
+      <option key="rate" value="500" />
+    </tracks>
+  </disk>
+  <disk name="1680">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="21" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="12" />
+      <option key="cskew" value="3" />
+      <option key="interleave" value="2" />
+      <option key="rate" value="500" />
+    </tracks>
+  </disk>
+  <!--alias for 1680-->
+  <disk name="dmf">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="21" />
+      <option key="bps" value="512" />
+      <option key="gap3" value="12" />
+      <option key="cskew" value="3" />
+      <option key="interleave" value="2" />
+      <option key="rate" value="500" />
+    </tracks>
+  </disk>
+  <disk name="2880">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.mfm">
+      <option key="secs" value="36" />
+      <option key="bps" value="512" />
+      <option key="gap2" value="41" />
+      <option key="rate" value="1000" />
+    </tracks>
+  </disk>
+  <!--Generic IBM format codec which will scan a track for any valid FM/MFM-->
+  <!--sectors at standard rates (125kbps, 250kbps, 500kbps) and RPMs (300, 360).-->
+  <disk name="scan">
+    <option key="cyls" value="80" />
+    <option key="heads" value="2" />
+    <tracks spec="*" format="ibm.scan">
+      <!--Following options restrict the scanner's search-->
+      <!--rate = 250-->
+      <!--rpm = 300-->
+    </tracks>
+  </disk>
+</diskdefs>

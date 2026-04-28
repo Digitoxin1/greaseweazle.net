@@ -1,0 +1,114 @@
+{
+  "buffer_cases": [
+    {
+      "nr": 8,
+      "seed": 305419896,
+      "buffer": [
+        120,
+        60,
+        158,
+        207,
+        5,
+        224,
+        112,
+        184
+      ]
+    },
+    {
+      "nr": 6,
+      "seed": 1,
+      "buffer": [
+        1,
+        98,
+        49,
+        122,
+        61,
+        124
+      ]
+    }
+  ],
+  "required_min_bw": 4.626506024096385,
+  "estimate_cases": [
+    {
+      "min_read": 8.5,
+      "min_write": 9.5,
+      "estimated": 7.65,
+      "status": "max_flux=0.861;min_ave_flux=1.162"
+    },
+    {
+      "min_read": 3.0,
+      "min_write": 5.0,
+      "estimated": 2.7,
+      "status": "warning=4.627"
+    }
+  ],
+  "runtime_cases": [
+    {
+      "args": [
+        "--test"
+      ],
+      "ok": true,
+      "lines": []
+    },
+    {
+      "args": [
+        "--test",
+        "--device",
+        "COM3"
+      ],
+      "ok": true,
+      "lines": []
+    },
+    {
+      "args": [
+        "--test",
+        "--device=COM3"
+      ],
+      "ok": true,
+      "lines": []
+    },
+    {
+      "args": [
+        "--weird"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --weird"
+    },
+    {
+      "args": [
+        "extra"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: extra"
+    },
+    {
+      "args": [
+        "--device"
+      ],
+      "ok": false,
+      "error_prefix": "missing value for option --device"
+    },
+    {
+      "args": [
+        "--test=1"
+      ],
+      "ok": false,
+      "error_prefix": "argument --test: ignored explicit argument '1'"
+    },
+    {
+      "args": [
+        "--"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: --"
+    },
+    {
+      "args": [
+        "--",
+        "extra"
+      ],
+      "ok": false,
+      "error_prefix": "unrecognized arguments: -- extra"
+    }
+  ]
+}

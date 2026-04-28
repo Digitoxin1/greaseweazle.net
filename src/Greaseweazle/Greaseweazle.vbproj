@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>gw-vb</AssemblyName>
+    <RootNamespace></RootNamespace>
+    <OutputType>Exe</OutputType>
+    <StartupObject>Greaseweazle.Cli.Program</StartupObject>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="**\*.vb" Exclude="bin\**\*;obj\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="data\*.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Management" />
+  </ItemGroup>
+</Project>

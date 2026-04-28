@@ -2,7 +2,6 @@ Imports Greaseweazle.Core
 Imports Greaseweazle.Infrastructure
 Imports System.IO.Compression
 Imports System.Net
-Imports System.Linq
 Imports System.Runtime.Serialization
 Imports System.Runtime.Serialization.Json
 Imports System.Text

@@ -1,5 +1,3 @@
-Imports System.Collections.Generic
-
 Namespace Greaseweazle.Optimised
 
     ' Python map: src/greaseweazle/optimised/td0_lzss.c::td0_unpack

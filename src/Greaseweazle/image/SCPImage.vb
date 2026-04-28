@@ -1,5 +1,4 @@
 Imports Greaseweazle.Core
-Imports System.Linq
 Imports System.Text
 
 Namespace Greaseweazle.Images

@@ -1,6 +1,4 @@
-Imports Greaseweazle.Codecs
 Imports Greaseweazle.Core
-Imports Greaseweazle.Images
 Imports Greaseweazle.Infrastructure
 Imports Greaseweazle.Shared
 Imports System.IO

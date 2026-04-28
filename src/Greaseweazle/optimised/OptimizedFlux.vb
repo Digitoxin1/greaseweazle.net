@@ -1,4 +1,3 @@
-Imports System.Collections.Generic
 Imports Greaseweazle.Core
 
 Namespace Greaseweazle.Optimised

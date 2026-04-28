@@ -1,6 +1,3 @@
-Imports System.Collections.Generic
-Imports System.Linq
-
 Namespace Greaseweazle.Optimised
 
     ' Python map: src/greaseweazle/optimised/c64.c::(no direct 1:1 symbol; VB helper class declaration)

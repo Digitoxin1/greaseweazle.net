@@ -1,6 +1,3 @@
-Imports Greaseweazle.Core
-Imports Greaseweazle.Optimised
-
 Namespace Greaseweazle.Infrastructure
 
     ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB class declaration UsbProtocol)
@@ -99,8 +96,8 @@ Namespace Greaseweazle.Infrastructure
 
         ' Python map: src/greaseweazle/usb.py::_encode_flux
         Public Shared Function EncodeFlux(fluxValues As IEnumerable(Of Integer), sampleFrequency As Double) As Byte()
-            Dim nfaThreshold = CInt(Math.Round(150.0E-6 * sampleFrequency))
-            Dim nfaPeriod = CInt(Math.Round(1.25E-6 * sampleFrequency))
+            Dim nfaThreshold = CInt(Math.Round(0.00015 * sampleFrequency))
+            Dim nfaPeriod = CInt(Math.Round(0.00000125 * sampleFrequency))
             Dim data As New List(Of Byte)()
 
             Dim write28 As Action(Of Integer) =
@@ -111,7 +108,7 @@ Namespace Greaseweazle.Infrastructure
                     data.Add(CByte(1 Or ((value >> 20) And &HFF)))
                 End Sub
 
-            Dim dummyFlux = CInt(Math.Round(100.0E-6 * sampleFrequency))
+            Dim dummyFlux = CInt(Math.Round(0.0001 * sampleFrequency))
             For Each value In fluxValues.Concat({dummyFlux})
                 If value = 0 Then
                     Continue For

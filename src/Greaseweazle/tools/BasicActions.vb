@@ -1,9 +1,5 @@
 Imports System.Globalization
-Imports System.Diagnostics
 Imports System.IO
-Imports System.IO.Ports
-Imports System.Linq
-Imports System.Threading
 Imports Greaseweazle.Codecs
 Imports Greaseweazle.Core
 Imports Greaseweazle.Images

@@ -1,4 +1,3 @@
-Imports System.Linq
 Imports Greaseweazle.Codecs
 Imports Greaseweazle.Core
 Imports Greaseweazle.Optimised

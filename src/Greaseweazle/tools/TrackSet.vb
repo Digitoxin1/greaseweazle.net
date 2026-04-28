@@ -1,5 +1,4 @@
 Imports System.Text.RegularExpressions
-Imports System.Collections
 
 Namespace Greaseweazle.Shared
 

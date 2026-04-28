@@ -1,6 +1,5 @@
 Imports Greaseweazle.Codecs
 Imports Greaseweazle.Core
-Imports System.Linq
 
 Namespace Greaseweazle.Images
 

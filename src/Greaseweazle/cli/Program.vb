@@ -1,4 +1,3 @@
-Imports System.IO
 Imports Greaseweazle.Codecs
 Imports Greaseweazle.Shared
 Imports Greaseweazle.Tools

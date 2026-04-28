@@ -1,5 +1,3 @@
-Imports System.Collections.Generic
-
 Namespace Greaseweazle.Optimised
 
     ' Python map: src/greaseweazle/optimised/mac.c::(no direct 1:1 symbol; VB helper class declaration)

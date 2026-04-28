@@ -1,5 +1,3 @@
-Imports System.Linq
-
 Namespace Greaseweazle.Optimised
 
     ' Python map: src/greaseweazle/optimised/apple_gcr_6a2.c::(no direct 1:1 symbol; VB helper class declaration)

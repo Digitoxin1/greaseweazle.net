@@ -3,7 +3,6 @@ Imports Greaseweazle.Codecs
 Imports Greaseweazle.Infrastructure
 Imports Greaseweazle.Shared
 Imports System.IO
-Imports System.Linq
 
 Namespace Greaseweazle.Tools
 

@@ -1,6 +1,4 @@
 Imports System.Text.RegularExpressions
-Imports System.Xml.Linq
-Imports System.Reflection
 Imports Greaseweazle.Core
 Imports Greaseweazle.Shared
 

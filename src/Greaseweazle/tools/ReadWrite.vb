@@ -7,8 +7,8 @@ Imports System.IO
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed read runtime state that Python keeps in argparse namespace/local variables.
-    Public Class ReadRuntimePreview
+    ' Strongly-typed options for the `read` action.
+    Public Class ReadOptions
         Public Property FileName As String
         Public Property Format As String
         Public Property DiskDefsPath As String
@@ -36,13 +36,18 @@ Namespace Greaseweazle.Tools
         Public Property Densel As Nullable(Of Boolean)
         Public Property Retries As Integer
         Public Property SeekRetries As Integer
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
         Public Property Drive As DriveSpec
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String),
+                                        knownFormats As IEnumerable(Of String)) As ReadOptions
+            Return ReadWrite.BuildReadOptions(args, knownFormats)
+        End Function
     End Class
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed write runtime state that Python keeps in argparse namespace/local variables.
-    Public Class WriteRuntimePreview
+    ' Strongly-typed options for the `write` action.
+    Public Class WriteOptions
         Public Property FileName As String
         Public Property Format As String
         Public Property DiskDefsPath As String
@@ -59,9 +64,14 @@ Namespace Greaseweazle.Tools
         Public Property Densel As Nullable(Of Boolean)
         Public Property FakeIndexPeriod As Nullable(Of Double)
         Public Property Retries As Integer
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
         Public Property Drive As DriveSpec
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String),
+                                        knownFormats As IEnumerable(Of String)) As WriteOptions
+            Return ReadWrite.BuildWriteOptions(args, knownFormats)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/read.py + src/greaseweazle/tools/write.py (direct algorithm parity for argument/runtime shaping).
@@ -104,10 +114,21 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/tools/read.py::read_with_retry
+        '
+        ' Reads (and optionally decodes/retries) one track. Two
+        ' callbacks expose progress without the algorithm producing
+        ' any text:
+        '   onTrackProcessed - fires once on the initial read AND
+        '                      once per retry attempt
+        '   onTrackGaveUp    - fires only when the retry budget is
+        '                      exhausted with sectors still missing
+        ' Returns (flux, decoded-or-Nothing) so the caller can decide
+        ' which artefact to emit to its output image.
         Public Shared Function ReadWithRetry(usbClient As Unit,
                                              t As TrackIter,
                                              revs As Integer,
-                                             output As TextWriter,
+                                             onTrackProcessed As Action(Of Greaseweazle.Actions.ReadTrackProcessedEventArgs),
+                                             onTrackGaveUp As Action(Of Greaseweazle.Actions.ReadTrackGaveUpEventArgs),
                                              Optional fmtCls As DiskDef = Nothing,
                                              Optional formatName As String = Nothing,
                                              Optional raw As Boolean = False,
@@ -121,7 +142,7 @@ Namespace Greaseweazle.Tools
                                              Optional seekRetries As Integer = 0,
                                              Optional genTg43 As Boolean = False,
                                              Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing) As Tuple(Of Flux, HasFlux)
-            Dim tspec = BuildTrackSpec(t)
+            Dim trackInfo = Greaseweazle.Actions.ReadTrackInfo.FromTrackIter(t)
             usbClient.Seek(t.PhysicalCyl, t.PhysicalHead)
             If genTg43 Then
                 usbClient.SetPin(2, t.Cyl < 60)
@@ -136,7 +157,12 @@ Namespace Greaseweazle.Tools
                                         adjustSpeed:=adjustSpeed,
                                         fakeIndexPeriod:=fakeIndexPeriod)
             If fmtCls Is Nothing Then
-                output.WriteLine(String.Format("{0}: {1}", tspec, flux.SummaryString()))
+                If onTrackProcessed IsNot Nothing Then
+                    onTrackProcessed(New Greaseweazle.Actions.ReadTrackProcessedEventArgs(
+                        trackInfo,
+                        Greaseweazle.Actions.ReadTrackOutcome.NoFormat,
+                        flux.SummaryString(), Nothing, Nothing, 0, 0))
+                End If
                 Return Tuple.Create(flux, CType(flux, HasFlux))
             End If
 
@@ -147,10 +173,12 @@ Namespace Greaseweazle.Tools
             Dim firstPll As Pll = If(profiles.Count > 0, profiles(0), Nothing)
             Dim dat = fmtCls.DecodeFlux(t.Cyl, t.Head, flux, firstPll)
             If dat Is Nothing Then
-                output.WriteLine(String.Format("{0}: WARNING: Out of range for format '{1}': No format conversion applied: {2}",
-                                               tspec,
-                                               If(formatName, String.Empty),
-                                               flux.SummaryString()))
+                If onTrackProcessed IsNot Nothing Then
+                    onTrackProcessed(New Greaseweazle.Actions.ReadTrackProcessedEventArgs(
+                        trackInfo,
+                        Greaseweazle.Actions.ReadTrackOutcome.OutOfRange,
+                        flux.SummaryString(), Nothing, If(formatName, String.Empty), 0, 0))
+                End If
                 Return Tuple.Create(flux, CType(Nothing, HasFlux))
             End If
             For i = 1 To profiles.Count - 1
@@ -163,22 +191,22 @@ Namespace Greaseweazle.Tools
             Dim seekRetry = 0
             Dim retry = 0
             While True
-                Dim line = String.Format("{0}: {1} from {2}",
-                                         tspec,
-                                         dat.SummaryString(),
-                                         flux.SummaryString())
-                If retry <> 0 Then
-                    line &= String.Format(" (Retry #{0}.{1})", seekRetry, retry)
+                If onTrackProcessed IsNot Nothing Then
+                    onTrackProcessed(New Greaseweazle.Actions.ReadTrackProcessedEventArgs(
+                        trackInfo,
+                        Greaseweazle.Actions.ReadTrackOutcome.Decoded,
+                        flux.SummaryString(),
+                        dat.SummaryString(),
+                        Nothing, seekRetry, retry))
                 End If
-                output.WriteLine(line)
                 If dat.NrMissing() = 0 Then
                     Exit While
                 End If
                 If retries = 0 OrElse (retry Mod retries) = 0 Then
                     If retries = 0 OrElse seekRetry > seekRetries Then
-                        output.WriteLine(String.Format("{0}: Giving up: {1} sectors missing",
-                                                       tspec,
-                                                       dat.NrMissing()))
+                        If onTrackGaveUp IsNot Nothing Then
+                            onTrackGaveUp(New Greaseweazle.Actions.ReadTrackGaveUpEventArgs(trackInfo, dat.NrMissing()))
+                        End If
                         Exit While
                     End If
                     If retry <> 0 Then
@@ -218,119 +246,61 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/tools/read.py::print_summary
-        Public Shared Sub PrintSummary(tracks As TrackSet,
-                                       summary As IDictionary(Of Tuple(Of Integer, Integer), Codec),
-                                       output As TextWriter)
-            If summary Is Nothing OrElse summary.Count = 0 Then
-                Return
-            End If
-
+        ' Builds a typed sector grid from the (cyls × heads) decode dict.
+        ' Returns Nothing when there are no decoded tracks (matches
+        ' Python's "skip the table" guard); callers should treat a
+        ' Nothing return as "no summary block to emit".
+        Public Shared Function BuildSectorSummary(tracks As TrackSet,
+                                                  summary As IDictionary(Of Tuple(Of Integer, Integer), Codec)) As Greaseweazle.Actions.SectorSummaryGrid
+            If summary Is Nothing OrElse summary.Count = 0 Then Return Nothing
             Dim nsec = summary.Values.Select(Function(x) x.Nsec).DefaultIfEmpty(0).Max()
-            If nsec <= 0 Then
-                Return
-            End If
+            If nsec <= 0 Then Return Nothing
 
-            Dim tens As String = "Cyl-> "
-            Dim p = -1
-            For Each c In tracks.Cyls
-                tens &= If(c \ 10 = p, " ", (c \ 10).ToString(Globalization.CultureInfo.InvariantCulture))
-                p = c \ 10
-            Next
-            output.WriteLine(tens)
-
-            Dim ones As String = "H. S: "
-            For Each c In tracks.Cyls
-                ones &= (c Mod 10).ToString(Globalization.CultureInfo.InvariantCulture)
-            Next
-            output.WriteLine(ones)
-
+            Dim cyls = New List(Of Integer)(tracks.Cyls)
+            Dim heads = New List(Of Integer)(tracks.Heads)
+            Dim rows As New List(Of Greaseweazle.Actions.SectorSummaryRow)()
             Dim totSec = 0
             Dim goodSec = 0
-            For Each head In tracks.Heads
+            For Each head In heads
                 Dim headNsec = summary.Where(Function(kvp) kvp.Key.Item2 = head).
                     Select(Function(kvp) kvp.Value.Nsec).
                     DefaultIfEmpty(0).
                     Max()
-                If headNsec = 0 Then
-                    Continue For
-                End If
-
+                If headNsec = 0 Then Continue For
                 For sec = 0 To headNsec - 1
-                    Dim line = String.Format(Globalization.CultureInfo.InvariantCulture, "{0}.{1,2}: ", head, sec)
-                    For Each cyl In tracks.Cyls
+                    Dim cells As New List(Of Greaseweazle.Actions.SectorSummaryCell)(cyls.Count)
+                    For Each cyl In cyls
                         Dim key = Tuple.Create(cyl, head)
                         If Not summary.ContainsKey(key) OrElse sec >= summary(key).Nsec Then
-                            line &= " "
+                            cells.Add(Greaseweazle.Actions.SectorSummaryCell.Empty)
                         Else
                             totSec += 1
                             If summary(key).HasSec(sec) Then
                                 goodSec += 1
-                                line &= "."
+                                cells.Add(Greaseweazle.Actions.SectorSummaryCell.Good)
                             Else
-                                line &= "X"
+                                cells.Add(Greaseweazle.Actions.SectorSummaryCell.Bad)
                             End If
                         End If
                     Next
-                    output.WriteLine(line)
+                    rows.Add(New Greaseweazle.Actions.SectorSummaryRow(head, sec, cells))
                 Next
             Next
+            Return New Greaseweazle.Actions.SectorSummaryGrid(cyls, heads, rows, totSec, goodSec)
+        End Function
 
-            If totSec <> 0 Then
-                output.WriteLine(String.Format(Globalization.CultureInfo.InvariantCulture,
-                                               "Found {0} sectors of {1} ({2}%)",
-                                               goodSec,
-                                               totSec,
-                                               (goodSec * 100) \ totSec))
-            End If
-        End Sub
+        ' Python read.py::read_to_image lives inline in
+        ' Greaseweazle.Tools.ReadAction.RunFromOptions/RunLive
+        ' (BasicActions.vb). Per-track flux/decode emission flows
+        ' through the typed ReadCommand events; sector-summary text
+        ' is produced by Greaseweazle.Cli.Formatters.ReadFormatter.
 
-        ' Python read.py::read_to_image lives inline in Greaseweazle.Tools.ReadAction.Execute
-        ' (BasicActions.vb). The earlier standalone helper here has been removed because
-        ' it had drifted (no fractional-revs handling, no fake-index/hard-sectors setup,
-        ' no --raw branch, no CmdError catch) and would have to mirror Execute's full
-        ' image-class fan-out to be useful. Keeping a single implementation prevents the
-        ' two from diverging again.
-
-        ' Python map: src/greaseweazle/tools/write.py::write_from_image
-        Public Shared Sub WriteFromImage(usbClient As Unit,
-                                         tracks As IEnumerable(Of TrackIter),
-                                         image As Image,
-                                         output As TextWriter,
-                                         Optional eraseEmpty As Boolean = False,
-                                         Optional revs As Integer = 1)
-            Dim driveTicksPerRev = usbClient.ReadTrack(2, 0).TicksPerRev
-            For Each t In tracks
-                Dim tspec = String.Format("T{0}.{1}", t.Cyl, t.Head)
-                If t.PhysicalCyl <> t.Cyl OrElse t.PhysicalHead <> t.Head Then
-                    tspec &= String.Format(" -> Drive {0}.{1}", t.PhysicalCyl, t.PhysicalHead)
-                End If
-
-                usbClient.Seek(t.PhysicalCyl, t.PhysicalHead)
-                Dim track = image.GetTrack(t.Cyl, t.Head)
-                If track Is Nothing Then
-                    If eraseEmpty Then
-                        output.WriteLine(String.Format("{0}: Erasing Track", tspec))
-                        usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                    End If
-                    Continue For
-                End If
-
-                Dim wflux = track.FluxForWriteout(cueAtIndex:=True)
-                Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                ' Python write.py:103-109 passes wflux.list (float) into the
-                ' residual loop. Pre-rounding to int would drop the fractional
-                ' parts the Bresenham carry needs, so feed the List(Of Double)
-                ' through unchanged.
-                Dim scaled = ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                For i = 1 To revs
-                    output.WriteLine(String.Format("{0}: Writing Track ({1})", tspec, wflux.SummaryString()))
-                    usbClient.WriteTrack(scaled,
-                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                         cueAtIndex:=wflux.IndexCued)
-                Next
-            Next
-            output.WriteLine("All tracks verified")
-        End Sub
+        ' Python write.py::write_from_image lives inline in
+        ' Greaseweazle.Tools.WriteAction.RunFromOptions/RunWriteLive
+        ' (BasicActions.vb). Per-track erase/write/verify emission
+        ' flows through the typed WriteCommand events; the verify
+        ' summary footer is produced by
+        ' Greaseweazle.Cli.Formatters.WriteFormatter.
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ScaleWriteFlux)
         ' Python map: src/greaseweazle/tools/write.py:103-109
@@ -390,9 +360,9 @@ Namespace Greaseweazle.Tools
             }
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildReadRuntimePreview)
-        Public Shared Function BuildReadRuntimePreview(args As IReadOnlyList(Of String),
-                                                       knownFormats As IEnumerable(Of String)) As ReadRuntimePreview
+        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildReadOptions)
+        Public Shared Function BuildReadOptions(args As IReadOnlyList(Of String),
+                                                       knownFormats As IEnumerable(Of String)) As ReadOptions
             Dim format As String = Nothing
             Dim diskDefsPath As String = Nothing
             Dim tracksSpec As String = Nothing
@@ -574,7 +544,7 @@ Namespace Greaseweazle.Tools
                 pllProfiles.Add(pllOverride)
             End If
             pllProfiles.AddRange(Plls.Values)
-            Return New ReadRuntimePreview With {
+            Return New ReadOptions With {
                 .FileName = positionals(0),
                 .Format = format,
                 .DiskDefsPath = diskDefsPath,
@@ -600,9 +570,9 @@ Namespace Greaseweazle.Tools
             }
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildWriteRuntimePreview)
-        Public Shared Function BuildWriteRuntimePreview(args As IReadOnlyList(Of String),
-                                                        knownFormats As IEnumerable(Of String)) As WriteRuntimePreview
+        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildWriteOptions)
+        Public Shared Function BuildWriteOptions(args As IReadOnlyList(Of String),
+                                                        knownFormats As IEnumerable(Of String)) As WriteOptions
             Dim format As String = Nothing
             Dim diskDefsPath As String = Nothing
             Dim tracksSpec As String = Nothing
@@ -738,7 +708,7 @@ Namespace Greaseweazle.Tools
             Catch ex As ArgumentException
                 Throw New FatalException(ex.Message)
             End Try
-            Return New WriteRuntimePreview With {
+            Return New WriteOptions With {
                 .FileName = positionals(0),
                 .Format = format,
                 .DiskDefsPath = diskDefsPath,
@@ -836,15 +806,6 @@ Namespace Greaseweazle.Tools
                 Throw New FatalException(String.Format("invalid value for {0}: {1}", optionName, value))
             End If
             Return parsed
-        End Function
-
-        ' Python map: src/greaseweazle/tools/read.py::(no direct 1:1 symbol; VB helper to format track spec for read logging)
-        Private Shared Function BuildTrackSpec(t As TrackIter) As String
-            Dim tspec = String.Format("T{0}.{1}", t.Cyl, t.Head)
-            If t.PhysicalCyl <> t.Cyl OrElse t.PhysicalHead <> t.Head Then
-                tspec &= String.Format(" <- Drive {0}.{1}", t.PhysicalCyl, t.PhysicalHead)
-            End If
-            Return tspec
         End Function
 
     End Class

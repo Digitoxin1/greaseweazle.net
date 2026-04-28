@@ -3,16 +3,20 @@ Imports Greaseweazle.Infrastructure
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed seek runtime state.
-    Public Class SeekRuntimePreview
+    ' Strongly-typed options for the `seek` action.
+    Public Class SeekOptions
         Public Property Cyl As Integer
         Public Property MotorOn As Boolean
         Public Property Force As Boolean
         Public Property PromptNeeded As Boolean
         Public Property PromptText As String
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
         Public Property Drive As DriveSpec
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As SeekOptions
+            Return Seek.BuildRuntimePreview(args)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/seek.py (direct command-algorithm parity mapping).
@@ -43,7 +47,7 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As SeekRuntimePreview
+        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As SeekOptions
             Dim force = False
             Dim motorOn = False
             Dim live = True
@@ -111,7 +115,7 @@ Namespace Greaseweazle.Tools
                 Throw New FatalException(ex.Message)
             End Try
 
-            Return New SeekRuntimePreview With {
+            Return New SeekOptions With {
                 .Cyl = cyl,
                 .Force = force,
                 .MotorOn = motorOn,

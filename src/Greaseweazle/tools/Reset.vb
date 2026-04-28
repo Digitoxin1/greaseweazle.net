@@ -2,11 +2,15 @@ Imports Greaseweazle.Core
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed reset runtime state.
-    Public Class ResetRuntimePreview
+    ' Strongly-typed options for the `reset` action.
+    Public Class ResetOptions
         Public Property DelaysFlag As Boolean
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As ResetOptions
+            Return Reset.BuildRuntimePreview(args)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/reset.py (direct command-algorithm parity mapping).
@@ -22,7 +26,7 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As ResetRuntimePreview
+        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As ResetOptions
             Dim delaysFlag = False
             Dim live = True
             Dim device As String = Nothing
@@ -69,7 +73,7 @@ Namespace Greaseweazle.Tools
             If positionals.Count > 0 Then
                 Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
-            Return New ResetRuntimePreview With {.DelaysFlag = delaysFlag, .Live = live, .Device = device}
+            Return New ResetOptions With {.DelaysFlag = delaysFlag, .Live = live, .Device = device}
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration CheckOptionValue)

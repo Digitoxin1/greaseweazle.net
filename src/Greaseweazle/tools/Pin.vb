@@ -3,15 +3,18 @@ Imports Greaseweazle.Infrastructure
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed pin runtime state.
-    Public Class PinRuntimePreview
+    ' Strongly-typed options for the `pin` action.
+    Public Class PinOptions
         Public Property Mode As String
-        Public Property Message As String
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
         Public Property Drive As DriveSpec
         Public Property Pin As Integer
         Public Property Level As Boolean
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As PinOptions
+            Return Greaseweazle.Tools.Pin.BuildRuntimePreview(args)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/pin.py (direct command-algorithm parity mapping).
@@ -21,35 +24,9 @@ Namespace Greaseweazle.Tools
         Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/tools/pin.py::usage
-        Public Shared Function Usage() As List(Of String)
-            Return New List(Of String) From {
-                "usage: gw pin get|set [-h] ...",
-                "  get|set  Get or set a pin"
-            }
-        End Function
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration FormatPinLevelMessage)
-        Public Shared Function FormatPinLevelMessage(pin As Integer, level As Boolean) As String
-            Dim levelText = If(level, "High (5v)", "Low (0v)")
-            Return String.Format("Pin {0} is {1}", pin, levelText)
-        End Function
-
-        ' Python map: src/greaseweazle/tools/pin.py::pin_set
-        Public Shared Function PinSet(pin As Integer, level As Boolean) As String
-            Dim levelText = If(level, "High (5v)", "Low (0v)")
-            Return String.Format("Pin {0} is set {1}", pin, levelText)
-        End Function
-
         ' Python map: src/greaseweazle/tools/pin.py::_pin_get
         Public Shared Function PinGetInner(usbClient As Unit, pin As Integer) As Boolean
             Return usbClient.GetPin(pin)
-        End Function
-
-        ' Python map: src/greaseweazle/tools/pin.py::pin_get
-        Public Shared Function PinGet(usbClient As Unit, pin As Integer) As String
-            Dim level = PinGetInner(usbClient, pin)
-            Return FormatPinLevelMessage(pin, level)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration DispatchPinSubcommand)
@@ -67,9 +44,9 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As PinRuntimePreview
+        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As PinOptions
             If args.Count = 0 Then
-                Return New PinRuntimePreview With {.Mode = "usage"}
+                Return New PinOptions With {.Mode = "usage"}
             End If
 
             Dim subcommand = args(0)
@@ -124,9 +101,8 @@ Namespace Greaseweazle.Tools
                 Catch ex As ArgumentException
                     Throw New FatalException(ex.Message)
                 End Try
-                Return New PinRuntimePreview With {
+                Return New PinOptions With {
                     .Mode = "set",
-                    .Message = PinSet(pin, level),
                     .Live = live,
                     .Device = device,
                     .Drive = ResolveDrive(driveToken),
@@ -137,7 +113,7 @@ Namespace Greaseweazle.Tools
             If String.Equals(subcommand, "get", StringComparison.Ordinal) Then
                 ErrorHandling.Check(positionals.Count = 1, "pin get requires <pin>")
                 Dim pin = ParseUInt(positionals(0), "pin")
-                Return New PinRuntimePreview With {
+                Return New PinOptions With {
                     .Mode = "get",
                     .Live = live,
                     .Device = device,
@@ -145,7 +121,7 @@ Namespace Greaseweazle.Tools
                     .Pin = pin
                 }
             End If
-            Return New PinRuntimePreview With {.Mode = "usage"}
+            Return New PinOptions With {.Mode = "usage"}
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ParseUInt)

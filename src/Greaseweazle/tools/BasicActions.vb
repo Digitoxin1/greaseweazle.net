@@ -1,126 +1,26 @@
 Imports System.Globalization
 Imports System.IO
+Imports System.Threading
 Imports Greaseweazle.Codecs
 Imports Greaseweazle.Core
 Imports Greaseweazle.Images
 Imports Greaseweazle.Infrastructure
+Imports Greaseweazle.Shared
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this registry bootstrap aggregates command modules for VB startup.
-    Public NotInheritable Class Actions
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Private Sub New()
-        End Sub
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CreateDefaultRegistry)
-        Public Shared Function CreateDefaultRegistry() As ToolRegistry
-            Dim registry As New ToolRegistry()
-            registry.Register(New InfoAction())
-            registry.Register(New ReadAction())
-            registry.Register(New WriteAction())
-            registry.Register(New ConvertAction())
-            registry.Register(New EraseAction())
-            registry.Register(New CleanAction())
-            registry.Register(New SeekAction())
-            registry.Register(New DelaysAction())
-            registry.Register(New UpdateAction())
-            registry.Register(New PinAction())
-            registry.Register(New ResetAction())
-            registry.Register(New BandwidthAction())
-            registry.Register(New RpmAction())
-            registry.Register(New AlignAction())
-            Return registry
-        End Function
-
-    End Class
-
-    ' Python map: no-1:1 with Python symbols; this base type centralizes shared action metadata/behavior.
-    Public MustInherit Class StubActionBase
-        Implements ToolAction
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Protected Sub New(name As String, description As String)
-            Me.Name = name
-            Me.Description = description
-        End Sub
-
-        Public ReadOnly Property Name As String Implements ToolAction.Name
-        Public ReadOnly Property Description As String Implements ToolAction.Description
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overridable Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer Implements ToolAction.Execute
-            Throw New FatalException(String.Format("{0}: Action is not implemented", Name))
-        End Function
-    End Class
-
-    ' Python map: no-1:1 with Python symbols; this helper centralizes lightweight option parsing for parity probes.
-    Public NotInheritable Class ActionArgs
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Private Sub New()
-        End Sub
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Parse)
-        Public Shared Function Parse(args As IReadOnlyList(Of String)) As Dictionary(Of String, String)
-            Dim output As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
-            Dim i = 0
-            While i < args.Count
-                Dim token = args(i)
-                If token.StartsWith("--", StringComparison.Ordinal) Then
-                    Dim key = token.Substring(2)
-                    Dim value As String = "true"
-                    If i + 1 < args.Count AndAlso Not args(i + 1).StartsWith("--", StringComparison.Ordinal) Then
-                        value = args(i + 1)
-                        i += 1
-                    End If
-                    output(key) = value
-                Else
-                    output(String.Format("arg{0}", i)) = token
-                End If
-                i += 1
-            End While
-            Return output
-        End Function
-    End Class
-
     ' Python map: src/greaseweazle/tools/info.py::main (direct command execution mapping).
-    Public Class InfoAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("info", "Display information about the Greaseweazle setup.")
+    Public NotInheritable Class InfoAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-parse-tag") Then
-                Dim tag = parsed("tag")
-                Dim major = 0
-                Dim minor = 0
-                Dim matched = Info.TryParseFirmwareTag(tag, major, minor)
-                context.Output.WriteLine(String.Format("matched={0}", If(matched, "1", "0")))
-                If matched Then
-                    context.Output.WriteLine(String.Format("version={0}.{1}", major, minor))
-                End If
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-format-line") Then
-                Dim name = parsed("name")
-                Dim value = parsed("value")
-                Dim tab = Integer.Parse(parsed("tab"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(Info.PrintInfoLine(name, value, tab))
-                Return 0
-            End If
-            Dim preview = Info.BuildRuntimePreview(args)
-            ' Python info.py:68-70 prints Host Tools / Device: unconditionally before
-            ' attempting to open the device. Mirror that here regardless of test mode.
-            ' Python uses `__version__` which is the setuptools_scm-derived version
-            ' string (e.g. "1.23"). The assembly's InformationalVersion mirrors that
-            ' format directly (1.23.0/1.23.0.0 contain trailing .0 components Python
-            ' would not emit), so prefer it when present and only fall back to
-            ' AssemblyVersion if for some reason the attribute is missing.
+        ' Python map: src/greaseweazle/tools/info.py::main (post-parser algorithm body).
+        ' Returns a typed DeviceInfoResult. Port-open failures surface as
+        ' ConnectionState=NotFound (not as exceptions) so callers can
+        ' distinguish "device absent" from "transport error". Other USB
+        ' failures throw CmdError up.
+        Public Shared Function RunFromOptions(preview As InfoOptions) As Greaseweazle.Actions.DeviceInfoResult
             Dim hostVersion As String = Nothing
             Dim infoAttr = TryCast(Reflection.CustomAttributeExtensions.GetCustomAttribute(Of Reflection.AssemblyInformationalVersionAttribute)(Reflection.Assembly.GetExecutingAssembly()), Reflection.AssemblyInformationalVersionAttribute)
             If infoAttr IsNot Nothing AndAlso Not String.IsNullOrEmpty(infoAttr.InformationalVersion) Then
@@ -128,416 +28,422 @@ Namespace Greaseweazle.Tools
             Else
                 hostVersion = Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
             End If
-            context.Output.WriteLine(Info.PrintInfoLine("Host Tools", hostVersion))
-            context.Output.WriteLine("Device:")
-            If preview.Live Then
-                Dim usb As Unit = Nothing
-                Try
-                    Try
-                        usb = ToolOptions.UsbOpen(preview.Device, modeCheck:=False)
-                    Catch ex As IO.IOException
-                        ' Python catches `serial.SerialException` which covers port-not-found
-                        ' and port-in-use both; .NET splits these into IOException and
-                        ' UnauthorizedAccessException, so accept either to preserve "Not
-                        ' found" output parity rather than letting the worker dump a
-                        ' FATAL ERROR.
-                        context.Output.WriteLine("  Not found")
-                        Return 0
-                    Catch ex As UnauthorizedAccessException
-                        context.Output.WriteLine("  Not found")
-                        Return 0
-                    Catch ex As Exception When TypeOf ex Is FatalException
-                        context.Output.WriteLine("  Not found")
-                        Return 0
-                    End Try
-                    Dim fw = usb.ReadFirmwareInfo()
-                    Dim modeSwitched = usb.CanModeSwitch AndAlso usb.UpdateMode <> preview.Bootloader
-                    If modeSwitched Then
-                        usb = ToolOptions.UsbReopen(usb, isUpdate:=preview.Bootloader)
-                    End If
-                    If Not String.IsNullOrEmpty(usb.PortDevice) Then
-                        context.Output.WriteLine(Info.PrintInfoLine("Port", usb.PortDevice, 2))
-                    End If
-                    Dim model = Info.ModelName(usb.HwModel, usb.HwSubmodel)
-                    context.Output.WriteLine(Info.PrintInfoLine("Model", model, 2))
-                    Dim mcuStrs As New List(Of String)()
-                    Dim mcuName = Info.McuName(usb.McuId)
-                    If Not String.IsNullOrEmpty(mcuName) Then
-                        mcuStrs.Add(mcuName)
-                    End If
-                    If usb.McuMhz <> 0 Then
-                        mcuStrs.Add(String.Format(CultureInfo.InvariantCulture, "{0}MHz", usb.McuMhz))
-                    End If
-                    If usb.McuSramKb <> 0 Then
-                        mcuStrs.Add(String.Format(CultureInfo.InvariantCulture, "{0}kB SRAM", usb.McuSramKb))
-                    End If
-                    If mcuStrs.Count > 0 Then
-                        context.Output.WriteLine(Info.PrintInfoLine("MCU", String.Join(", ", mcuStrs), 2))
-                    End If
-                    Dim fwver = String.Format(CultureInfo.InvariantCulture, "{0}.{1}", fw.Major, fw.Minor)
-                    If usb.UpdateMode Then
-                        fwver &= " (Bootloader)"
-                    End If
-                    context.Output.WriteLine(Info.PrintInfoLine("Firmware", fwver, 2))
-                    Dim serial = If(String.IsNullOrEmpty(usb.PortSerialNumber), "Unknown", usb.PortSerialNumber)
-                    context.Output.WriteLine(Info.PrintInfoLine("Serial", serial, 2))
-                    Dim usbStrs As New List(Of String)()
-                    usbStrs.Add(Info.UsbSpeedName(usb.UsbSpeed))
-                    If usb.UsbBufferKb <> 0 Then
-                        usbStrs.Add(String.Format(CultureInfo.InvariantCulture, "{0}kB Buffer", usb.UsbBufferKb))
-                    End If
-                    context.Output.WriteLine(Info.PrintInfoLine("USB", String.Join(", ", usbStrs), 2))
-                    Dim updateMode = usb.UpdateMode
-                    Dim version = Tuple.Create(CInt(usb.Major), CInt(usb.Minor))
-                    If modeSwitched Then
-                        usb = ToolOptions.UsbReopen(usb, isUpdate:=Not preview.Bootloader)
-                    End If
-                    If Not updateMode Then
-                        Try
-                            Dim latest = Info.LatestFirmware()
-                            If latest.Item1 > version.Item1 OrElse (latest.Item1 = version.Item1 AndAlso latest.Item2 > version.Item2) Then
-                                context.Output.WriteLine("")
-                                context.Output.WriteLine(String.Format(CultureInfo.InvariantCulture,
-                                                                       "*** New firmware version {0}.{1} is available",
-                                                                       latest.Item1, latest.Item2))
-                                ' Python info.py:136: util.print_update_instructions(usb)
-                                For Each line In ToolOptions.PrintUpdateInstructions(usb)
-                                    context.Output.WriteLine(line)
-                                Next
-                            End If
-                        Catch
-                            ' Python prints exception traces; mirror by silently ignoring network failures.
-                        End Try
-                    End If
-                Finally
-                    If usb IsNot Nothing AndAlso usb.Serial IsNot Nothing Then
-                        Try : usb.Serial.Close() : Catch : End Try
-                    End If
-                End Try
+
+            If Not preview.Live Then
+                Return New Greaseweazle.Actions.DeviceInfoResult(
+                    hostVersion, Greaseweazle.Actions.DeviceConnectionState.TestMode, Nothing)
             End If
-            Return 0
+
+            Dim usb As Unit = Nothing
+            Try
+                Try
+                    usb = ToolOptions.UsbOpen(preview.Device, modeCheck:=False)
+                Catch ex As IO.IOException
+                    ' Python catches `serial.SerialException` which covers
+                    ' port-not-found and port-in-use both; .NET splits these
+                    ' into IOException and UnauthorizedAccessException, so
+                    ' accept either to preserve "Not found" parity.
+                    Return New Greaseweazle.Actions.DeviceInfoResult(
+                        hostVersion, Greaseweazle.Actions.DeviceConnectionState.NotFound, Nothing)
+                Catch ex As UnauthorizedAccessException
+                    Return New Greaseweazle.Actions.DeviceInfoResult(
+                        hostVersion, Greaseweazle.Actions.DeviceConnectionState.NotFound, Nothing)
+                Catch ex As Exception When TypeOf ex Is FatalException
+                    Return New Greaseweazle.Actions.DeviceInfoResult(
+                        hostVersion, Greaseweazle.Actions.DeviceConnectionState.NotFound, Nothing)
+                End Try
+
+                Dim fw = usb.ReadFirmwareInfo()
+                Dim modeSwitched = usb.CanModeSwitch AndAlso usb.UpdateMode <> preview.Bootloader
+                If modeSwitched Then
+                    usb = ToolOptions.UsbReopen(usb, isUpdate:=preview.Bootloader)
+                End If
+
+                Dim updateMode = usb.UpdateMode
+                Dim version = Tuple.Create(CInt(usb.Major), CInt(usb.Minor))
+                Dim port = If(usb.PortDevice, String.Empty)
+                Dim hwModel = usb.HwModel
+                Dim hwSubmodel = usb.HwSubmodel
+                Dim mcuId = usb.McuId
+                Dim mcuMhz = usb.McuMhz
+                Dim mcuSramKb = usb.McuSramKb
+                Dim firmwareMajor = fw.Major
+                Dim firmwareMinor = fw.Minor
+                Dim isBootloader = usb.UpdateMode
+                Dim serialNumber = If(usb.PortSerialNumber, String.Empty)
+                Dim usbSpeedRaw = usb.UsbSpeed
+                Dim usbBufferKb = usb.UsbBufferKb
+                Dim jumperlessUpdate = usb.JumperlessUpdate
+
+                If modeSwitched Then
+                    usb = ToolOptions.UsbReopen(usb, isUpdate:=Not preview.Bootloader)
+                End If
+
+                Dim firmwareUpdate As Greaseweazle.Actions.FirmwareUpdateInfo = Nothing
+                If Not updateMode Then
+                    Try
+                        Dim latest = Info.LatestFirmware()
+                        If latest.Item1 > version.Item1 OrElse
+                           (latest.Item1 = version.Item1 AndAlso latest.Item2 > version.Item2) Then
+                            firmwareUpdate = New Greaseweazle.Actions.FirmwareUpdateInfo(
+                                latest.Item1, latest.Item2)
+                        End If
+                    Catch
+                        ' Python silently swallows network failures here.
+                    End Try
+                End If
+
+                Dim block As New Greaseweazle.Actions.DeviceInfoBlock(
+                    port, hwModel, hwSubmodel, mcuId, mcuMhz, mcuSramKb,
+                    firmwareMajor, firmwareMinor, isBootloader, serialNumber,
+                    usbSpeedRaw, usbBufferKb, jumperlessUpdate, firmwareUpdate)
+
+                Return New Greaseweazle.Actions.DeviceInfoResult(
+                    hostVersion, Greaseweazle.Actions.DeviceConnectionState.Connected, block)
+            Finally
+                If usb IsNot Nothing AndAlso usb.Serial IsNot Nothing Then
+                    Try : usb.Serial.Close() : Catch : End Try
+                End If
+            End Try
         End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/read.py::main (direct command execution mapping).
-    Public Class ReadAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("read", "Read a disk to the specified image file.")
+    Public NotInheritable Class ReadAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-fake-index") Then
-                Dim revs = Integer.Parse(parsed("revs"), Globalization.CultureInfo.InvariantCulture)
-                Dim ticks = Integer.Parse(parsed("ticks"), Globalization.CultureInfo.InvariantCulture)
-                Dim driveTicks = Integer.Parse(parsed("drive-ticks-per-rev"), Globalization.CultureInfo.InvariantCulture)
-                Dim sampleFreq = Double.Parse(parsed("sample-freq"), Globalization.CultureInfo.InvariantCulture)
-                Dim result = ReadWrite.BuildFakeIndexList(revs, ticks, driveTicks, sampleFreq)
-                context.Output.WriteLine(String.Format("effective_ticks={0}", result.EffectiveTicks))
-                context.Output.WriteLine(String.Format("index_list={0}", String.Join(",", result.IndexList)))
-                Return 0
+        ' Python map: src/greaseweazle/tools/read.py::main (post-parser algorithm body).
+        '
+        ' Pure-logic body — no console output. Streams progress via
+        ' ReadCommand events and returns a typed ReadSummary.
+        Public Shared Function RunFromOptions(preview As ReadOptions,
+                                              cmd As Greaseweazle.Actions.ReadCommand,
+                                              ct As CancellationToken) As Greaseweazle.Actions.ReadSummary
+            Dim revsDisplay = If(preview.RevsDisplay, preview.Revs.ToString(Globalization.CultureInfo.InvariantCulture))
+            If cmd IsNot Nothing Then
+                cmd.OnStarted(New Greaseweazle.Actions.ReadStartedEventArgs(preview.Tracks, revsDisplay, preview.Format))
             End If
-            Dim preview = ReadWrite.BuildReadRuntimePreview(args, CodecRegistry.GetFormats())
-            context.Output.WriteLine(String.Format("Reading {0} revs={1}",
-                                                   preview.Tracks,
-                                                   If(preview.RevsDisplay, preview.Revs.ToString(Globalization.CultureInfo.InvariantCulture))))
-            If Not String.IsNullOrEmpty(preview.Format) Then
-                context.Output.WriteLine("Format " & preview.Format)
+            If Not preview.Live Then
+                Return New Greaseweazle.Actions.ReadSummary(preview.Tracks, revsDisplay, 0,
+                                                            preview.Format, Nothing,
+                                                            Nothing, dryRun:=True)
             End If
-            If preview.Live Then
-                Dim outSplit = ConvertAction.SplitImageFileOptions(preview.FileName)
-                Dim outPath = outSplit.Item1
-                Dim outOpts = outSplit.Item2
-                Dim outExt = Path.GetExtension(outPath)
-                Dim readOnlyType = ResolveReadOnlyImageTypeName(outExt)
-                Dim writeScp = String.Equals(outExt, ".scp", StringComparison.OrdinalIgnoreCase)
-                Dim writeSector = IsSectorImageExtension(outExt)
-                Dim writeRaw = String.Equals(outExt, ".raw", StringComparison.OrdinalIgnoreCase)
-                Dim writeD88 = String.Equals(outExt, ".d88", StringComparison.OrdinalIgnoreCase)
-                Dim writeNsi = String.Equals(outExt, ".nsi", StringComparison.OrdinalIgnoreCase)
-                Dim writeImd = String.Equals(outExt, ".imd", StringComparison.OrdinalIgnoreCase)
-                Dim writeHfe = String.Equals(outExt, ".hfe", StringComparison.OrdinalIgnoreCase)
-                ErrorHandling.Check(writeScp OrElse writeSector OrElse writeRaw OrElse writeD88 OrElse writeNsi OrElse writeImd OrElse writeHfe OrElse Not String.IsNullOrEmpty(readOnlyType),
-                                    String.Format("{0}: Unrecognised file suffix '{1}'", outPath, Path.GetExtension(outPath)))
-                If Not String.IsNullOrEmpty(readOnlyType) Then
-                    Throw New FatalException(String.Format("{0}: Cannot create {1} image files", outPath, readOnlyType))
+            Return RunLive(preview, cmd, ct, revsDisplay)
+        End Function
+
+        ' Live-mode body for Read. Pure logic — all output flows
+        ' through ReadCommand events.
+        Private Shared Function RunLive(preview As ReadOptions,
+                                        cmd As Greaseweazle.Actions.ReadCommand,
+                                        ct As CancellationToken,
+                                        revsDisplay As String) As Greaseweazle.Actions.ReadSummary
+            Dim outSplit = ConvertAction.SplitImageFileOptions(preview.FileName)
+            Dim outPath = outSplit.Item1
+            Dim outOpts = outSplit.Item2
+            Dim outExt = Path.GetExtension(outPath)
+            Dim readOnlyType = ResolveReadOnlyImageTypeName(outExt)
+            Dim writeScp = String.Equals(outExt, ".scp", StringComparison.OrdinalIgnoreCase)
+            Dim writeSector = IsSectorImageExtension(outExt)
+            Dim writeRaw = String.Equals(outExt, ".raw", StringComparison.OrdinalIgnoreCase)
+            Dim writeD88 = String.Equals(outExt, ".d88", StringComparison.OrdinalIgnoreCase)
+            Dim writeNsi = String.Equals(outExt, ".nsi", StringComparison.OrdinalIgnoreCase)
+            Dim writeImd = String.Equals(outExt, ".imd", StringComparison.OrdinalIgnoreCase)
+            Dim writeHfe = String.Equals(outExt, ".hfe", StringComparison.OrdinalIgnoreCase)
+            ErrorHandling.Check(writeScp OrElse writeSector OrElse writeRaw OrElse writeD88 OrElse writeNsi OrElse writeImd OrElse writeHfe OrElse Not String.IsNullOrEmpty(readOnlyType),
+                                String.Format("{0}: Unrecognised file suffix '{1}'", outPath, Path.GetExtension(outPath)))
+            If Not String.IsNullOrEmpty(readOnlyType) Then
+                Throw New FatalException(String.Format("{0}: Cannot create {1} image files", outPath, readOnlyType))
+            End If
+            Dim scpImage As Scp = Nothing
+            Dim imgImage As Img = Nothing
+            Dim rawImage As KryoFlux = Nothing
+            Dim nsiImage As Nsi = Nothing
+            Dim imdImage As Imd = Nothing
+            Dim hfeImage As Hfe = Nothing
+            Dim d88Image As D88 = Nothing
+            Dim imgDisk As DiskDef = Nothing
+            If writeScp Then
+                scpImage = New Scp()
+                scpImage.FileName = outPath
+                scpImage.ApplyWOpts(outOpts)
+            ElseIf writeImd Then
+                Dim effectiveFormat = preview.Format
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMD output requires --format")
+                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                imdImage = New Imd()
+                imdImage.FileName = outPath
+                imdImage.ApplyWOpts(outOpts)
+            ElseIf writeHfe Then
+                Dim effectiveFormat = preview.Format
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "HFE output requires --format")
+                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                hfeImage = New Hfe()
+                hfeImage.FileName = outPath
+                hfeImage.ApplyWOpts(outOpts)
+            ElseIf writeSector Then
+                Dim effectiveFormat = preview.Format
+                If String.IsNullOrEmpty(effectiveFormat) Then
+                    effectiveFormat = ImageDefaults.DefaultFormatForExtension(outExt)
                 End If
-                Dim scpImage As Scp = Nothing
-                Dim imgImage As Img = Nothing
-                Dim rawImage As KryoFlux = Nothing
-                Dim nsiImage As Nsi = Nothing
-                Dim imdImage As Imd = Nothing
-                Dim hfeImage As Hfe = Nothing
-                Dim d88Image As D88 = Nothing
-                Dim imgDisk As DiskDef = Nothing
-                If writeScp Then
-                    scpImage = New Scp()
-                    scpImage.FileName = outPath
-                    scpImage.ApplyWOpts(outOpts)
-                ElseIf writeImd Then
-                    Dim effectiveFormat = preview.Format
-                    ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMD output requires --format")
-                    imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
-                    imdImage = New Imd()
-                    imdImage.FileName = outPath
-                    imdImage.ApplyWOpts(outOpts)
-                ElseIf writeHfe Then
-                    Dim effectiveFormat = preview.Format
-                    ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "HFE output requires --format")
-                    imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
-                    hfeImage = New Hfe()
-                    hfeImage.FileName = outPath
-                    hfeImage.ApplyWOpts(outOpts)
-                ElseIf writeSector Then
-                    Dim effectiveFormat = preview.Format
-                    If String.IsNullOrEmpty(effectiveFormat) Then
-                        effectiveFormat = ImageDefaults.DefaultFormatForExtension(outExt)
-                    End If
-                    ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG output requires --format")
-                    imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
-                    imgImage = New Img(imgDisk)
-                    ConfigureSectorImageDefaults(imgImage, outExt)
-                    imgImage.FileName = outPath
-                    imgImage.ApplyWOpts(outOpts)
-                ElseIf writeRaw Then
-                    rawImage = New KryoFlux(outPath)
-                ElseIf writeNsi Then
-                    Dim effectiveFormat = preview.Format
-                    ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "NSI output requires --format")
-                    imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
-                    nsiImage = New Nsi(imgDisk)
-                    nsiImage.FileName = outPath
-                    nsiImage.ApplyWOpts(outOpts)
-                ElseIf writeD88 Then
-                    Dim effectiveFormat = preview.Format
-                    ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D88 output requires --format")
-                    imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
-                    d88Image = New D88(imgDisk)
-                    d88Image.FileName = outPath
-                    d88Image.ApplyWOpts(outOpts)
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG output requires --format")
+                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                imgImage = New Img(imgDisk)
+                ConfigureSectorImageDefaults(imgImage, outExt)
+                imgImage.FileName = outPath
+                imgImage.ApplyWOpts(outOpts)
+            ElseIf writeRaw Then
+                rawImage = New KryoFlux(outPath)
+            ElseIf writeNsi Then
+                Dim effectiveFormat = preview.Format
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "NSI output requires --format")
+                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                nsiImage = New Nsi(imgDisk)
+                nsiImage.FileName = outPath
+                nsiImage.ApplyWOpts(outOpts)
+            ElseIf writeD88 Then
+                Dim effectiveFormat = preview.Format
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D88 output requires --format")
+                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                d88Image = New D88(imgDisk)
+                d88Image.FileName = outPath
+                d88Image.ApplyWOpts(outOpts)
+            End If
+            ' Python read.py:271 sets `args.fmt_cls = codec.get_diskdef(args.format, args.diskdefs)`
+            ' regardless of the output image type. Resolve the format here so that
+            ' --format always triggers decode + summary, even when paired with
+            ' --raw or a flux-only output (e.g. .scp/.raw).
+            If imgDisk Is Nothing AndAlso Not String.IsNullOrEmpty(preview.Format) Then
+                imgDisk = ResolveDiskDefinition(preview.Format, preview.DiskDefsPath)
+            End If
+            ' Python image/image.py::Image.__enter__ opens with mode="x" when --no-clobber
+            ' is set, raising FileExistsError if the target already exists. KryoFlux
+            ' is a directory-template name so we skip it (mirrors Python's KryoFlux class).
+            If preview.NoClobber AndAlso Not writeRaw AndAlso File.Exists(outPath) Then
+                Throw New FatalException(String.Format("{0}: File exists", outPath))
+            End If
+
+            Dim summaryDict As New Dictionary(Of Tuple(Of Integer, Integer), Codec)()
+            Dim usbClient As Unit = Nothing
+            Dim prevPin2 As Nullable(Of Boolean) = Nothing
+            Dim tracksProcessed = 0
+            Dim trackProcessedCallback As Action(Of Greaseweazle.Actions.ReadTrackProcessedEventArgs) = Nothing
+            Dim trackGaveUpCallback As Action(Of Greaseweazle.Actions.ReadTrackGaveUpEventArgs) = Nothing
+            If cmd IsNot Nothing Then
+                trackProcessedCallback = Sub(args)
+                                             ct.ThrowIfCancellationRequested()
+                                             cmd.OnTrackProcessed(args)
+                                         End Sub
+                trackGaveUpCallback = Sub(args)
+                                          ct.ThrowIfCancellationRequested()
+                                          cmd.OnTrackGaveUp(args)
+                                      End Sub
+            End If
+
+            Try
+                usbClient = ToolOptions.UsbOpen(preview.Device)
+                usbClient.ReadFirmwareInfo()
+                If preview.Densel.HasValue OrElse preview.GenTg43 Then
+                    prevPin2 = usbClient.GetPin(2)
                 End If
-                ' Python read.py:271 sets `args.fmt_cls = codec.get_diskdef(args.format, args.diskdefs)`
-                ' regardless of the output image type. Resolve the format here so that
-                ' --format always triggers decode + summary, even when paired with
-                ' --raw or a flux-only output (e.g. .scp/.raw).
-                If imgDisk Is Nothing AndAlso Not String.IsNullOrEmpty(preview.Format) Then
-                    imgDisk = ResolveDiskDefinition(preview.Format, preview.DiskDefsPath)
+                If preview.Densel.HasValue Then
+                    usbClient.SetPin(2, preview.Densel.Value)
                 End If
-                ' Python image/image.py::Image.__enter__ opens with mode="x" when --no-clobber
-                ' is set, raising FileExistsError if the target already exists. KryoFlux
-                ' is a directory-template name so we skip it (mirrors Python's KryoFlux class).
-                If preview.NoClobber AndAlso Not writeRaw AndAlso File.Exists(outPath) Then
-                    Throw New FatalException(String.Format("{0}: File exists", outPath))
-                End If
-                Dim summary As New Dictionary(Of Tuple(Of Integer, Integer), Codec)()
-                Dim usbClient As Unit = Nothing
-                Dim prevPin2 As Nullable(Of Boolean) = Nothing
-                Dim cmdFailed = False
-                Try
-                    Try
-                        usbClient = ToolOptions.UsbOpen(preview.Device)
-                        usbClient.ReadFirmwareInfo()
-                        If preview.Densel.HasValue OrElse preview.GenTg43 Then
-                            prevPin2 = usbClient.GetPin(2)
+                ToolOptions.WithDriveSelected(
+                    Sub()
+                        ' Python read.py::read_to_image opening lines:
+                        '   args.ticks, args.drive_ticks_per_rev = 0, None
+                        Dim effectiveRevs = preview.Revs
+                        Dim effectiveTicks = 0
+                        Dim driveTicksPerRev As Nullable(Of Double) = Nothing
+                        Dim effectiveHardSectors = preview.HardSectors
+                        Dim hardSectorCount As Integer = 0
+
+                        ' Python read.py:163-164:
+                        '   if args.fake_index is not None:
+                        '       args.drive_ticks_per_rev = args.fake_index * usb.sample_freq
+                        If preview.FakeIndexPeriod.HasValue Then
+                            driveTicksPerRev = preview.FakeIndexPeriod.Value * usbClient.SampleFreq
+                            ' Python read.py:165-172:
+                            '   elif args.hard_sectors:
+                            '       flux = usb.read_track(revs=0, ticks=int(usb.sample_freq/2))
+                            '       flux.identify_hard_sectors()
+                            '       args.drive_ticks_per_rev = flux.ticks_per_rev
+                            '       args.hard_sectors = len(flux.sector_list[-1])
+                            '       print(f'Drive reports {args.hard_sectors} hard sectors')
+                        ElseIf preview.HardSectors Then
+                            ' Python read.py:34 / align.py:50 / write.py:40:
+                            ' `flux = usb.read_track(revs=0, ticks=int(usb.sample_freq/2))`.
+                            ' int() truncates toward zero; CInt would use banker's
+                            ' rounding and diverge for odd sample frequencies.
+                            Dim probe = usbClient.ReadTrack(0, CInt(Math.Truncate(usbClient.SampleFreq / 2)))
+                            probe.IdentifyHardSectors()
+                            ErrorHandling.Check(probe.SectorList IsNot Nothing AndAlso probe.SectorList.Count > 0,
+                                               "Unable to identify hard sectors on this drive")
+                            driveTicksPerRev = probe.TicksPerRev
+                            effectiveHardSectors = True
+                            hardSectorCount = probe.SectorList(probe.SectorList.Count - 1).Count
+                            If cmd IsNot Nothing Then
+                                cmd.OnHardSectorsDetected(New Greaseweazle.Actions.ReadHardSectorsEventArgs(hardSectorCount))
+                            End If
                         End If
-                        If preview.Densel.HasValue Then
-                            usbClient.SetPin(2, preview.Densel.Value)
+
+                        ' Python read.py:174-184:
+                        '   if isinstance(args.revs, float):
+                        '       if args.raw:           args.revs = 2
+                        '       else:
+                        '           if args.drive_ticks_per_rev is None:
+                        '               args.drive_ticks_per_rev = usb.read_track(2).ticks_per_rev
+                        '           args.ticks = int(args.drive_ticks_per_rev * args.revs)
+                        '           args.revs  = 2
+                        If preview.FractionalRevs.HasValue Then
+                            If preview.Raw Then
+                                effectiveRevs = 2
+                            Else
+                                If Not driveTicksPerRev.HasValue Then
+                                    driveTicksPerRev = usbClient.ReadTrack(2, 0).TicksPerRev
+                                End If
+                                ' Python's int() truncates toward zero; mirror with Math.Truncate.
+                                effectiveTicks = CInt(Math.Truncate(driveTicksPerRev.Value * preview.FractionalRevs.Value))
+                                effectiveRevs = 2
+                            End If
                         End If
-                        ToolOptions.WithDriveSelected(
-                            Sub()
-                                ' Python read.py::read_to_image opening lines:
-                                '   args.ticks, args.drive_ticks_per_rev = 0, None
-                                Dim effectiveRevs = preview.Revs
-                                Dim effectiveTicks = 0
-                                Dim driveTicksPerRev As Nullable(Of Double) = Nothing
-                                Dim effectiveHardSectors = preview.HardSectors
-                                Dim hardSectorCount As Integer = 0
 
-                                ' Python read.py:163-164:
-                                '   if args.fake_index is not None:
-                                '       args.drive_ticks_per_rev = args.fake_index * usb.sample_freq
-                                If preview.FakeIndexPeriod.HasValue Then
-                                    driveTicksPerRev = preview.FakeIndexPeriod.Value * usbClient.SampleFreq
-                                    ' Python read.py:165-172:
-                                    '   elif args.hard_sectors:
-                                    '       flux = usb.read_track(revs=0, ticks=int(usb.sample_freq/2))
-                                    '       flux.identify_hard_sectors()
-                                    '       args.drive_ticks_per_rev = flux.ticks_per_rev
-                                    '       args.hard_sectors = len(flux.sector_list[-1])
-                                    '       print(f'Drive reports {args.hard_sectors} hard sectors')
-                                ElseIf preview.HardSectors Then
-                                    ' Python read.py:34 / align.py:50 / write.py:40:
-                                    ' `flux = usb.read_track(revs=0, ticks=int(usb.sample_freq/2))`.
-                                    ' int() truncates toward zero; CInt would use banker's
-                                    ' rounding and diverge for odd sample frequencies.
-                                    Dim probe = usbClient.ReadTrack(0, CInt(Math.Truncate(usbClient.SampleFreq / 2)))
-                                    probe.IdentifyHardSectors()
-                                    ErrorHandling.Check(probe.SectorList IsNot Nothing AndAlso probe.SectorList.Count > 0,
-                                                       "Unable to identify hard sectors on this drive")
-                                    driveTicksPerRev = probe.TicksPerRev
-                                    effectiveHardSectors = True
-                                    hardSectorCount = probe.SectorList(probe.SectorList.Count - 1).Count
-                                    context.Output.WriteLine(String.Format("Drive reports {0} hard sectors", hardSectorCount))
-                                End If
+                        ' Python read.py:186-191:
+                        '   if args.hard_sectors:
+                        '       args.revs = (args.hard_sectors + 1) * (args.revs + 1)
+                        '       args.ticks = 0
+                        If effectiveHardSectors AndAlso hardSectorCount > 0 Then
+                            effectiveRevs = (hardSectorCount + 1) * (effectiveRevs + 1)
+                            effectiveTicks = 0
+                        End If
 
-                                ' Python read.py:174-184:
-                                '   if isinstance(args.revs, float):
-                                '       if args.raw:           args.revs = 2
-                                '       else:
-                                '           if args.drive_ticks_per_rev is None:
-                                '               args.drive_ticks_per_rev = usb.read_track(2).ticks_per_rev
-                                '           args.ticks = int(args.drive_ticks_per_rev * args.revs)
-                                '           args.revs  = 2
-                                If preview.FractionalRevs.HasValue Then
-                                    If preview.Raw Then
-                                        effectiveRevs = 2
-                                    Else
-                                        If Not driveTicksPerRev.HasValue Then
-                                            driveTicksPerRev = usbClient.ReadTrack(2, 0).TicksPerRev
-                                        End If
-                                        ' Python's int() truncates toward zero; mirror with Math.Truncate.
-                                        effectiveTicks = CInt(Math.Truncate(driveTicksPerRev.Value * preview.FractionalRevs.Value))
-                                        effectiveRevs = 2
-                                    End If
+                        Dim safeTracks = preview.TrackSet.IteratePhysical().ToList()
+                        For Each track In safeTracks
+                            ct.ThrowIfCancellationRequested()
+                            ' Python read.py:197 always passes args.fmt_cls into read_with_retry,
+                            ' so --format triggers decode/verification regardless of --raw.
+                            Dim readResult = ReadWrite.ReadWithRetry(usbClient,
+                                                                     track,
+                                                                     effectiveRevs,
+                                                                     trackProcessedCallback,
+                                                                     trackGaveUpCallback,
+                                                                     imgDisk,
+                                                                     preview.Format,
+                                                                     preview.Raw,
+                                                                     effectiveHardSectors,
+                                                                     preview.Reverse,
+                                                                     preview.AdjustSpeed,
+                                                                     preview.FakeIndexPeriod,
+                                                                     effectiveTicks,
+                                                                     driveTicksPerRev,
+                                                                     preview.Retries,
+                                                                     preview.SeekRetries,
+                                                                     preview.GenTg43,
+                                                                     preview.PllProfiles)
+                            Dim flux = readResult.Item1
+                            Dim dat = readResult.Item2
+                            tracksProcessed += 1
+                            ' Python read.py:198-200: collect codec results for end-of-run summary.
+                            If imgDisk IsNot Nothing AndAlso TypeOf dat Is Codec Then
+                                summaryDict(Tuple.Create(track.Cyl, track.Head)) = CType(dat, Codec)
+                            End If
+                            ' Python read.py:201-204: `if args.raw: image.emit_track(cyl,head,flux)`
+                            ' fires regardless of image type. The fall-through emits decoded
+                            ' data for codec-aware sector images.
+                            If preview.Raw Then
+                                If writeScp Then
+                                    scpImage.EmitTrack(track.Cyl, track.Head, flux)
+                                ElseIf writeRaw Then
+                                    rawImage.EmitTrack(track.Cyl, track.Head, flux)
+                                ElseIf writeNsi Then
+                                    nsiImage.EmitTrack(track.Cyl, track.Head, flux)
+                                ElseIf writeImd Then
+                                    imdImage.EmitTrack(track.Cyl, track.Head, flux)
+                                ElseIf writeHfe Then
+                                    hfeImage.EmitTrack(track.Cyl, track.Head, flux)
+                                ElseIf writeSector Then
+                                    imgImage.EmitTrack(track.Cyl, track.Head, flux)
+                                ElseIf writeD88 Then
+                                    d88Image.EmitTrack(track.Cyl, track.Head, flux)
                                 End If
-
-                                ' Python read.py:186-191:
-                                '   if args.hard_sectors:
-                                '       args.revs = (args.hard_sectors + 1) * (args.revs + 1)
-                                '       args.ticks = 0
-                                If effectiveHardSectors AndAlso hardSectorCount > 0 Then
-                                    effectiveRevs = (hardSectorCount + 1) * (effectiveRevs + 1)
-                                    effectiveTicks = 0
+                            ElseIf writeScp Then
+                                scpImage.EmitTrack(track.Cyl, track.Head, flux)
+                            ElseIf writeRaw Then
+                                rawImage.EmitTrack(track.Cyl, track.Head, flux)
+                            ElseIf writeNsi Then
+                                If dat IsNot Nothing Then
+                                    nsiImage.EmitTrack(track.Cyl, track.Head, dat)
                                 End If
-
-                                Dim safeTracks = preview.TrackSet.IteratePhysical().ToList()
-                                For Each track In safeTracks
-                                    ' Python read.py:197 always passes args.fmt_cls into read_with_retry,
-                                    ' so --format triggers decode/verification regardless of --raw.
-                                    Dim readResult = ReadWrite.ReadWithRetry(usbClient,
-                                                                             track,
-                                                                             effectiveRevs,
-                                                                             context.Output,
-                                                                             imgDisk,
-                                                                             preview.Format,
-                                                                             preview.Raw,
-                                                                             effectiveHardSectors,
-                                                                             preview.Reverse,
-                                                                             preview.AdjustSpeed,
-                                                                             preview.FakeIndexPeriod,
-                                                                             effectiveTicks,
-                                                                             driveTicksPerRev,
-                                                                             preview.Retries,
-                                                                             preview.SeekRetries,
-                                                                             preview.GenTg43,
-                                                                             preview.PllProfiles)
-                                    Dim flux = readResult.Item1
-                                    Dim dat = readResult.Item2
-                                    ' Python read.py:198-200: collect codec results for end-of-run summary.
-                                    If imgDisk IsNot Nothing AndAlso TypeOf dat Is Codec Then
-                                        summary(Tuple.Create(track.Cyl, track.Head)) = CType(dat, Codec)
-                                    End If
-                                    ' Python read.py:201-204: `if args.raw: image.emit_track(cyl,head,flux)`
-                                    ' fires regardless of image type. The fall-through emits decoded
-                                    ' data for codec-aware sector images.
-                                    If preview.Raw Then
-                                        If writeScp Then
-                                            scpImage.EmitTrack(track.Cyl, track.Head, flux)
-                                        ElseIf writeRaw Then
-                                            rawImage.EmitTrack(track.Cyl, track.Head, flux)
-                                        ElseIf writeNsi Then
-                                            nsiImage.EmitTrack(track.Cyl, track.Head, flux)
-                                        ElseIf writeImd Then
-                                            imdImage.EmitTrack(track.Cyl, track.Head, flux)
-                                        ElseIf writeHfe Then
-                                            hfeImage.EmitTrack(track.Cyl, track.Head, flux)
-                                        ElseIf writeSector Then
-                                            imgImage.EmitTrack(track.Cyl, track.Head, flux)
-                                        ElseIf writeD88 Then
-                                            d88Image.EmitTrack(track.Cyl, track.Head, flux)
-                                        End If
-                                    ElseIf writeScp Then
-                                        scpImage.EmitTrack(track.Cyl, track.Head, flux)
-                                    ElseIf writeRaw Then
-                                        rawImage.EmitTrack(track.Cyl, track.Head, flux)
-                                    ElseIf writeNsi Then
-                                        If dat IsNot Nothing Then
-                                            nsiImage.EmitTrack(track.Cyl, track.Head, dat)
-                                        End If
-                                    ElseIf writeImd Then
-                                        If dat IsNot Nothing Then
-                                            imdImage.EmitTrack(track.Cyl, track.Head, dat)
-                                        End If
-                                    ElseIf writeHfe Then
-                                        If dat IsNot Nothing Then
-                                            hfeImage.EmitTrack(track.Cyl, track.Head, dat)
-                                        End If
-                                    ElseIf writeSector Then
-                                        If dat IsNot Nothing Then
-                                            imgImage.EmitTrack(track.Cyl, track.Head, dat)
-                                        End If
-                                    ElseIf writeD88 Then
-                                        If dat IsNot Nothing Then
-                                            d88Image.EmitTrack(track.Cyl, track.Head, dat)
-                                        End If
-                                    End If
-                                Next
-                                ' Python read.py:206-207: print_summary when --format was supplied.
-                                If imgDisk IsNot Nothing Then
-                                    ReadWrite.PrintSummary(preview.TrackSet, summary, context.Output)
+                            ElseIf writeImd Then
+                                If dat IsNot Nothing Then
+                                    imdImage.EmitTrack(track.Cyl, track.Head, dat)
                                 End If
-                            End Sub,
-                            New UsbDriveControlAdapter(usbClient),
-                            preview.Drive,
-                            motor:=True)
-                    Catch err As CmdError
-                        ' Python read.py:301-302: `except USB.CmdError as err: print("Command Failed: %s" % err)`
-                        context.Output.WriteLine(String.Format("Command Failed: {0}", err.Message))
-                        cmdFailed = True
-                    End Try
-                Finally
-                    If usbClient IsNot Nothing AndAlso (preview.Densel.HasValue OrElse preview.GenTg43) AndAlso prevPin2.HasValue Then
-                        ' Tolerate SetPin errors so an in-flight Ctrl-C path
-                        ' (which may have torn down the serial port) doesn't
-                        ' mask the originating KeyboardInterruptException.
-                        Try : usbClient.SetPin(2, prevPin2.Value) : Catch : End Try
-                    End If
-                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                        ' Tolerate close errors so an in-flight Ctrl-C path
-                        ' (which may have already torn down the serial port)
-                        ' doesn't mask the originating KeyboardInterruptException.
-                        Try : usbClient.Serial.Close() : Catch : End Try
-                    End If
-                End Try
-                If cmdFailed Then
-                    Return 0
+                            ElseIf writeHfe Then
+                                If dat IsNot Nothing Then
+                                    hfeImage.EmitTrack(track.Cyl, track.Head, dat)
+                                End If
+                            ElseIf writeSector Then
+                                If dat IsNot Nothing Then
+                                    imgImage.EmitTrack(track.Cyl, track.Head, dat)
+                                End If
+                            ElseIf writeD88 Then
+                                If dat IsNot Nothing Then
+                                    d88Image.EmitTrack(track.Cyl, track.Head, dat)
+                                End If
+                            End If
+                        Next
+                    End Sub,
+                    New UsbDriveControlAdapter(usbClient),
+                    preview.Drive,
+                    motor:=True)
+            Finally
+                If usbClient IsNot Nothing AndAlso (preview.Densel.HasValue OrElse preview.GenTg43) AndAlso prevPin2.HasValue Then
+                    ' Tolerate SetPin errors so an in-flight Ctrl-C path
+                    ' (which may have torn down the serial port) doesn't
+                    ' mask the originating KeyboardInterruptException.
+                    Try : usbClient.SetPin(2, prevPin2.Value) : Catch : End Try
                 End If
-                If writeScp Then
-                    File.WriteAllBytes(outPath, scpImage.GetImage())
-                    context.Output.WriteLine(String.Format("Wrote {0}", outPath))
-                ElseIf writeImd Then
-                    File.WriteAllBytes(outPath, imdImage.GetImage())
-                    context.Output.WriteLine(String.Format("Wrote {0}", outPath))
-                ElseIf writeHfe Then
-                    File.WriteAllBytes(outPath, hfeImage.GetImage())
-                    context.Output.WriteLine(String.Format("Wrote {0}", outPath))
-                ElseIf writeSector Then
-                    File.WriteAllBytes(outPath, imgImage.GetImage())
-                    context.Output.WriteLine(String.Format("Wrote {0}", outPath))
-                ElseIf writeRaw Then
-                    context.Output.WriteLine(String.Format("Wrote KryoFlux tracks using basename {0}", outPath))
-                ElseIf writeNsi Then
-                    File.WriteAllBytes(outPath, nsiImage.GetImage())
-                    context.Output.WriteLine(String.Format("Wrote {0}", outPath))
-                ElseIf writeD88 Then
-                    File.WriteAllBytes(outPath, d88Image.GetImage())
-                    context.Output.WriteLine(String.Format("Wrote {0}", outPath))
+                If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                    ' Tolerate close errors so an in-flight Ctrl-C path
+                    ' (which may have already torn down the serial port)
+                    ' doesn't mask the originating KeyboardInterruptException.
+                    Try : usbClient.Serial.Close() : Catch : End Try
+                End If
+            End Try
+
+            ' Python read.py:206-207: print_summary when --format was supplied.
+            Dim grid As Greaseweazle.Actions.SectorSummaryGrid = Nothing
+            If imgDisk IsNot Nothing Then
+                grid = ReadWrite.BuildSectorSummary(preview.TrackSet, summaryDict)
+                If cmd IsNot Nothing Then
+                    cmd.OnSummaryReady(New Greaseweazle.Actions.ReadSummaryReadyEventArgs(grid))
                 End If
             End If
-            Return 0
+
+            ' Python read.py writes the image silently inside its
+            ' `with open_image(...)` context manager — no "Wrote ..."
+            ' line. Mirror that: just emit the bytes (KryoFlux is a
+            ' directory template, so it has no single-file body to
+            ' write here).
+            If writeScp Then
+                File.WriteAllBytes(outPath, scpImage.GetImage())
+            ElseIf writeImd Then
+                File.WriteAllBytes(outPath, imdImage.GetImage())
+            ElseIf writeHfe Then
+                File.WriteAllBytes(outPath, hfeImage.GetImage())
+            ElseIf writeSector Then
+                File.WriteAllBytes(outPath, imgImage.GetImage())
+            ElseIf writeNsi Then
+                File.WriteAllBytes(outPath, nsiImage.GetImage())
+            ElseIf writeD88 Then
+                File.WriteAllBytes(outPath, d88Image.GetImage())
+            End If
+
+            Return New Greaseweazle.Actions.ReadSummary(preview.Tracks, revsDisplay,
+                                                        tracksProcessed, preview.Format,
+                                                        outPath, grid, dryRun:=False)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ResolveDiskDefinition)
@@ -699,45 +605,43 @@ Namespace Greaseweazle.Tools
     End Class
 
     ' Python map: src/greaseweazle/tools/write.py::main (direct command execution mapping).
-    Public Class WriteAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("write", "Write a disk from the specified image file.")
+    Public NotInheritable Class WriteAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-scale-flux") Then
-                Dim factor = Double.Parse(parsed("factor"), Globalization.CultureInfo.InvariantCulture)
-                ' Python's wflux.list is List[float]; the parity harness feeds
-                ' integer literals via CLI, so widen to Double here so that
-                ' ScaleWriteFlux receives the same float-typed iterable Python
-                ' does at write.py:103-109.
-                Dim flux = parsed("flux").Split(","c).Select(Function(x) Double.Parse(x, Globalization.CultureInfo.InvariantCulture))
-                Dim result = ReadWrite.ScaleWriteFlux(flux, factor)
-                ' Parity harness output: force InvariantCulture so the round-trip
-                ' specifier `{0:R}` always emits `.` as the decimal separator and
-                ' the integer flux list never picks up a current-culture group
-                ' separator. Otherwise the parity fixture diff would fail on any
-                ' non-English Windows locale.
-                Dim ci = Globalization.CultureInfo.InvariantCulture
-                context.Output.WriteLine(String.Format(ci, "scaled={0}",
-                                                       String.Join(",", result.ScaledFlux.Select(Function(x) x.ToString(ci)))))
-                context.Output.WriteLine(String.Format(ci, "remainder={0:R}", result.FinalRemainder))
-                Return 0
+        ' Python map: src/greaseweazle/tools/write.py::main (post-parser algorithm body).
+        '
+        ' Pure-logic body — no console output. Streams progress via
+        ' WriteCommand events and returns a typed WriteSummary.
+        Public Shared Function RunFromOptions(preview As WriteOptions,
+                                              cmd As Greaseweazle.Actions.WriteCommand,
+                                              ct As CancellationToken) As Greaseweazle.Actions.WriteSummary
+            If cmd IsNot Nothing Then
+                cmd.OnStarted(New Greaseweazle.Actions.WriteStartedEventArgs(preview.Format, preview.Tracks, preview.Precomp))
             End If
-            Dim preview = ReadWrite.BuildWriteRuntimePreview(args, CodecRegistry.GetFormats())
-            If Not String.IsNullOrEmpty(preview.Format) Then
-                context.Output.WriteLine("Format " & preview.Format)
+            If Not preview.Live Then
+                ' --test parity (VB-only): the dry-run path emits only
+                ' the header lines via OnStarted; no per-track work runs
+                ' and the verify-summary footer is intentionally
+                ' suppressed (Python has no --test mode but the existing
+                ' fixtures expect just the header echo).
+                Return New Greaseweazle.Actions.WriteSummary(preview.Tracks,
+                                                              preview.Format,
+                                                              Greaseweazle.Actions.WriteVerifyOutcome.AllVerified,
+                                                              0,
+                                                              0,
+                                                              dryRun:=True)
             End If
-            context.Output.WriteLine("Writing " & preview.Tracks)
-            If Not String.IsNullOrEmpty(preview.Precomp) Then
-                context.Output.WriteLine(preview.Precomp)
-            End If
-            If preview.Live Then
-                Dim inSplit = ConvertAction.SplitImageFileOptions(preview.FileName)
+            Return RunWriteLive(preview, cmd, ct)
+        End Function
+
+        ' Live-mode body for Write. Pure logic — all output flows through
+        ' WriteCommand events. Returns the final WriteSummary.
+        Private Shared Function RunWriteLive(preview As WriteOptions,
+                                             cmd As Greaseweazle.Actions.WriteCommand,
+                                             ct As CancellationToken) As Greaseweazle.Actions.WriteSummary
+            Dim inSplit = ConvertAction.SplitImageFileOptions(preview.FileName)
                 Dim inPath = inSplit.Item1
                 Dim inOpts = inSplit.Item2
                 Dim inExt = Path.GetExtension(inPath)
@@ -960,9 +864,10 @@ Namespace Greaseweazle.Tools
                 End If
                 Dim usbClient As Unit = Nothing
                 Dim prevPin2 As Nullable(Of Boolean) = Nothing
-                Dim cmdFailed = False
+                Dim runVerifiedCount As Integer = 0
+                Dim runNotVerifiedCount As Integer = 0
+                Dim runOutcome As Greaseweazle.Actions.WriteVerifyOutcome = Greaseweazle.Actions.WriteVerifyOutcome.AllVerified
                 Try
-                    Try
                         usbClient = ToolOptions.UsbOpen(preview.Device)
                         usbClient.ReadFirmwareInfo()
                         If preview.Densel.HasValue OrElse preview.GenTg43 Then
@@ -986,7 +891,9 @@ Namespace Greaseweazle.Tools
                                                    "Unable to identify hard sectors on this drive")
                                 hardSectorCount = fluxProbe.SectorList(fluxProbe.SectorList.Count - 1).Count
                                 driveTicksPerRev = fluxProbe.TicksPerRev
-                                context.Output.WriteLine(String.Format("Drive reports {0} hard sectors", hardSectorCount))
+                                If cmd IsNot Nothing Then
+                                    cmd.OnHardSectorsDetected(New Greaseweazle.Actions.WriteHardSectorsEventArgs(hardSectorCount))
+                                End If
                             ElseIf noIndex Then
                                 driveTicksPerRev = preview.FakeIndexPeriod.Value * usbClient.SampleFreq
                             Else
@@ -1006,31 +913,33 @@ Namespace Greaseweazle.Tools
                             If Not String.IsNullOrEmpty(preview.Format) Then
                                 formatDef = ResolveDiskDefinition(preview.Format, preview.DiskDefsPath)
                             End If
-                            Dim verifiedCount = 0
-                            Dim notVerifiedCount = 0
+                            ' Verify-tally counters live in the enclosing
+                            ' scope (runVerifiedCount/runNotVerifiedCount) so
+                            ' RunWriteLive can construct the final
+                            ' WriteSummary after the with-drive-selected
+                            ' lambda returns. The lambda mutates them via
+                            ' closure capture.
                             Dim safeTracks = preview.TrackSet.IteratePhysical().ToList()
                             For Each track In safeTracks
+                                ct.ThrowIfCancellationRequested()
                                 If preview.GenTg43 Then
                                     usbClient.SetPin(2, track.Cyl < 43)
                                 End If
-                                Dim tspec = String.Format("T{0}.{1}", track.Cyl, track.Head)
-                                If track.PhysicalCyl <> track.Cyl OrElse track.PhysicalHead <> track.Head Then
-                                    tspec &= String.Format(" -> Drive {0}.{1}", track.PhysicalCyl, track.PhysicalHead)
-                                End If
+                                Dim trackInfo = New Greaseweazle.Actions.WriteTrackInfo(track.Cyl, track.Head, track.PhysicalCyl, track.PhysicalHead)
                                 Dim PrepareSourceTrack As Func(Of HasFlux, HasFlux) =
                                     Function(source As HasFlux) As HasFlux
                                         Dim prepared = source
                                         If formatDef IsNot Nothing AndAlso Not TypeOf prepared Is Codec Then
                                             Dim decoded = formatDef.DecodeFlux(track.Cyl, track.Head, prepared)
                                             If decoded Is Nothing Then
-                                                context.Output.WriteLine(String.Format("{0}: WARNING: Out of range for format '{1}': Track skipped",
-                                                                                       tspec,
-                                                                                       preview.Format))
+                                                If cmd IsNot Nothing Then
+                                                    cmd.OnTrackOutOfRange(New Greaseweazle.Actions.WriteTrackOutOfRangeEventArgs(trackInfo, preview.Format))
+                                                End If
                                                 Return Nothing
                                             End If
                                             ErrorHandling.Check(decoded.NrMissing() = 0,
-                                                               String.Format("{0}: {1} missing sectors in input image",
-                                                                             tspec,
+                                                               String.Format("T{0}.{1}: {2} missing sectors in input image",
+                                                                             track.Cyl, track.Head,
                                                                              decoded.NrMissing()))
                                             prepared = decoded
                                         End If
@@ -1061,19 +970,21 @@ Namespace Greaseweazle.Tools
                                         sourceTrack As HasFlux)
                                         Dim verified = False
                                         For retry = 0 To preview.Retries
+                                            ct.ThrowIfCancellationRequested()
                                             If preview.PreErase Then
-                                                context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                                If cmd IsNot Nothing Then
+                                                    cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.PreErase))
+                                                End If
                                                 usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                             End If
-                                            Dim status = String.Format("{0}: Writing Track", tspec)
                                             ' Python write.py:117-122 always appends `(<wflux summary>)` on
                                             ' the first attempt and `(Verify Failure: Retry #N)` thereafter.
-                                            If retry <> 0 Then
-                                                status &= String.Format(" (Verify Failure: Retry #{0})", retry)
-                                            Else
-                                                status &= String.Format(" ({0})", If(writeSummary, String.Empty))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackWriting(New Greaseweazle.Actions.WriteTrackWritingEventArgs(
+                                                    trackInfo,
+                                                    If(retry = 0, writeSummary, Nothing),
+                                                    retry))
                                             End If
-                                            context.Output.WriteLine(status)
                                             usbClient.WriteTrack(scaledFlux,
                                                                  terminateAtIndex:=terminateAtIndex,
                                                                  cueAtIndex:=cueAtIndex,
@@ -1091,7 +1002,7 @@ Namespace Greaseweazle.Tools
                                                 noVerify = (verify Is Nothing)
                                             End If
                                             If noVerify Then
-                                                notVerifiedCount += 1
+                                                runNotVerifiedCount += 1
                                                 verified = True
                                                 Exit For
                                             End If
@@ -1135,7 +1046,7 @@ Namespace Greaseweazle.Tools
                                             End If
                                             verified = verify.VerifyTrack(vFlux)
                                             If verified Then
-                                                verifiedCount += 1
+                                                runVerifiedCount += 1
                                                 Exit For
                                             End If
                                         Next
@@ -1149,7 +1060,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = scpInput.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1175,7 +1088,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = d88Input.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1201,7 +1116,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = dmkInput.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1227,7 +1144,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = edskInput.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1253,7 +1172,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = apridiskInput.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1279,7 +1200,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = td0Input.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1305,7 +1228,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = fdiInput.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1331,7 +1256,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = nfdInput.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1357,7 +1284,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = dcpInput.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1383,7 +1312,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = ctrInput.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1409,7 +1340,9 @@ Namespace Greaseweazle.Tools
                                     Dim inputTrack = ipfInput.GetTrack(track.Cyl, track.Head)
                                     If inputTrack Is Nothing Then
                                         If preview.EraseEmpty Then
-                                            context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                            If cmd IsNot Nothing Then
+                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                            End If
                                             usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                         End If
                                         Continue For
@@ -1435,7 +1368,9 @@ Namespace Greaseweazle.Tools
                             Dim inputTrack = a2rInput.GetTrack(track.Cyl, track.Head)
                             If inputTrack Is Nothing Then
                                 If preview.EraseEmpty Then
-                                    context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                    If cmd IsNot Nothing Then
+                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                    End If
                                     usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                 End If
                                 Continue For
@@ -1459,7 +1394,9 @@ Namespace Greaseweazle.Tools
                             Dim inputTrack = msaInput.GetTrack(track.Cyl, track.Head)
                             If inputTrack Is Nothing Then
                                 If preview.EraseEmpty Then
-                                    context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                    If cmd IsNot Nothing Then
+                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                    End If
                                     usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                 End If
                                 Continue For
@@ -1483,7 +1420,9 @@ Namespace Greaseweazle.Tools
                             Dim inputTrack = nsiInput.GetTrack(track.Cyl, track.Head)
                             If inputTrack Is Nothing Then
                                 If preview.EraseEmpty Then
-                                    context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                    If cmd IsNot Nothing Then
+                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                    End If
                                     usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                 End If
                                 Continue For
@@ -1507,7 +1446,9 @@ Namespace Greaseweazle.Tools
                             Dim inputTrack = d64Input.GetTrack(track.Cyl, track.Head)
                             If inputTrack Is Nothing Then
                                 If preview.EraseEmpty Then
-                                    context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                    If cmd IsNot Nothing Then
+                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                    End If
                                     usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                 End If
                                 Continue For
@@ -1531,7 +1472,9 @@ Namespace Greaseweazle.Tools
                             Dim inputTrack = imdInput.GetTrack(track.Cyl, track.Head)
                             If inputTrack Is Nothing Then
                                 If preview.EraseEmpty Then
-                                    context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                    If cmd IsNot Nothing Then
+                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                    End If
                                     usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                 End If
                                 Continue For
@@ -1555,7 +1498,9 @@ Namespace Greaseweazle.Tools
                             Dim inputTrack = hfeInput.GetTrack(track.Cyl, track.Head)
                             If inputTrack Is Nothing Then
                                 If preview.EraseEmpty Then
-                                    context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                    If cmd IsNot Nothing Then
+                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                    End If
                                     usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                 End If
                                 Continue For
@@ -1579,7 +1524,9 @@ Namespace Greaseweazle.Tools
                             Dim inputTrack = imgInput.GetTrack(track.Cyl, track.Head)
                             If inputTrack Is Nothing Then
                                 If preview.EraseEmpty Then
-                                    context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                    If cmd IsNot Nothing Then
+                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                    End If
                                     usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                 End If
                                 Continue For
@@ -1603,7 +1550,9 @@ Namespace Greaseweazle.Tools
                             Dim inputTrack = rawInput.GetTrack(track.Cyl, track.Head)
                             If inputTrack Is Nothing Then
                                 If preview.EraseEmpty Then
-                                    context.Output.WriteLine(String.Format("{0}: Erasing Track", tspec))
+                                    If cmd IsNot Nothing Then
+                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
+                                    End If
                                     usbClient.EraseTrack(driveTicksPerRev * 1.1)
                                 End If
                                 Continue For
@@ -1625,28 +1574,27 @@ Namespace Greaseweazle.Tools
                                                  sourceTrack:=source)
                         End If
                             Next
-                            If notVerifiedCount = 0 Then
-                                context.Output.WriteLine("All tracks verified")
+                            ' Python write.py:158-167 footer: pick the verdict
+                            ' based on the verified vs not-verified tallies and
+                            ' fire WriteVerifyOutcome so subscribers can render
+                            ' the final summary line. CmdError thrown earlier
+                            ' propagates out of this lambda — we mirror Python
+                            ' which skips the footer in that case.
+                            If runNotVerifiedCount = 0 Then
+                                runOutcome = Greaseweazle.Actions.WriteVerifyOutcome.AllVerified
+                            ElseIf preview.NoVerify Then
+                                runOutcome = Greaseweazle.Actions.WriteVerifyOutcome.VerifyDisabled
                             Else
-                                If verifiedCount = 0 Then
-                                    context.Output.Write("No tracks verified ")
-                                Else
-                                    context.Output.Write(String.Format("{0} tracks verified; {1} tracks *not* verified ",
-                                                                       verifiedCount,
-                                                                       notVerifiedCount))
-                                End If
-                                context.Output.WriteLine(String.Format("(Reason: Verify {0})",
-                                                                       If(preview.NoVerify, "disabled", "unavailable")))
+                                runOutcome = Greaseweazle.Actions.WriteVerifyOutcome.VerifyUnavailable
+                            End If
+                            If cmd IsNot Nothing Then
+                                cmd.OnVerifyCompleted(New Greaseweazle.Actions.WriteVerifyOutcomeEventArgs(
+                                    runOutcome, runVerifiedCount, runNotVerifiedCount))
                             End If
                         End Sub,
                         New UsbDriveControlAdapter(usbClient),
                         preview.Drive,
                         motor:=True)
-                    Catch err As CmdError
-                        ' Python write.py:297-298: `except USB.CmdError as err: print("Command Failed: %s" % err)`
-                        context.Output.WriteLine(String.Format("Command Failed: {0}", err.Message))
-                        cmdFailed = True
-                    End Try
                 Finally
                     If usbClient IsNot Nothing AndAlso (preview.Densel.HasValue OrElse preview.GenTg43) AndAlso prevPin2.HasValue Then
                         ' Tolerate SetPin errors so an in-flight Ctrl-C path
@@ -1661,11 +1609,12 @@ Namespace Greaseweazle.Tools
                         Try : usbClient.Serial.Close() : Catch : End Try
                     End If
                 End Try
-                If cmdFailed Then
-                    Return 0
-                End If
-            End If
-            Return 0
+            Return New Greaseweazle.Actions.WriteSummary(preview.Tracks,
+                                                          preview.Format,
+                                                          runOutcome,
+                                                          runVerifiedCount,
+                                                          runNotVerifiedCount,
+                                                          dryRun:=False)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ResolveDiskDefinition)
@@ -1849,101 +1798,18 @@ Namespace Greaseweazle.Tools
     End Class
 
     ' Python map: src/greaseweazle/tools/convert.py::main (direct command execution mapping).
-    Public Class ConvertAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("convert", "Convert between image formats.")
+    Public NotInheritable Class ConvertAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-track-summary") Then
-                Dim cyl = Integer.Parse(parsed("cyl"), CultureInfo.InvariantCulture)
-                Dim head = Integer.Parse(parsed("head"), CultureInfo.InvariantCulture)
-                Dim physicalCyl = Integer.Parse(parsed("physical-cyl"), CultureInfo.InvariantCulture)
-                Dim physicalHead = Integer.Parse(parsed("physical-head"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(Convert.BuildTrackSummary(cyl, head, physicalCyl, physicalHead))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-convert-header") Then
-                context.Output.WriteLine(Convert.BuildConvertHeader(parsed("tracks"), parsed("out-tracks")))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-resolve-format") Then
-                Dim explicitFormat As String = Nothing
-                Dim inputDefault As String = Nothing
-                Dim outputDefault As String = Nothing
-                parsed.TryGetValue("explicit-format", explicitFormat)
-                parsed.TryGetValue("input-default", inputDefault)
-                parsed.TryGetValue("output-default", outputDefault)
-                Dim resolved = Convert.ResolveFormat(explicitFormat, inputDefault, outputDefault)
-                context.Output.WriteLine(String.Format("format={0}", resolved))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-resolve-tracks") Then
-                Dim formatTracksSpec As String = Nothing
-                Dim tracksSpec As String = Nothing
-                Dim outTracksSpec As String = Nothing
-                parsed.TryGetValue("format-tracks", formatTracksSpec)
-                parsed.TryGetValue("tracks", tracksSpec)
-                parsed.TryGetValue("out-tracks", outTracksSpec)
-                Dim formatTracks = If(String.IsNullOrEmpty(formatTracksSpec), Nothing, New Greaseweazle.Shared.TrackSet(formatTracksSpec))
-                Dim result = Convert.ResolveTrackSets(formatTracks, tracksSpec, outTracksSpec)
-                context.Output.WriteLine(String.Format("tracks={0}", result.Item1.ToString()))
-                context.Output.WriteLine(String.Format("out_tracks={0}", result.Item2.ToString()))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-loop-sim") Then
-                Dim outTracks As New List(Of ConvertOutTrackAddress)()
-                Dim inTracks As New List(Of ConvertTrackAddress)()
-                Dim availableTracks As New List(Of ConvertTrackAddress)()
-                Dim outTokens As String = Nothing
-                parsed.TryGetValue("out-tracks-map", outTokens)
-                If Not String.IsNullOrEmpty(outTokens) Then
-                    For Each token In outTokens.Split("|"c)
-                        Dim parts = token.Split(">"c)
-                        Dim logical = parts(0).Split("."c)
-                        Dim physical = parts(1).Split("."c)
-                        outTracks.Add(New ConvertOutTrackAddress With {
-                            .Cyl = Integer.Parse(logical(0), CultureInfo.InvariantCulture),
-                            .Head = Integer.Parse(logical(1), CultureInfo.InvariantCulture),
-                            .PhysicalCyl = Integer.Parse(physical(0), CultureInfo.InvariantCulture),
-                            .PhysicalHead = Integer.Parse(physical(1), CultureInfo.InvariantCulture)
-                        })
-                    Next
-                End If
-                Dim inTokens As String = Nothing
-                parsed.TryGetValue("in-tracks", inTokens)
-                If Not String.IsNullOrEmpty(inTokens) Then
-                    For Each token In inTokens.Split("|"c)
-                        Dim parts = token.Split("."c)
-                        inTracks.Add(New ConvertTrackAddress With {
-                            .Cyl = Integer.Parse(parts(0), CultureInfo.InvariantCulture),
-                            .Head = Integer.Parse(parts(1), CultureInfo.InvariantCulture)
-                        })
-                    Next
-                End If
-                Dim availableTokens As String = Nothing
-                parsed.TryGetValue("available-tracks", availableTokens)
-                If Not String.IsNullOrEmpty(availableTokens) Then
-                    For Each token In availableTokens.Split("|"c)
-                        Dim parts = token.Split("."c)
-                        availableTracks.Add(New ConvertTrackAddress With {
-                            .Cyl = Integer.Parse(parts(0), CultureInfo.InvariantCulture),
-                            .Head = Integer.Parse(parts(1), CultureInfo.InvariantCulture)
-                        })
-                    Next
-                End If
-                Dim cacheEnabled = Integer.Parse(parsed("cache"), CultureInfo.InvariantCulture) <> 0
-                Dim result = Convert.SimulateConvertLoop(outTracks, inTracks, availableTracks, cacheEnabled)
-                context.Output.WriteLine(String.Format("process={0}", String.Join(",", result.ProcessCalls)))
-                context.Output.WriteLine(String.Format("emit={0}", String.Join(",", result.EmitTargets)))
-                context.Output.WriteLine(String.Format("cache={0}", String.Join(",", result.CacheKeys)))
-                Return 0
-            End If
-            Dim preview = Convert.BuildRuntimePreview(args, CodecRegistry.GetFormats())
+        ' Python map: src/greaseweazle/tools/convert.py::main (post-parser algorithm body).
+        '
+        ' Pure-logic body — no console output. Streams progress via
+        ' ConvertCommand events and returns a typed ConvertSummary.
+        Public Shared Function RunFromOptions(preview As ConvertOptions,
+                                              cmd As Greaseweazle.Actions.ConvertCommand,
+                                              ct As CancellationToken) As Greaseweazle.Actions.ConvertSummary
             Dim inputPath = SplitImageFileOptions(preview.InputFile).Item1
             Dim outputPath = SplitImageFileOptions(preview.OutputFile).Item1
             ' Python convert.py:158-164 consults `image_class.default_format` for both
@@ -1980,22 +1846,49 @@ Namespace Greaseweazle.Tools
             Dim resolvedTracks = Convert.ResolveTrackSets(If(fmtCls IsNot Nothing, fmtCls.Tracks, Nothing),
                                                           preview.TracksSpec,
                                                           preview.OutTracksSpec)
-            If Not String.IsNullOrEmpty(effectiveFormat) Then
-                context.Output.WriteLine("Format " & effectiveFormat)
+            Dim inSpec = resolvedTracks.Item1.ToString()
+            Dim outSpec = resolvedTracks.Item2.ToString()
+
+            If cmd IsNot Nothing Then
+                cmd.OnStarted(New Greaseweazle.Actions.ConvertStartedEventArgs(effectiveFormat, inSpec, outSpec))
             End If
-            context.Output.WriteLine(Convert.BuildConvertHeader(resolvedTracks.Item1.ToString(),
-                                                                resolvedTracks.Item2.ToString()))
-            ConvertFunctions.Convert(resolvedTracks.Item2.IteratePhysical().ToList(),
-                                     resolvedTracks.Item1,
-                                     inputImage,
-                                     outputImage,
-                                     context.Output,
-                                     fmtCls,
-                                     effectiveFormat,
-                                     preview.Reverse,
-                                     preview.HardSectors,
-                                     preview.AdjustSpeed,
-                                     preview.PllProfiles)
+
+            Dim hardSectorsCallback As Action(Of Greaseweazle.Actions.ConvertHardSectorsEventArgs) = Nothing
+            Dim trackProcessedCallback As Action(Of Greaseweazle.Actions.ConvertTrackProcessedEventArgs) = Nothing
+            If cmd IsNot Nothing Then
+                hardSectorsCallback = Sub(args)
+                                          ct.ThrowIfCancellationRequested()
+                                          cmd.OnHardSectorsApplied(args)
+                                      End Sub
+                trackProcessedCallback = Sub(args)
+                                             ct.ThrowIfCancellationRequested()
+                                             cmd.OnTrackProcessed(args)
+                                         End Sub
+            End If
+
+            Dim processedCount = 0
+            Dim summaryDict = ConvertFunctions.Convert(resolvedTracks.Item2.IteratePhysical().ToList(),
+                                                     resolvedTracks.Item1,
+                                                     inputImage,
+                                                     outputImage,
+                                                     hardSectorsCallback,
+                                                     Sub(args)
+                                                         If trackProcessedCallback IsNot Nothing Then trackProcessedCallback(args)
+                                                         If args.Outcome <> Greaseweazle.Actions.ConvertTrackOutcome.OutOfRange Then
+                                                             processedCount += 1
+                                                         End If
+                                                     End Sub,
+                                                     fmtCls,
+                                                     effectiveFormat,
+                                                     preview.Reverse,
+                                                     preview.HardSectors,
+                                                     preview.AdjustSpeed,
+                                                     preview.PllProfiles)
+            Dim grid = ReadWrite.BuildSectorSummary(resolvedTracks.Item1, summaryDict)
+            If cmd IsNot Nothing Then
+                cmd.OnSummaryReady(New Greaseweazle.Actions.ConvertSummaryReadyEventArgs(grid))
+            End If
+
             Dim outExt = Path.GetExtension(outputPath)
             If IsSectorImageExtension(outExt) OrElse
                String.Equals(outExt, ".imd", StringComparison.OrdinalIgnoreCase) OrElse
@@ -2004,7 +1897,8 @@ Namespace Greaseweazle.Tools
                String.Equals(outExt, ".scp", StringComparison.OrdinalIgnoreCase) Then
                 File.WriteAllBytes(outputPath, outputImage.GetImage())
             End If
-            Return 0
+
+            Return New Greaseweazle.Actions.ConvertSummary(inSpec, outSpec, processedCount, effectiveFormat, grid)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration OpenImageForRead)
@@ -2500,349 +2394,294 @@ Namespace Greaseweazle.Tools
     End Class
 
     ' Python map: src/greaseweazle/tools/erase.py::main (direct command execution mapping).
-    Public Class EraseAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("erase", "Erase a disk.")
+    Public NotInheritable Class EraseAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-header") Then
-                Dim revs = Integer.Parse(parsed("revs"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine([Erase].BuildEraseHeader(parsed("tracks"), revs))
-                Return 0
+        ' Python map: src/greaseweazle/tools/erase.py::main.
+        ' Raises EraseCommand.Started exactly once, then (in live mode)
+        ' raises EraseCommand.TrackStarted before each track is touched.
+        ' Returns a typed EraseSummary; CmdError propagates.
+        Public Shared Function RunFromOptions(preview As EraseOptions,
+                                              cmd As Greaseweazle.Actions.EraseCommand,
+                                              ct As CancellationToken) As Greaseweazle.Actions.EraseSummary
+            If cmd IsNot Nothing Then
+                cmd.OnStarted(New Greaseweazle.Actions.EraseStartedEventArgs(preview.Tracks, preview.Revs))
             End If
-            If parsed.ContainsKey("parity-hfreq") Then
-                Dim driveTicks = Double.Parse(parsed("drive-ticks"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(String.Format(CultureInfo.InvariantCulture, "erase_ticks={0:R}", [Erase].ComputeEraseTicks(driveTicks)))
-                context.Output.WriteLine(String.Format("write_flux={0}", String.Join(",", [Erase].ComputeHighFrequencyFlux(driveTicks))))
-                Return 0
+
+            If Not preview.Live Then
+                Return New Greaseweazle.Actions.EraseSummary(preview.Tracks, preview.Revs, 0, dryRun:=True)
             End If
-            If parsed.ContainsKey("parity-resolve-tracks") Then
-                Dim requested As String = Nothing
-                parsed.TryGetValue("tracks", requested)
-                Dim resolved = TrackResolution.ResolveDefaultTracks("c=0-81:h=0-1", requested)
-                context.Output.WriteLine(String.Format("tracks={0}", resolved.ToString()))
-                Return 0
-            End If
-            Dim preview = [Erase].BuildRuntimePreview(args)
-            If preview.Live Then
-                Dim usbClient As Unit = Nothing
-                Try
-                    usbClient = ToolOptions.UsbOpen(preview.Device)
-                    context.Output.WriteLine([Erase].BuildEraseHeader(preview.Tracks, preview.Revs))
-                    ToolOptions.WithDriveSelected(
-                        Sub()
-                            Dim safeTracks = preview.TrackSet.IteratePhysical().ToList()
-                            [Erase].[Erase](usbClient, preview, safeTracks, context.Output)
-                        End Sub,
-                        New UsbDriveControlAdapter(usbClient),
-                        preview.Drive,
-                        motor:=True)
-                Catch ex As CmdError
-                    context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                Finally
-                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                        ' Tolerate close errors so an in-flight Ctrl-C path
-                        ' (which may have already torn down the serial port)
-                        ' doesn't mask the originating KeyboardInterruptException.
-                        Try : usbClient.Serial.Close() : Catch : End Try
-                    End If
-                End Try
-            Else
-                context.Output.WriteLine([Erase].BuildEraseHeader(preview.Tracks, preview.Revs))
-            End If
-            Return 0
+
+            Dim processed = 0
+            Dim usbClient As Unit = Nothing
+            Try
+                usbClient = ToolOptions.UsbOpen(preview.Device)
+                ToolOptions.WithDriveSelected(
+                    Sub()
+                        Dim safeTracks = preview.TrackSet.IteratePhysical().ToList()
+                        processed = [Erase].[Erase](usbClient, preview, safeTracks,
+                            Sub(track As TrackIter)
+                                ct.ThrowIfCancellationRequested()
+                                If cmd IsNot Nothing Then
+                                    cmd.OnTrackStarted(New Greaseweazle.Actions.EraseTrackEventArgs(track.Cyl, track.Head))
+                                End If
+                            End Sub)
+                    End Sub,
+                    New UsbDriveControlAdapter(usbClient),
+                    preview.Drive,
+                    motor:=True)
+            Finally
+                If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                    ' Tolerate close errors so an in-flight Ctrl-C path
+                    ' (which may have already torn down the serial port)
+                    ' doesn't mask the originating KeyboardInterruptException.
+                    Try : usbClient.Serial.Close() : Catch : End Try
+                End If
+            End Try
+            Return New Greaseweazle.Actions.EraseSummary(preview.Tracks, preview.Revs, processed, dryRun:=False)
         End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/clean.py::main (direct command execution mapping).
-    Public Class CleanAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("clean", "Clean a drive in a zig-zag pattern using a cleaning disk.")
+    Public NotInheritable Class CleanAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-step") Then
-                Dim cyls = Integer.Parse(parsed("cyls"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(String.Format("step={0}", Clean.ComputeStep(cyls)))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-seek-target") Then
-                Dim cyl = Integer.Parse(parsed("cylinder"), CultureInfo.InvariantCulture)
-                Dim cyls = Integer.Parse(parsed("cyls"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(String.Format("seek_target={0}", Clean.ClampSeekCylinder(cyl, cyls)))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-pattern") Then
-                Dim cyls = Integer.Parse(parsed("cyls"), CultureInfo.InvariantCulture)
-                Dim passes = Integer.Parse(parsed("passes"), CultureInfo.InvariantCulture)
-                Dim sequences = Clean.BuildPassSequences(cyls, passes)
-                For i = 0 To sequences.Count - 1
-                    context.Output.WriteLine(String.Format("pass{0}={1}", i, String.Join(",", sequences(i))))
-                Next
-                Return 0
-            End If
-            Dim preview = Clean.BuildRuntimePreview(args)
-            ' Python only prints "Pass p:" + cylinders during live clean. Skip pass-line preview unless dry-run mode.
+        ' Python map: src/greaseweazle/tools/clean.py::main.
+        ' Raises PassStarted/CylinderSeeked/PassCompleted in pass order;
+        ' in dry-run mode the events fire synchronously over Sequences
+        ' (no USB), in live mode they fire alongside Clean.Clean's seeks.
+        ' Returns a CleanSummary; CmdError propagates.
+        Public Shared Function RunFromOptions(preview As CleanOptions,
+                                              cmd As Greaseweazle.Actions.CleanCommand,
+                                              ct As CancellationToken) As Greaseweazle.Actions.CleanSummary
             If Not preview.Live Then
-                For Each line In preview.PassLines
-                    context.Output.WriteLine(line)
+                ' Python's --test path emits the same "Pass N: ..." lines
+                ' the live path streams; replay them via the same events
+                ' so subscribers don't need a separate "preview-mode"
+                ' code path.
+                Dim visited = 0
+                For p = 0 To preview.Sequences.Count - 1
+                    ct.ThrowIfCancellationRequested()
+                    If cmd IsNot Nothing Then cmd.OnPassStarted(New Greaseweazle.Actions.CleanPassStartedEventArgs(p))
+                    For Each cyl In preview.Sequences(p)
+                        If cmd IsNot Nothing Then cmd.OnCylinderSeeked(New Greaseweazle.Actions.CleanCylinderEventArgs(p, cyl))
+                        visited += 1
+                    Next
+                    If cmd IsNot Nothing Then cmd.OnPassCompleted(New Greaseweazle.Actions.CleanPassCompletedEventArgs(p))
                 Next
+                Return New Greaseweazle.Actions.CleanSummary(preview.Cyls, preview.Sequences.Count, visited, dryRun:=True)
             End If
-            If preview.Live Then
-                Dim usbClient As Unit = Nothing
-                Try
-                    usbClient = ToolOptions.UsbOpen(preview.Device)
-                    ToolOptions.WithDriveSelected(
-                        Sub()
-                            Clean.Clean(usbClient, preview, context.Output)
-                        End Sub,
-                        New UsbDriveControlAdapter(usbClient),
-                        preview.Drive,
-                        motor:=True)
-                Catch ex As CmdError
-                    ' Python clean.py:57-58: `except USB.CmdError as error: print("Command Failed: %s" % error)`
-                    context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                Finally
-                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                        ' Tolerate close errors so an in-flight Ctrl-C path
-                        ' (which may have already torn down the serial port)
-                        ' doesn't mask the originating KeyboardInterruptException.
-                        Try : usbClient.Serial.Close() : Catch : End Try
-                    End If
-                End Try
-            End If
-            Return 0
+
+            Dim cylindersVisited = 0
+            Dim usbClient As Unit = Nothing
+            Try
+                usbClient = ToolOptions.UsbOpen(preview.Device)
+                ToolOptions.WithDriveSelected(
+                    Sub()
+                        cylindersVisited = Clean.Clean(usbClient, preview,
+                            Sub(passIndex As Integer)
+                                ct.ThrowIfCancellationRequested()
+                                If cmd IsNot Nothing Then cmd.OnPassStarted(New Greaseweazle.Actions.CleanPassStartedEventArgs(passIndex))
+                            End Sub,
+                            Sub(passIndex As Integer, clamped As Integer)
+                                ct.ThrowIfCancellationRequested()
+                                If cmd IsNot Nothing Then cmd.OnCylinderSeeked(New Greaseweazle.Actions.CleanCylinderEventArgs(passIndex, clamped))
+                            End Sub,
+                            Sub(passIndex As Integer)
+                                If cmd IsNot Nothing Then cmd.OnPassCompleted(New Greaseweazle.Actions.CleanPassCompletedEventArgs(passIndex))
+                            End Sub)
+                    End Sub,
+                    New UsbDriveControlAdapter(usbClient),
+                    preview.Drive,
+                    motor:=True)
+            Finally
+                If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                    ' Tolerate close errors so an in-flight Ctrl-C path
+                    ' (which may have already torn down the serial port)
+                    ' doesn't mask the originating KeyboardInterruptException.
+                    Try : usbClient.Serial.Close() : Catch : End Try
+                End If
+            End Try
+            Return New Greaseweazle.Actions.CleanSummary(preview.Cyls, preview.Sequences.Count, cylindersVisited, dryRun:=False)
         End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/seek.py::main (direct command execution mapping).
-    Public Class SeekAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("seek", "Seek to the specified cylinder.")
+    Public NotInheritable Class SeekAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-extreme-check") Then
-                Dim cyl = Integer.Parse(parsed("cylinder"), CultureInfo.InvariantCulture)
-                Dim force = Integer.Parse(parsed("force"), CultureInfo.InvariantCulture) <> 0
-                Dim prompt = Seek.ShouldPromptForExtremeCylinder(cyl, force)
-                context.Output.WriteLine(String.Format("prompt={0}", If(prompt, 1, 0)))
-                context.Output.WriteLine(Seek.GetExtremeCylinderPrompt(cyl))
-                Return 0
-            End If
-            Dim preview = Seek.BuildRuntimePreview(args)
+        ' Python map: src/greaseweazle/tools/seek.py::main.
+        ' Returns a typed SeekResult; throws CmdError on a recoverable USB
+        ' error so the caller (CLI or library consumer) decides how to
+        ' surface the failure. Emits no text — the prompter is the only
+        ' interactive surface, and even it is supplied by the caller.
+        Public Shared Function RunFromOptions(preview As SeekOptions,
+                                              prompter As Greaseweazle.Actions.ISeekPrompter) As Greaseweazle.Actions.SeekResult
             If preview.PromptNeeded Then
-                ' Python: input("...") and abort if answer != "Yes" (case sensitive).
-                ' We only block on stdin when the input stream is genuinely
-                ' interactive — running under the parity harness or with
-                ' redirected stdin we just print the prompt and abort, which
-                ' matches Python's behaviour when the user dismisses the
-                ' prompt and lets the parity tests assert on the prompt text
-                ' without deadlocking on stdin.
-                context.Output.Write(preview.PromptText)
-                Dim canPrompt As Boolean
-                If context.Input IsNot Nothing AndAlso Not Object.ReferenceEquals(context.Input, Console.In) Then
-                    ' Tool callers (parity harness, future GUI hosts) that
-                    ' explicitly wire up an Input reader always get to answer.
-                    canPrompt = True
-                Else
-                    ' Console.In: only read when stdin is an interactive TTY,
-                    ' otherwise reading would block the parity harness which
-                    ' captures stderr/stdout but doesn't supply stdin.
-                    Try
-                        canPrompt = Not Console.IsInputRedirected
-                    Catch
-                        canPrompt = False
-                    End Try
-                End If
-                If canPrompt Then
-                    Dim answer = context.Input.ReadLine()
-                    If Not String.Equals(answer, "Yes", StringComparison.Ordinal) Then
-                        Return 0
-                    End If
-                Else
-                    Return 0
+                ' Default-deny: a caller that ignored the Prompter
+                ' property and lands here unprompted aborts rather than
+                ' silently risking a head-crash.
+                If prompter Is Nothing OrElse Not prompter.Confirm(preview.PromptText) Then
+                    Return New Greaseweazle.Actions.SeekResult(
+                        Greaseweazle.Actions.SeekOutcome.Aborted, preview.Cyl)
                 End If
             End If
-            If preview.Live Then
-                Dim usbClient As Unit = Nothing
-                Try
-                    usbClient = ToolOptions.UsbOpen(preview.Device)
-                    ToolOptions.WithDriveSelected(
-                        Sub()
-                            Seek.Seek(usbClient, preview.Cyl)
-                        End Sub,
-                        New UsbDriveControlAdapter(usbClient),
-                        preview.Drive,
-                        motor:=preview.MotorOn)
-                Catch ex As CmdError
-                    ' Python seek.py:52-53: `except USB.CmdError as err: print("Command Failed: %s" % err)`
-                    context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                Finally
-                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                        ' Tolerate close errors so an in-flight Ctrl-C path
-                        ' (which may have already torn down the serial port)
-                        ' doesn't mask the originating KeyboardInterruptException.
-                        Try : usbClient.Serial.Close() : Catch : End Try
-                    End If
-                End Try
+
+            If Not preview.Live Then
+                Return New Greaseweazle.Actions.SeekResult(
+                    Greaseweazle.Actions.SeekOutcome.DryRun, preview.Cyl)
             End If
-            Return 0
+
+            Dim usbClient As Unit = Nothing
+            Try
+                usbClient = ToolOptions.UsbOpen(preview.Device)
+                ToolOptions.WithDriveSelected(
+                    Sub()
+                        Seek.Seek(usbClient, preview.Cyl)
+                    End Sub,
+                    New UsbDriveControlAdapter(usbClient),
+                    preview.Drive,
+                    motor:=preview.MotorOn)
+                Return New Greaseweazle.Actions.SeekResult(
+                    Greaseweazle.Actions.SeekOutcome.Seeked, preview.Cyl)
+            Finally
+                If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                    ' Tolerate close errors so an in-flight Ctrl-C path
+                    ' (which may have already torn down the serial port)
+                    ' doesn't mask the originating KeyboardInterruptException.
+                    Try : usbClient.Serial.Close() : Catch : End Try
+                End If
+            End Try
         End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/delays.py::main (direct command execution mapping).
-    Public Class DelaysAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("delays", "Display (and optionally modify) drive-delay parameters.")
+    Public NotInheritable Class DelaysAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-format-line") Then
-                Dim tab = Integer.Parse(parsed("tab"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(Delays.PrintInfoLine(parsed("name"), parsed("value"), tab))
-                Return 0
-            End If
-            Dim preview = Delays.BuildRuntimePreview(args)
-            If preview.Live Then
-                Dim usbClient As Unit = Nothing
-                Try
-                    usbClient = ToolOptions.UsbOpen(preview.Device)
+        ' Python map: src/greaseweazle/tools/delays.py::main (post-parser algorithm body).
+        ' Returns a typed DelaysResult; throws CmdError or FatalException on
+        ' recoverable failures (the CLI catches CmdError into "Command
+        ' Failed: ..."; FatalException already carries its own banner). For
+        ' --test dry-run mode returns Nothing — the CLI renders no output.
+        Public Shared Function RunFromOptions(preview As DelaysOptions) As Greaseweazle.Actions.DelaysResult
+            If Not preview.Live Then Return Nothing
 
-                    Dim paramSize = 16
-                    Dim dat As Byte() = Nothing
-                    Do
-                        Try
-                            dat = usbClient.GetParams(UsbProtocol.Params.Delays, paramSize)
-                            Exit Do
-                        Catch ex As CmdError
-                            If ex.Code = UsbProtocol.Ack.BadCommand AndAlso paramSize <> 10 Then
-                                paramSize -= 2
-                            Else
-                                Throw
-                            End If
-                        End Try
-                    Loop
+            Dim usbClient As Unit = Nothing
+            Try
+                usbClient = ToolOptions.UsbOpen(preview.Device)
 
-                    Dim padded(15) As Byte
-                    Array.Copy(dat, padded, Math.Min(dat.Length, padded.Length))
-                    Dim values(7) As UShort
-                    For i = 0 To 7
-                        values(i) = BitConverter.ToUInt16(padded, i * 2)
-                    Next
-
-                    Dim optionToIndex As New Dictionary(Of String, Integer)(StringComparer.OrdinalIgnoreCase) From {
-                        {"--select", 0},
-                        {"--step", 1},
-                        {"--settle", 2},
-                        {"--motor", 3},
-                        {"--watchdog", 4},
-                        {"--pre-write", 5},
-                        {"--post-write", 6},
-                        {"--index-mask", 7}
-                    }
-
-                    For Each kvp In preview.Values
-                        Dim key = kvp.Key
-                        Dim idx = optionToIndex(key)
-                        If String.Equals(key, "--pre-write", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 12 Then
-                            Throw New FatalException("Option --pre-write requires updated firmware")
+                Dim paramSize = 16
+                Dim dat As Byte() = Nothing
+                Do
+                    Try
+                        dat = usbClient.GetParams(UsbProtocol.Params.Delays, paramSize)
+                        Exit Do
+                    Catch ex As CmdError
+                        If ex.Code = UsbProtocol.Ack.BadCommand AndAlso paramSize <> 10 Then
+                            paramSize -= 2
+                        Else
+                            Throw
                         End If
-                        If String.Equals(key, "--post-write", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 14 Then
-                            Throw New FatalException("Option --post-write requires updated firmware")
-                        End If
-                        If String.Equals(key, "--index-mask", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 16 Then
-                            Throw New FatalException("Option --index-mask requires updated firmware")
-                        End If
-                        values(idx) = CUShort(kvp.Value)
-                    Next
+                    End Try
+                Loop
 
-                    If preview.Values.Count > 0 Then
-                        Delays.Update(usbClient, paramSize, values)
-                    End If
+                Dim padded(15) As Byte
+                Array.Copy(dat, padded, Math.Min(dat.Length, padded.Length))
+                Dim values(7) As UShort
+                For i = 0 To 7
+                    values(i) = BitConverter.ToUInt16(padded, i * 2)
+                Next
 
-                    context.Output.WriteLine(Delays.PrintInfoLine("Select Delay", values(0).ToString(CultureInfo.InvariantCulture) & "us"))
-                    context.Output.WriteLine(Delays.PrintInfoLine("Step Delay", values(1).ToString(CultureInfo.InvariantCulture) & "us"))
-                    context.Output.WriteLine(Delays.PrintInfoLine("Settle Time", values(2).ToString(CultureInfo.InvariantCulture) & "ms"))
-                    context.Output.WriteLine(Delays.PrintInfoLine("Motor Delay", values(3).ToString(CultureInfo.InvariantCulture) & "ms"))
-                    context.Output.WriteLine(Delays.PrintInfoLine("Watchdog", values(4).ToString(CultureInfo.InvariantCulture) & "ms"))
-                    If paramSize >= 12 Then
-                        context.Output.WriteLine(Delays.PrintInfoLine("Pre-Write", values(5).ToString(CultureInfo.InvariantCulture) & "us"))
+                Dim optionToIndex As New Dictionary(Of String, Integer)(StringComparer.OrdinalIgnoreCase) From {
+                    {"--select", 0},
+                    {"--step", 1},
+                    {"--settle", 2},
+                    {"--motor", 3},
+                    {"--watchdog", 4},
+                    {"--pre-write", 5},
+                    {"--post-write", 6},
+                    {"--index-mask", 7}
+                }
+
+                For Each kvp In preview.Values
+                    Dim key = kvp.Key
+                    Dim idx = optionToIndex(key)
+                    If String.Equals(key, "--pre-write", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 12 Then
+                        Throw New FatalException("Option --pre-write requires updated firmware")
                     End If
-                    If paramSize >= 14 Then
-                        context.Output.WriteLine(Delays.PrintInfoLine("Post-Write", values(6).ToString(CultureInfo.InvariantCulture) & "us"))
+                    If String.Equals(key, "--post-write", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 14 Then
+                        Throw New FatalException("Option --post-write requires updated firmware")
                     End If
-                    If paramSize >= 16 Then
-                        context.Output.WriteLine(Delays.PrintInfoLine("Index Mask", values(7).ToString(CultureInfo.InvariantCulture) & "us"))
+                    If String.Equals(key, "--index-mask", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 16 Then
+                        Throw New FatalException("Option --index-mask requires updated firmware")
                     End If
-                Catch ex As CmdError
-                    ' Python delays.py:147-148: `except USB.CmdError as err: print("Command Failed: %s" % err)`
-                    context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                Finally
-                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                        ' Tolerate close errors so an in-flight Ctrl-C path
-                        ' (which may have already torn down the serial port)
-                        ' doesn't mask the originating KeyboardInterruptException.
-                        Try : usbClient.Serial.Close() : Catch : End Try
-                    End If
-                End Try
-            End If
-            Return 0
+                    values(idx) = CUShort(kvp.Value)
+                Next
+
+                If preview.Values.Count > 0 Then
+                    Delays.Update(usbClient, paramSize, values)
+                End If
+
+                Return New Greaseweazle.Actions.DelaysResult(
+                    selectMicros:=values(0),
+                    stepMicros:=values(1),
+                    settleMillis:=values(2),
+                    motorMillis:=values(3),
+                    watchdogMillis:=values(4),
+                    preWriteMicros:=If(paramSize >= 12, CType(values(5), Integer?), Nothing),
+                    postWriteMicros:=If(paramSize >= 14, CType(values(6), Integer?), Nothing),
+                    indexMaskMicros:=If(paramSize >= 16, CType(values(7), Integer?), Nothing))
+            Finally
+                If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                    ' Tolerate close errors so an in-flight Ctrl-C path
+                    ' (which may have already torn down the serial port)
+                    ' doesn't mask the originating KeyboardInterruptException.
+                    Try : usbClient.Serial.Close() : Catch : End Try
+                End If
+            End Try
         End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/update.py::main (direct command execution mapping).
-    Public Class UpdateAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("update", "Update the Greaseweazle device firmware to latest (or specified) version.")
+    Public NotInheritable Class UpdateAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-validate-args") Then
-                Dim fileValue As String = Nothing
-                Dim tagValue As String = Nothing
-                parsed.TryGetValue("file", fileValue)
-                parsed.TryGetValue("tag", tagValue)
-                Try
-                    Update.ValidateTagFileExclusion(fileValue, tagValue)
-                    context.Output.WriteLine("ok=1")
-                Catch ex As FatalException
-                    context.Output.WriteLine("ok=0")
-                    context.Output.WriteLine(String.Format("error={0}", ex.Message))
-                End Try
-                Return 0
-            End If
+        ' Python map: src/greaseweazle/tools/update.py::main.
+        ' Resolves the firmware payload, validates it against the
+        ' connected device, and flashes it. Raises DownloadStarted +
+        ' UpdateStarted at the points where Python prints the
+        ' corresponding lines, then returns a typed UpdateSummary
+        ' describing the outcome. CmdError propagates for unrecoverable
+        ' USB errors so the caller can surface ack-specific messages.
+        Public Shared Function RunFromOptions(preview As UpdateOptions,
+                                              cmd As Greaseweazle.Actions.UpdateCommand,
+                                              ct As CancellationToken) As Greaseweazle.Actions.UpdateSummary
+            Dim target = If(preview.Bootloader,
+                            Greaseweazle.Actions.UpdateTarget.Bootloader,
+                            Greaseweazle.Actions.UpdateTarget.MainFirmware)
 
-            Dim preview = Update.BuildRuntimePreview(args)
             If Not preview.Live Then
-                Return 0
+                Return Greaseweazle.Actions.UpdateSummary.ForDryRun(target)
             End If
 
-            ' Python update.py:103 emits "Downloading latest firmware: ..." BEFORE
-            ' issuing the asset GET; pass our output writer so Update.Download can
-            ' do likewise instead of waiting for the call to return.
-            Dim updateFile = Update.ResolvePayload(preview, context.Output)
+            Dim updateFile = Update.ResolvePayload(preview,
+                Sub(name As String)
+                    If cmd IsNot Nothing Then
+                        cmd.OnDownloadStarted(New Greaseweazle.Actions.UpdateDownloadStartedEventArgs(name))
+                    End If
+                End Sub)
+
             Dim usbClient As Unit = Nothing
             Try
                 usbClient = ToolOptions.UsbOpen(preview.Device, modeCheck:=False)
@@ -2853,11 +2692,9 @@ Namespace Greaseweazle.Tools
                 Dim info = New FirmwareInfo() With {.HwModel = usbClient.HwModel}
                 Dim extracted = Update.ExtractUpdate(info, updateFile, preview.Bootloader)
 
-                context.Output.WriteLine(String.Format(CultureInfo.InvariantCulture,
-                                                       "Updating {0} to version {1}.{2}...",
-                                                       If(preview.Bootloader, "Bootloader", "Main Firmware"),
-                                                       extracted.Major,
-                                                       extracted.Minor))
+                If cmd IsNot Nothing Then
+                    cmd.OnUpdateStarted(New Greaseweazle.Actions.UpdateStartedEventArgs(target, extracted.Major, extracted.Minor))
+                End If
 
                 If Not preview.Force AndAlso (usbClient.CanModeSwitch OrElse preview.Bootloader = usbClient.UpdateMode) Then
                     If preview.Bootloader <> usbClient.UpdateMode Then
@@ -2867,58 +2704,31 @@ Namespace Greaseweazle.Tools
 
                     If usbClient.Major > extracted.Major OrElse
                        (usbClient.Major = extracted.Major AndAlso usbClient.Minor >= extracted.Minor) Then
+                        Dim deviceMajor = usbClient.Major
+                        Dim deviceMinor = usbClient.Minor
                         If usbClient.UpdateMode AndAlso usbClient.CanModeSwitch Then
                             usbClient = ToolOptions.UsbReopen(usbClient, isUpdate:=False)
                         End If
-                        ' Python update.py:173-176 builds this message via a
-                        ' triple-quoted string so the embedded line break is a
-                        ' bare `\n` (matched by textwrap.dedent at print time).
-                        ' Use vbLf instead of Environment.NewLine so on Windows
-                        ' we don't emit \r\n where Python emits \n.
-                        Throw New SkipUpdate(String.Format(CultureInfo.InvariantCulture,
-                                                           "Device is already running version {0}.{1}.{2}Use --force to update anyway.",
-                                                           usbClient.Major,
-                                                           usbClient.Minor,
-                                                           vbLf))
+                        Return Greaseweazle.Actions.UpdateSummary.ForSkipped(target,
+                            extracted.Major, extracted.Minor, deviceMajor, deviceMinor)
                     End If
                 End If
 
                 usbClient = ToolOptions.UsbModeCheck(usbClient, isUpdate:=Not preview.Bootloader)
                 Dim ack = Update.UpdateFirmware(usbClient, extracted.Payload, preview.Bootloader)
-                If preview.Bootloader Then
-                    If ack <> 0 Then
-                        context.Output.WriteLine("** UPDATE FAILED: Please retry immediately or your Weazle may need")
-                        context.Output.WriteLine("        full reflashing via a suitable programming adapter!")
-                    Else
-                        context.Output.WriteLine("Done.")
-                    End If
+
+                Dim summary As Greaseweazle.Actions.UpdateSummary
+                If ack <> 0 Then
+                    summary = Greaseweazle.Actions.UpdateSummary.ForFailed(target, extracted.Major, extracted.Minor, ack)
                 Else
-                    If ack <> 0 Then
-                        context.Output.WriteLine("** UPDATE FAILED: Please retry!")
-                    Else
-                        context.Output.WriteLine("Done.")
-                        If Not usbClient.JumperlessUpdate Then
-                            context.Output.WriteLine("** Unplug device and remove the Update Jumper")
-                        End If
-                    End If
+                    Dim needsUnplug = (Not preview.Bootloader) AndAlso (Not usbClient.JumperlessUpdate)
+                    summary = Greaseweazle.Actions.UpdateSummary.ForCompleted(target, extracted.Major, extracted.Minor, needsUnplug)
                 End If
+
                 If usbClient.UpdateMode AndAlso usbClient.CanModeSwitch Then
                     usbClient = ToolOptions.UsbReopen(usbClient, isUpdate:=False)
                 End If
-                Return 0
-            Catch ex As CmdError
-                If ex.Code = UsbProtocol.Ack.OutOfSRAM AndAlso preview.Bootloader Then
-                    context.Output.WriteLine("ERROR: Bootloader update unsupported on this device (insufficient SRAM)")
-                ElseIf ex.Code = UsbProtocol.Ack.OutOfFlash AndAlso Not preview.Bootloader Then
-                    context.Output.WriteLine("ERROR: New firmware is too large for this device (insufficient Flash memory)")
-                Else
-                    context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                End If
-                Return 0
-            Catch ex As SkipUpdate
-                context.Output.WriteLine("** SKIPPING UPDATE:")
-                context.Output.WriteLine(ex.Message)
-                Return 0
+                Return summary
             Finally
                 If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
                     Try : usbClient.Serial.Close() : Catch : End Try
@@ -2928,470 +2738,351 @@ Namespace Greaseweazle.Tools
     End Class
 
     ' Python map: src/greaseweazle/tools/pin.py::main (direct command execution mapping).
-    Public Class PinAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("pin", "Change the setting of a user-modifiable interface pin.")
+    Public NotInheritable Class PinAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-usage") Then
-                For Each line In Pin.Usage()
-                    context.Output.WriteLine(line)
-                Next
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-format-level") Then
-                Dim pinNumber = Integer.Parse(parsed("pin"), CultureInfo.InvariantCulture)
-                Dim level = Integer.Parse(parsed("level"), CultureInfo.InvariantCulture) <> 0
-                context.Output.WriteLine(Pin.FormatPinLevelMessage(pinNumber, level))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-dispatch") Then
-                Dim parts = parsed("argv").Split("|"c)
-                context.Output.WriteLine(Pin.DispatchPinSubcommand(parts))
-                Return 0
-            End If
-            Dim preview = Pin.BuildRuntimePreview(args)
+        ' Python map: src/greaseweazle/tools/pin.py::main (post-parser algorithm body).
+        ' Returns a typed PinResult; throws CmdError for recoverable USB errors.
+        ' Emits no text — formatting is the CLI front-end's responsibility.
+        Public Shared Function RunFromOptions(preview As PinOptions) As Greaseweazle.Actions.PinResult
             If String.Equals(preview.Mode, "usage", StringComparison.Ordinal) Then
-                For Each line In Pin.Usage()
-                    context.Output.WriteLine(line)
-                Next
-                ' Python pin.py:62-65 calls sys.exit(1) from usage(); mirror that exit code.
-                Return 1
+                ' Python pin.py:62-65 calls sys.exit(1) from usage(); the CLI
+                ' maps PinResultKind.UsageRequested to rc=1.
+                Return Greaseweazle.Actions.PinResult.Usage()
             ElseIf String.Equals(preview.Mode, "set", StringComparison.Ordinal) Then
-                If preview.Live Then
-                    Dim usbClient As Unit = Nothing
-                    Try
-                        usbClient = ToolOptions.UsbOpen(preview.Device)
-                        usbClient.SetPin(preview.Pin, preview.Level)
-                        ' Python pin.py:30-31: print only AFTER set_pin succeeds.
-                        ' On CmdError the success message must be replaced by
-                        ' the "Command Failed" line below.
-                        context.Output.WriteLine(preview.Message)
-                    Catch ex As CmdError
-                        ' Python pin.py:32-33: `except USB.CmdError as error: print("Command Failed: %s" % error)`
-                        context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                    Finally
-                        If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                            Try : usbClient.Serial.Close() : Catch : End Try
-                        End If
-                    End Try
-                Else
-                    ' Dry-run (--test): print the would-be success message
-                    ' without contacting hardware so parity fixtures can
-                    ' assert on it.
-                    context.Output.WriteLine(preview.Message)
+                If Not preview.Live Then
+                    ' --test dry-run: skip hardware contact and surface the
+                    ' would-be success result so callers can assert on it.
+                    Return Greaseweazle.Actions.PinResult.Set(preview.Pin, preview.Level)
                 End If
+                Dim usbClient As Unit = Nothing
+                Try
+                    usbClient = ToolOptions.UsbOpen(preview.Device)
+                    ' Python pin.py:30-31 returns the success result AFTER
+                    ' set_pin returns; on CmdError that path is replaced by
+                    ' the thrown exception which the caller renders as the
+                    ' "Command Failed" line.
+                    usbClient.SetPin(preview.Pin, preview.Level)
+                    Return Greaseweazle.Actions.PinResult.Set(preview.Pin, preview.Level)
+                Finally
+                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                        Try : usbClient.Serial.Close() : Catch : End Try
+                    End If
+                End Try
             ElseIf String.Equals(preview.Mode, "get", StringComparison.Ordinal) Then
-                If preview.Live Then
-                    Dim usbClient As Unit = Nothing
-                    Try
-                        usbClient = ToolOptions.UsbOpen(preview.Device)
-                        ToolOptions.WithDriveSelected(
-                            Sub()
-                                context.Output.WriteLine(Pin.PinGet(usbClient, preview.Pin))
-                            End Sub,
-                            New UsbDriveControlAdapter(usbClient),
-                            preview.Drive,
-                            motor:=False)
-                    Catch ex As CmdError
-                        ' Python pin.py:59-60: `except USB.CmdError as error: print("Command Failed: %s" % error)`
-                        context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                    Finally
-                        If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                            Try : usbClient.Serial.Close() : Catch : End Try
-                        End If
-                    End Try
+                If Not preview.Live Then
+                    ' Python pin.py:51 only invokes pin_get when args.live is
+                    ' true; --test is therefore a no-op. We don't fabricate a
+                    ' fake level, so the caller renders nothing for this
+                    ' result.
+                    Return Greaseweazle.Actions.PinResult.NoOp()
                 End If
+                Dim usbClient As Unit = Nothing
+                Try
+                    usbClient = ToolOptions.UsbOpen(preview.Device)
+                    Dim level As Boolean = False
+                    ToolOptions.WithDriveSelected(
+                        Sub()
+                            level = Pin.PinGetInner(usbClient, preview.Pin)
+                        End Sub,
+                        New UsbDriveControlAdapter(usbClient),
+                        preview.Drive,
+                        motor:=False)
+                    Return Greaseweazle.Actions.PinResult.Value(preview.Pin, level)
+                Finally
+                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                        Try : usbClient.Serial.Close() : Catch : End Try
+                    End If
+                End Try
             End If
-            Return 0
+            ' Defensive: an unrecognised Mode means BuildRuntimePreview added
+            ' a new value the algorithm hasn't been taught — surface it as
+            ' UsageRequested so the CLI prints usage rather than crashing.
+            Return Greaseweazle.Actions.PinResult.Usage()
         End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/reset.py::main (direct command execution mapping).
-    Public Class ResetAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("reset", "Reset the Greaseweazle device to power-on default state.")
+    Public NotInheritable Class ResetAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-delays-flag") Then
-                Dim includeDelays = Integer.Parse(parsed("delays"), CultureInfo.InvariantCulture) <> 0
-                Dim restore = Reset.ShouldRestoreDelays(includeDelays)
-                context.Output.WriteLine(String.Format("restore_delays={0}", If(restore, 1, 0)))
-                Return 0
-            End If
-            Dim preview = Reset.BuildRuntimePreview(args)
-            If preview.Live Then
-                Dim usbClient As Unit = Nothing
-                Try
-                    usbClient = ToolOptions.UsbOpen(preview.Device)
-                    ' Python: capture current delay RAM via Delays(usb) before power-on reset.
-                    Dim paramSize = 16
-                    Dim dat As Byte() = Nothing
-                    Do
-                        Try
-                            dat = usbClient.GetParams(UsbProtocol.Params.Delays, paramSize)
-                            Exit Do
-                        Catch ex As CmdError
-                            If ex.Code = UsbProtocol.Ack.BadCommand AndAlso paramSize <> 10 Then
-                                paramSize -= 2
-                            Else
-                                Throw
-                            End If
-                        End Try
-                    Loop
-                    Dim padded(15) As Byte
-                    Array.Copy(dat, padded, Math.Min(dat.Length, padded.Length))
-                    Dim values(7) As UShort
-                    For i = 0 To 7
-                        values(i) = BitConverter.ToUInt16(padded, i * 2)
-                    Next
-                    usbClient.PowerOnReset()
-                    If Reset.ShouldRestoreDelays(preview.DelaysFlag) Then
-                        Delays.Update(usbClient, paramSize, values)
-                    End If
-                Catch ex As CmdError
-                    ' Python reset.py:34-35: `except USB.CmdError as error: print("Command Failed: %s" % error)`
-                    context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                Finally
-                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                        ' Tolerate close errors so an in-flight Ctrl-C path
-                        ' (which may have already torn down the serial port)
-                        ' doesn't mask the originating KeyboardInterruptException.
-                        Try : usbClient.Serial.Close() : Catch : End Try
-                    End If
-                End Try
-            End If
-            Return 0
-        End Function
+        ' Python map: src/greaseweazle/tools/reset.py::main (post-parser algorithm body).
+        ' Throws CmdError on a recoverable USB error so the caller (CLI or
+        ' library consumer) decides how to surface the failure. Emits no text.
+        Public Shared Sub RunFromOptions(preview As ResetOptions)
+            If Not preview.Live Then Return
+            Dim usbClient As Unit = Nothing
+            Try
+                usbClient = ToolOptions.UsbOpen(preview.Device)
+                ' Python: capture current delay RAM via Delays(usb) before power-on reset.
+                Dim paramSize = 16
+                Dim dat As Byte() = Nothing
+                Do
+                    Try
+                        dat = usbClient.GetParams(UsbProtocol.Params.Delays, paramSize)
+                        Exit Do
+                    Catch ex As CmdError
+                        If ex.Code = UsbProtocol.Ack.BadCommand AndAlso paramSize <> 10 Then
+                            paramSize -= 2
+                        Else
+                            Throw
+                        End If
+                    End Try
+                Loop
+                Dim padded(15) As Byte
+                Array.Copy(dat, padded, Math.Min(dat.Length, padded.Length))
+                Dim values(7) As UShort
+                For i = 0 To 7
+                    values(i) = BitConverter.ToUInt16(padded, i * 2)
+                Next
+                usbClient.PowerOnReset()
+                If Reset.ShouldRestoreDelays(preview.DelaysFlag) Then
+                    Delays.Update(usbClient, paramSize, values)
+                End If
+            Finally
+                If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                    ' Tolerate close errors so an in-flight Ctrl-C path
+                    ' (which may have already torn down the serial port)
+                    ' doesn't mask the originating KeyboardInterruptException.
+                    Try : usbClient.Serial.Close() : Catch : End Try
+                End If
+            End Try
+        End Sub
     End Class
 
     ' Python map: src/greaseweazle/tools/bandwidth.py::main (direct command execution mapping).
-    Public Class BandwidthAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("bandwidth", "Report the available USB bandwidth for the Greaseweazle device.")
+    Public NotInheritable Class BandwidthAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-buffer") Then
-                Dim count = Integer.Parse(parsed("count"), CultureInfo.InvariantCulture)
-                Dim seed = UInteger.Parse(parsed("seed"), NumberStyles.Integer, CultureInfo.InvariantCulture)
-                Dim bytes = Bandwidth.GenerateRandomBuffer(count, seed)
-                context.Output.WriteLine(String.Format("buffer={0}", String.Join(",", bytes.Select(Function(b) CInt(b)))))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-estimate") Then
-                Dim minRead = Double.Parse(parsed("min-read"), CultureInfo.InvariantCulture)
-                Dim minWrite = Double.Parse(parsed("min-write"), CultureInfo.InvariantCulture)
-                Dim estimated = Bandwidth.EstimateConsistentMinimumBandwidth(minRead, minWrite)
-                context.Output.WriteLine(String.Format(CultureInfo.InvariantCulture, "estimated={0:R}", estimated))
-                context.Output.WriteLine(Bandwidth.BuildBandwidthStatus(estimated))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-required-min") Then
-                context.Output.WriteLine(String.Format(CultureInfo.InvariantCulture, "required={0:R}", Bandwidth.ComputeRequiredMinimumBandwidth()))
-                Return 0
-            End If
-            Dim preview = Bandwidth.BuildRuntimePreview(args)
-            If preview.Live Then
-                Dim usbClient As Unit = Nothing
-                Try
-                    usbClient = ToolOptions.UsbOpen(preview.Device)
-                    Bandwidth.MeasureBandwidth(usbClient, context.Output)
-                Catch ex As CmdError
-                    ' Python bandwidth.py:86-87: `except USB.CmdError as error: print("Command Failed: %s" % error)`
-                    context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                Finally
-                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                        ' Tolerate close errors so an in-flight Ctrl-C path
-                        ' (which may have already torn down the serial port)
-                        ' doesn't mask the originating KeyboardInterruptException.
-                        Try : usbClient.Serial.Close() : Catch : End Try
-                    End If
-                End Try
-            End If
-            Return 0
+        ' Python map: src/greaseweazle/tools/bandwidth.py::main.
+        ' Throws CmdError on a recoverable USB error; returns Nothing for
+        ' --test dry-run mode.
+        Public Shared Function RunFromOptions(preview As BandwidthOptions) As Greaseweazle.Actions.BandwidthResult
+            If Not preview.Live Then Return Nothing
+            Dim usbClient As Unit = Nothing
+            Try
+                usbClient = ToolOptions.UsbOpen(preview.Device)
+                Return Bandwidth.Measure(usbClient)
+            Finally
+                If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                    ' Tolerate close errors so an in-flight Ctrl-C path
+                    ' (which may have already torn down the serial port)
+                    ' doesn't mask the originating KeyboardInterruptException.
+                    Try : usbClient.Serial.Close() : Catch : End Try
+                End If
+            End Try
         End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/rpm.py::main (direct command execution mapping).
-    Public Class RpmAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("rpm", "Measure RPM of drive spindle.")
+    Public NotInheritable Class RpmAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-speed-line") Then
-                Dim tpr = Double.Parse(parsed("tpr"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(Rpm.SpeedString(tpr))
-                Return 0
+        ' Python map: src/greaseweazle/tools/rpm.py::main.
+        ' Reads Nr index periods, raising SampleMeasured per measurement
+        ' and SummaryReady (in the loop's Finally) when at least 2
+        ' samples were collected. Returns RpmSummary on success;
+        ' propagates CmdError after raising SummaryReady so a partial
+        ' run still surfaces the stats it managed to collect.
+        Public Shared Function RunFromOptions(preview As RpmOptions,
+                                              cmd As Greaseweazle.Actions.RpmCommand,
+                                              ct As CancellationToken) As Greaseweazle.Actions.RpmSummary
+            If Not preview.Live Then
+                Return Greaseweazle.Actions.RpmSummary.ForDryRun()
             End If
-            If parsed.ContainsKey("parity-summary") Then
-                Dim samples = parsed("samples").Split(","c).Select(Function(x) Double.Parse(x, CultureInfo.InvariantCulture)).ToList()
-                For Each line In Rpm.PrintRpm(samples)
-                    context.Output.WriteLine(line)
-                Next
-                Return 0
-            End If
-            Dim preview = Rpm.BuildRuntimePreview(args)
-            If preview.Live Then
-                Dim usbClient As Unit = Nothing
-                Dim samples As New List(Of Double)()
+
+            Dim samples As New List(Of Double)()
+            Dim completed = False
+            Dim usbClient As Unit = Nothing
+            Try
+                usbClient = ToolOptions.UsbOpen(preview.Device)
+                Dim sampleFreq = usbClient.SampleFreq
                 Try
-                    usbClient = ToolOptions.UsbOpen(preview.Device)
-                    Dim sampleFreq = usbClient.SampleFreq
                     ToolOptions.WithDriveSelected(
                         Sub()
-                            ' Python rpm.py:24-38: print_rpm uses try/finally so the
-                            ' fastest/mean/median/slowest summary is emitted even
-                            ' when read_track throws partway through, after which
-                            ' the exception still propagates up to with_drive_selected
-                            ' (motor-off + deselect) and then to main's CmdError
-                            ' handler. Match that ordering exactly.
-                            Try
-                                For i = 1 To preview.Nr
-                                    Dim flux = usbClient.ReadTrack(1, 0)
-                                    Dim tpr = flux.IndexList.Last() / sampleFreq
-                                    samples.Add(tpr)
-                                    context.Output.WriteLine(Rpm.SpeedString(tpr))
-                                Next
-                            Finally
-                                If samples.Count > 1 Then
-                                    context.Output.WriteLine("***")
-                                    For Each line In Rpm.PrintRpm(samples)
-                                        context.Output.WriteLine(line)
-                                    Next
+                            For i = 1 To preview.Nr
+                                ct.ThrowIfCancellationRequested()
+                                Dim flux = usbClient.ReadTrack(1, 0)
+                                Dim tpr = flux.IndexList.Last() / sampleFreq
+                                samples.Add(tpr)
+                                If cmd IsNot Nothing Then
+                                    cmd.OnSampleMeasured(New Greaseweazle.Actions.RpmSampleMeasuredEventArgs(i, tpr))
                                 End If
-                            End Try
+                            Next
+                            completed = True
                         End Sub,
                         New UsbDriveControlAdapter(usbClient),
                         preview.Drive,
                         motor:=True)
-                Catch ex As CmdError
-                    ' Python rpm.py:58-59: `except USB.CmdError as err: print("Command Failed: %s" % err)`
-                    context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
                 Finally
-                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                        ' Tolerate close errors so an in-flight Ctrl-C path
-                        ' (which may have already torn down the serial port)
-                        ' doesn't mask the originating KeyboardInterruptException.
-                        Try : usbClient.Serial.Close() : Catch : End Try
+                    ' Python rpm.py:24-38: emit the FASTEST/Mean/Median/
+                    ' SLOWEST block in a try/finally so a partial run
+                    ' still gets a summary before any exception keeps
+                    ' propagating. Mirror that ordering.
+                    If samples.Count > 1 Then
+                        Dim partialSummary = Greaseweazle.Actions.RpmSummary.FromSamples(samples, completed)
+                        If cmd IsNot Nothing AndAlso partialSummary IsNot Nothing Then
+                            cmd.OnSummaryReady(New Greaseweazle.Actions.RpmSummaryReadyEventArgs(partialSummary))
+                        End If
                     End If
                 End Try
+            Finally
+                If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                    ' Tolerate close errors so an in-flight Ctrl-C path
+                    ' (which may have already torn down the serial port)
+                    ' doesn't mask the originating KeyboardInterruptException.
+                    Try : usbClient.Serial.Close() : Catch : End Try
+                End If
+            End Try
+
+            ' Successful path: return the (possibly Nothing) summary so
+            ' library consumers can branch on Completed/Samples.Count.
+            If samples.Count > 1 Then
+                Return Greaseweazle.Actions.RpmSummary.FromSamples(samples, completed)
             End If
-            Return 0
+            Return New Greaseweazle.Actions.RpmSummary(
+                samples,
+                fastest:=0, slowest:=0, mean:=0, median:=0,
+                completed:=completed, dryRun:=False)
         End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/align.py::main (direct command execution mapping).
-    Public Class AlignAction
-        Inherits StubActionBase
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration New)
-        Public Sub New()
-            MyBase.New("align", "Repeatedly read the same track for floppy drive alignment.")
+    Public NotInheritable Class AlignAction
+
+        Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Public Overrides Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-            Dim parsed = ActionArgs.Parse(args)
-            If parsed.ContainsKey("parity-tspec") Then
-                Dim cyl = Integer.Parse(parsed("cyl"), CultureInfo.InvariantCulture)
-                Dim head = Integer.Parse(parsed("head"), CultureInfo.InvariantCulture)
-                Dim physicalCyl = Integer.Parse(parsed("physical-cyl"), CultureInfo.InvariantCulture)
-                Dim physicalHead = Integer.Parse(parsed("physical-head"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(Align.BuildTrackSpec(cyl, head, physicalCyl, physicalHead))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-single-header") Then
-                Dim reads = Integer.Parse(parsed("reads"), CultureInfo.InvariantCulture)
-                Dim revs = Integer.Parse(parsed("revs"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(Align.BuildSingleTrackHeader(parsed("tspec"), reads, revs))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-multi-header") Then
-                Dim cyl = Integer.Parse(parsed("cyl"), CultureInfo.InvariantCulture)
-                Dim reads = Integer.Parse(parsed("reads"), CultureInfo.InvariantCulture)
-                Dim revs = Integer.Parse(parsed("revs"), CultureInfo.InvariantCulture)
-                Dim heads = parsed("heads").Split(","c).Select(Function(x) Integer.Parse(x, CultureInfo.InvariantCulture)).ToList()
-                context.Output.WriteLine(Align.BuildMultiTrackHeader(cyl, heads, reads, revs))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-validate") Then
-                Try
-                    Dim pairs As New List(Of Tuple(Of Integer, Integer))()
-                    Dim tracksText As String = Nothing
-                    parsed.TryGetValue("tracks", tracksText)
-                    If Not String.IsNullOrEmpty(tracksText) Then
-                        For Each token In tracksText.Split("|"c)
-                            Dim parts = token.Split(","c)
-                            pairs.Add(Tuple.Create(
-                                Integer.Parse(parts(0), CultureInfo.InvariantCulture),
-                                Integer.Parse(parts(1), CultureInfo.InvariantCulture)))
-                        Next
-                    End If
-                    Align.ValidateTrackCylinders(pairs)
-                    context.Output.WriteLine("ok=1")
-                Catch ex As FatalException
-                    context.Output.WriteLine("ok=0")
-                    context.Output.WriteLine(String.Format("error={0}", ex.Message))
-                End Try
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-resolve-tracks") Then
-                Dim formatTracksSpec As String = Nothing
-                Dim requested As String = Nothing
-                parsed.TryGetValue("format-tracks", formatTracksSpec)
-                parsed.TryGetValue("tracks", requested)
-                Dim formatTracks = If(String.IsNullOrEmpty(formatTracksSpec), Nothing, New Greaseweazle.Shared.TrackSet(formatTracksSpec))
-                Dim resolved = TrackResolution.ResolveDefaultTracksFromFormat(formatTracks, requested)
-                context.Output.WriteLine(String.Format("tracks={0}", resolved.ToString()))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-alternation") Then
-                Dim readNumber = Integer.Parse(parsed("read-num"), CultureInfo.InvariantCulture)
-                Dim trackCount = Integer.Parse(parsed("track-count"), CultureInfo.InvariantCulture)
-                context.Output.WriteLine(String.Format("index={0}", Align.ResolveAlternatingTrackIndex(readNumber, trackCount)))
-                Return 0
-            End If
-            If parsed.ContainsKey("parity-hard-sectors") Then
-                Dim hardSectors = Integer.Parse(parsed("hard-sectors"), CultureInfo.InvariantCulture)
-                Dim revs = Integer.Parse(parsed("revs"), CultureInfo.InvariantCulture)
-                Dim result = Align.ResolveHardSectorReadParams(hardSectors, revs)
-                context.Output.WriteLine(String.Format("effective_revs={0}", result.Item1))
-                context.Output.WriteLine(String.Format("effective_ticks={0}", result.Item2))
-                Return 0
-            End If
-            Dim preview = Align.BuildRuntimePreview(args, CodecRegistry.GetFormats())
-            ' Python align.py:100-107 prints "Aligning ..." (and the optional
-            ' "Format ..." line) AFTER align_track has applied the fractional-
-            ' revs collapse and hard-sectors multiplier — so the visible revs
-            ' reflects the *effective* read count, not the parse-time value.
-            ' In live mode we therefore defer those prints into AlignTrack itself
-            ' so the post-adjustment values are used. In dry-run / --test mode we
-            ' have no hardware to drive those adjustments, so we still print the
-            ' parse-time preview header here (matches the earlier --test
-            ' behaviour parity fixtures depend on).
+        ' Python map: src/greaseweazle/tools/align.py::main.
+        ' --test mode: raises Started once with the parse-time header.
+        ' Live mode: applies fractional-revs / hard-sector adjustments,
+        ' then drives Align.AlignTrack which raises Started + ReadCompleted
+        ' through the supplied AlignCommand. CmdError propagates.
+        Public Shared Function RunFromOptions(preview As AlignOptions,
+                                              cmd As Greaseweazle.Actions.AlignCommand,
+                                              ct As CancellationToken) As Greaseweazle.Actions.AlignSummary
             If Not preview.Live Then
-                context.Output.WriteLine(preview.Header)
-                If Not String.IsNullOrEmpty(preview.Format) Then
-                    context.Output.WriteLine("Format " & preview.Format)
+                If cmd IsNot Nothing Then
+                    cmd.OnStarted(New Greaseweazle.Actions.AlignStartedEventArgs(
+                        preview.TrackSet.IteratePhysical().ToList(),
+                        preview.Reads,
+                        preview.Revs,
+                        preview.Format))
                 End If
+                Return New Greaseweazle.Actions.AlignSummary(preview.Reads, 0, dryRun:=True)
             End If
-            If preview.Live Then
-                Dim usbClient As Unit = Nothing
-                Dim prevPin2 As Nullable(Of Boolean) = Nothing
-                Try
-                    usbClient = ToolOptions.UsbOpen(preview.Device)
-                    If preview.Densel.HasValue OrElse preview.GenTg43 Then
-                        prevPin2 = usbClient.GetPin(2)
-                    End If
-                    If preview.Densel.HasValue Then
-                        usbClient.SetPin(2, preview.Densel.Value)
-                    End If
 
-                    ToolOptions.WithDriveSelected(
-                        Sub()
-                            Dim effectiveRevs = preview.Revs
-                            Dim effectiveTicks = preview.Ticks
-                            Dim driveTicksPerRev As Nullable(Of Double) = Nothing
-                            Dim hardSectorCount As Integer = 0
-                            If preview.FakeIndexPeriod.HasValue Then
-                                driveTicksPerRev = preview.FakeIndexPeriod.Value * usbClient.SampleFreq
-                            ElseIf preview.HardSectors Then
-                                ' Python align.py:50 uses `int(usb.sample_freq/2)`; truncate
-                                ' toward zero rather than banker's-round.
-                                Dim flux = usbClient.ReadTrack(0, CInt(Math.Truncate(usbClient.SampleFreq / 2)))
-                                flux.IdentifyHardSectors()
-                                ErrorHandling.Check(flux.SectorList IsNot Nothing AndAlso flux.SectorList.Count > 0,
-                                                   "Unable to identify hard sectors on this drive")
-                                driveTicksPerRev = flux.TicksPerRev
-                                hardSectorCount = flux.SectorList(flux.SectorList.Count - 1).Count
-                                context.Output.WriteLine(String.Format("Drive reports {0} hard sectors", hardSectorCount))
+            Dim readsCompleted = 0
+            Dim usbClient As Unit = Nothing
+            Dim prevPin2 As Nullable(Of Boolean) = Nothing
+            Try
+                usbClient = ToolOptions.UsbOpen(preview.Device)
+                If preview.Densel.HasValue OrElse preview.GenTg43 Then
+                    prevPin2 = usbClient.GetPin(2)
+                End If
+                If preview.Densel.HasValue Then
+                    usbClient.SetPin(2, preview.Densel.Value)
+                End If
+
+                ToolOptions.WithDriveSelected(
+                    Sub()
+                        Dim effectiveRevs = preview.Revs
+                        Dim effectiveTicks = preview.Ticks
+                        Dim driveTicksPerRev As Nullable(Of Double) = Nothing
+                        Dim hardSectorCount As Integer = 0
+                        If preview.FakeIndexPeriod.HasValue Then
+                            driveTicksPerRev = preview.FakeIndexPeriod.Value * usbClient.SampleFreq
+                        ElseIf preview.HardSectors Then
+                            ' Python align.py:50 uses `int(usb.sample_freq/2)`; truncate
+                            ' toward zero rather than banker's-round.
+                            Dim flux = usbClient.ReadTrack(0, CInt(Math.Truncate(usbClient.SampleFreq / 2)))
+                            flux.IdentifyHardSectors()
+                            ErrorHandling.Check(flux.SectorList IsNot Nothing AndAlso flux.SectorList.Count > 0,
+                                               "Unable to identify hard sectors on this drive")
+                            driveTicksPerRev = flux.TicksPerRev
+                            hardSectorCount = flux.SectorList(flux.SectorList.Count - 1).Count
+                            If cmd IsNot Nothing Then
+                                cmd.OnHardSectorsDetected(New Greaseweazle.Actions.AlignHardSectorsDetectedEventArgs(hardSectorCount))
                             End If
+                        End If
 
-                            ' Python align.py:64-71: collapse fractional revs to a
-                            ' tick budget after measuring drive ticks-per-rev.
-                            If preview.FractionalRevs.HasValue Then
-                                If preview.Raw Then
-                                    effectiveRevs = 2
-                                Else
-                                    If Not driveTicksPerRev.HasValue Then
-                                        driveTicksPerRev = usbClient.ReadTrack(2, 0).TicksPerRev
-                                    End If
-                                    ' Python's int() truncates toward zero; use Math.Truncate.
-                                    effectiveTicks = CInt(Math.Truncate(driveTicksPerRev.Value * preview.FractionalRevs.Value))
-                                    effectiveRevs = 2
+                        ' Python align.py:64-71: collapse fractional revs to a
+                        ' tick budget after measuring drive ticks-per-rev.
+                        If preview.FractionalRevs.HasValue Then
+                            If preview.Raw Then
+                                effectiveRevs = 2
+                            Else
+                                If Not driveTicksPerRev.HasValue Then
+                                    driveTicksPerRev = usbClient.ReadTrack(2, 0).TicksPerRev
                                 End If
+                                effectiveTicks = CInt(Math.Truncate(driveTicksPerRev.Value * preview.FractionalRevs.Value))
+                                effectiveRevs = 2
                             End If
+                        End If
 
-                            ' Python align.py:73-75: hard-sector revs/ticks
-                            ' adjustment uses the post-fractional-collapse revs.
-                            If preview.HardSectors AndAlso hardSectorCount > 0 Then
-                                effectiveRevs = (hardSectorCount + 1) * (effectiveRevs + 1)
-                                effectiveTicks = 0
-                            End If
+                        ' Python align.py:73-75: hard-sector revs/ticks
+                        ' adjustment uses the post-fractional-collapse revs.
+                        If preview.HardSectors AndAlso hardSectorCount > 0 Then
+                            effectiveRevs = (hardSectorCount + 1) * (effectiveRevs + 1)
+                            effectiveTicks = 0
+                        End If
 
-                            If preview.GenTg43 Then
-                                Dim firstTrack = preview.TrackSet.IteratePhysical().First()
-                                usbClient.SetPin(2, firstTrack.Cyl < 60)
-                            End If
+                        If preview.GenTg43 Then
+                            Dim firstTrack = preview.TrackSet.IteratePhysical().First()
+                            usbClient.SetPin(2, firstTrack.Cyl < 60)
+                        End If
 
-                            Align.AlignTrack(usbClient,
-                                             preview.TrackSet.IteratePhysical().ToList(),
-                                             preview.Reads,
-                                             effectiveRevs,
-                                             effectiveTicks,
-                                             context.Output,
-                                             preview.Reverse,
-                                             preview.HardSectors,
-                                             preview.Raw,
-                                             preview.AdjustSpeed,
-                                             driveTicksPerRev,
-                                             preview.FakeIndexPeriod,
-                                             preview.FormatDef,
-                                             preview.Format,
-                                             preview.PllProfiles,
-                                             preview.Format)
-                        End Sub,
-                        New UsbDriveControlAdapter(usbClient),
-                        preview.Drive,
-                        motor:=True)
-                Catch ex As CmdError
-                    ' Python align.py:219-220: `except USB.CmdError as err: print("Command Failed: %s" % err)`
-                    context.Output.WriteLine(String.Format("Command Failed: {0}", ex.Message))
-                Finally
-                    If usbClient IsNot Nothing AndAlso (preview.Densel.HasValue OrElse preview.GenTg43) AndAlso prevPin2.HasValue Then
-                        ' Tolerate SetPin errors so an in-flight Ctrl-C path
-                        ' (which may have torn down the serial port) doesn't
-                        ' mask the originating KeyboardInterruptException.
-                        Try : usbClient.SetPin(2, prevPin2.Value) : Catch : End Try
-                    End If
-                    If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
-                        ' Tolerate close errors so an in-flight Ctrl-C path
-                        ' (which may have already torn down the serial port)
-                        ' doesn't mask the originating KeyboardInterruptException.
-                        Try : usbClient.Serial.Close() : Catch : End Try
-                    End If
-                End Try
-            End If
-            Return 0
+                        readsCompleted = Align.AlignTrack(
+                            usbClient,
+                            preview.TrackSet.IteratePhysical().ToList(),
+                            preview.Reads,
+                            effectiveRevs,
+                            effectiveTicks,
+                            preview.Reverse,
+                            preview.HardSectors,
+                            preview.Raw,
+                            preview.AdjustSpeed,
+                            driveTicksPerRev,
+                            Sub(tracks As IReadOnlyList(Of TrackIter), reads As Integer, revs As Integer, formatName As String)
+                                If cmd IsNot Nothing Then
+                                    cmd.OnStarted(New Greaseweazle.Actions.AlignStartedEventArgs(tracks, reads, revs, formatName))
+                                End If
+                            End Sub,
+                            Sub(args As Greaseweazle.Actions.AlignReadCompletedEventArgs)
+                                ct.ThrowIfCancellationRequested()
+                                If cmd IsNot Nothing Then cmd.OnReadCompleted(args)
+                            End Sub,
+                            preview.FakeIndexPeriod,
+                            preview.FormatDef,
+                            preview.Format,
+                            preview.PllProfiles)
+                    End Sub,
+                    New UsbDriveControlAdapter(usbClient),
+                    preview.Drive,
+                    motor:=True)
+            Finally
+                If usbClient IsNot Nothing AndAlso (preview.Densel.HasValue OrElse preview.GenTg43) AndAlso prevPin2.HasValue Then
+                    ' Tolerate SetPin errors so an in-flight Ctrl-C path
+                    ' (which may have torn down the serial port) doesn't
+                    ' mask the originating KeyboardInterruptException.
+                    Try : usbClient.SetPin(2, prevPin2.Value) : Catch : End Try
+                End If
+                If usbClient IsNot Nothing AndAlso usbClient.Serial IsNot Nothing Then
+                    ' Tolerate close errors so an in-flight Ctrl-C path
+                    ' (which may have already torn down the serial port)
+                    ' doesn't mask the originating KeyboardInterruptException.
+                    Try : usbClient.Serial.Close() : Catch : End Try
+                End If
+            End Try
+            Return New Greaseweazle.Actions.AlignSummary(preview.Reads, readsCompleted, dryRun:=False)
         End Function
     End Class
 

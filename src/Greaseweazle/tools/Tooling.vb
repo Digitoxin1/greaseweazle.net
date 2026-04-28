@@ -7,23 +7,6 @@ Imports System.Threading
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this interface provides VB command abstraction absent in Python module-level command functions.
-    Public Interface ToolAction
-        ReadOnly Property Name As String
-        ReadOnly Property Description As String
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration Execute)
-        Function Execute(args As IReadOnlyList(Of String), context As ToolContext) As Integer
-    End Interface
-
-    ' Python map: no-1:1 with Python symbols; this context object bundles runtime dependencies instead of Python globals/import wiring.
-    Public Class ToolContext
-        Public Property Output As TextWriter = Console.Error
-        Public Property ErrorOutput As TextWriter = Console.Error
-        Public Property Input As TextReader = Console.In
-        Public Property SerialFactory As Func(Of String, SerialTransport)
-        Public Property ImageTypeRegistry As ImageTypeRegistry = New ImageTypeRegistry()
-    End Class
-
     ' Python map: src/greaseweazle/tools/util.py::CmdlineHelpFormatter
     Public Class CmdlineHelpFormatter
         ' Python map: src/greaseweazle/tools/util.py::CmdlineHelpFormatter._get_help_string
@@ -62,27 +45,6 @@ Namespace Greaseweazle.Tools
         ' Python map: src/greaseweazle/tools/util.py::Drive.__call__
         Public Function [Call](token As String) As DriveSpec
             Return ToolOptions.Drive(token)
-        End Function
-    End Class
-
-    ' Python map: no-1:1 with Python symbols; this registry replaces Python dynamic command dispatch/import patterns.
-    Public Class ToolRegistry
-
-        Private ReadOnly _actions As New Dictionary(Of String, ToolAction)(StringComparer.OrdinalIgnoreCase)
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration Register)
-        Public Sub Register(action As ToolAction)
-            _actions(action.Name) = action
-        End Sub
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration TryGetAction)
-        Public Function TryGetAction(name As String, ByRef action As ToolAction) As Boolean
-            Return _actions.TryGetValue(name, action)
-        End Function
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration GetActions)
-        Public Function GetActions() As IEnumerable(Of ToolAction)
-            Return _actions.Values.OrderBy(Function(x) x.Name).ToList()
         End Function
     End Class
 

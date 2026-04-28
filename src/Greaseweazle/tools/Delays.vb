@@ -3,11 +3,15 @@ Imports Greaseweazle.Infrastructure
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed delays runtime state.
-    Public Class DelaysRuntimePreview
+    ' Strongly-typed options for the `delays` action.
+    Public Class DelaysOptions
         Public Property Values As Dictionary(Of String, Integer)
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As DelaysOptions
+            Return Delays.BuildRuntimePreview(args)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/delays.py::Delays
@@ -36,7 +40,7 @@ Namespace Greaseweazle.Tools
         End Sub
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As DelaysRuntimePreview
+        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As DelaysOptions
             Dim values As New Dictionary(Of String, Integer)(StringComparer.OrdinalIgnoreCase)
             Dim live = True
             Dim device As String = Nothing
@@ -86,7 +90,7 @@ Namespace Greaseweazle.Tools
             If positionals.Count > 0 Then
                 Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
-            Return New DelaysRuntimePreview With {.Values = values, .Live = live, .Device = device}
+            Return New DelaysOptions With {.Values = values, .Live = live, .Device = device}
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ParseUInt)

@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>Greaseweazle</AssemblyName>
+    <AssemblyName>gw-vb</AssemblyName>
     <RootNamespace></RootNamespace>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
+    <StartupObject>Greaseweazle.Cli.Driver</StartupObject>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
@@ -11,11 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="data\*.xml" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="System.IO.Compression" />
-    <Reference Include="System.Management" />
+    <ProjectReference Include="..\Greaseweazle\Greaseweazle.vbproj" />
   </ItemGroup>
 </Project>

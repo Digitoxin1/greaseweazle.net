@@ -9,14 +9,18 @@ Imports System.Text.RegularExpressions
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed update runtime state.
-    Public Class UpdateRuntimePreview
+    ' Strongly-typed options for the `update` action.
+    Public Class UpdateOptions
         Public Property FileValue As String
         Public Property TagValue As String
         Public Property Force As Boolean
         Public Property Bootloader As Boolean
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As UpdateOptions
+            Return Update.BuildRuntimePreview(args)
+        End Function
     End Class
 
     ' Python map: no-1:1 with Python symbols; this DTO carries selected firmware payload bytes in managed flow.
@@ -55,7 +59,7 @@ Namespace Greaseweazle.Tools
         End Sub
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As UpdateRuntimePreview
+        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As UpdateOptions
             Dim fileValue As String = Nothing
             Dim tagValue As String = Nothing
             Dim force = False
@@ -116,7 +120,7 @@ Namespace Greaseweazle.Tools
             End If
             ValidateTagFileExclusion(fileValue, tagValue)
 
-            Return New UpdateRuntimePreview With {
+            Return New UpdateOptions With {
                 .FileValue = fileValue,
                 .TagValue = tagValue,
                 .Force = force,
@@ -127,8 +131,15 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ResolvePayload)
-        Public Shared Function ResolvePayload(preview As UpdateRuntimePreview,
-                                              Optional progress As IO.TextWriter = Nothing) As UpdatePayload
+        '
+        ' Loads the requested payload from disk or downloads it from
+        ' GitHub. `onDownloadStarting`, when supplied, is invoked with
+        ' the resolved asset filename right before the asset GET so the
+        ' caller can render Python's "Downloading latest firmware: NAME"
+        ' line. The local-file path doesn't fire the callback (Python
+        ' only emits that line for downloads).
+        Public Shared Function ResolvePayload(preview As UpdateOptions,
+                                              Optional onDownloadStarting As Action(Of String) = Nothing) As UpdatePayload
             If Not String.IsNullOrEmpty(preview.FileValue) Then
                 Return New UpdatePayload With {
                     .Name = preview.FileValue,
@@ -137,10 +148,10 @@ Namespace Greaseweazle.Tools
             End If
 
             If Not String.IsNullOrEmpty(preview.TagValue) Then
-                Return DownloadByTag(preview.TagValue, progress)
+                Return DownloadByTag(preview.TagValue, onDownloadStarting)
             End If
 
-            Return DownloadLatest(progress)
+            Return DownloadLatest(onDownloadStarting)
         End Function
 
         ' Python map: src/greaseweazle/tools/update.py::download
@@ -218,21 +229,21 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/tools/update.py::download_latest
-        Private Shared Function DownloadLatest(progress As IO.TextWriter) As UpdatePayload
+        Private Shared Function DownloadLatest(onDownloadStarting As Action(Of String)) As UpdatePayload
             Dim release = FetchJson(Of GithubRelease)("https://api.github.com/repos/keirf/greaseweazle-firmware/releases/latest")
-            Return Download(release, progress)
+            Return Download(release, onDownloadStarting)
         End Function
 
         ' Python map: src/greaseweazle/tools/update.py::download_by_tag
-        Private Shared Function DownloadByTag(tag As String, progress As IO.TextWriter) As UpdatePayload
+        Private Shared Function DownloadByTag(tag As String, onDownloadStarting As Action(Of String)) As UpdatePayload
             Dim releases = FetchJson(Of List(Of GithubRelease))("https://api.github.com/repos/keirf/greaseweazle-firmware/releases")
             Dim hit = releases.FirstOrDefault(Function(x) String.Equals(x.TagName, tag, StringComparison.Ordinal))
             ErrorHandling.Check(hit IsNot Nothing, String.Format("Unknown tag name '{0}'", tag))
-            Return Download(hit, progress)
+            Return Download(hit, onDownloadStarting)
         End Function
 
         ' Python map: src/greaseweazle/tools/update.py::download
-        Private Shared Function Download(release As GithubRelease, progress As IO.TextWriter) As UpdatePayload
+        Private Shared Function Download(release As GithubRelease, onDownloadStarting As Action(Of String)) As UpdatePayload
             ErrorHandling.Check(release IsNot Nothing AndAlso release.Assets IsNot Nothing, "GitHub release metadata is missing assets")
             Dim chosenUrl As String = Nothing
             Dim baseName As String = Nothing
@@ -250,11 +261,12 @@ Namespace Greaseweazle.Tools
             ErrorHandling.Check(Not String.IsNullOrEmpty(chosenUrl), "No firmware release asset found")
 
             Dim updName = baseName & ".upd"
-            ' Python update.py:103 prints "Downloading latest firmware: NAME"
-            ' BEFORE issuing the actual asset GET so the user sees what is in
-            ' flight while the (potentially slow) network fetch is running.
-            If progress IsNot Nothing Then
-                progress.WriteLine(BuildDownloadLine(updName))
+            ' Python update.py:103 fires the "Downloading latest firmware: NAME"
+            ' notification BEFORE issuing the actual asset GET so the user
+            ' sees what is in flight while the (potentially slow) network
+            ' fetch is running.
+            If onDownloadStarting IsNot Nothing Then
+                onDownloadStarting(updName)
             End If
             Dim zipBytes = GhRequestGet(chosenUrl, timeoutMs:=10000)
             Using ms As New IO.MemoryStream(zipBytes)

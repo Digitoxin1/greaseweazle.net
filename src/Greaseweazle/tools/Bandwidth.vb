@@ -4,10 +4,14 @@ Imports System.IO
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed bandwidth runtime state.
-    Public Class BandwidthRuntimePreview
-        Public Property Live As Boolean
+    ' Strongly-typed options for the `bandwidth` action.
+    Public Class BandwidthOptions
+        Public Property Live As Boolean = True
         Public Property Device As String
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As BandwidthOptions
+            Return Bandwidth.BuildRuntimePreview(args)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/bandwidth.py (direct command-algorithm parity mapping).
@@ -32,11 +36,12 @@ Namespace Greaseweazle.Tools
             Return output.ToArray()
         End Function
 
-        ' Python map: src/greaseweazle/tools/bandwidth.py::measure_bandwidth
-        Public Shared Sub MeasureBandwidth(usbClient As Unit, output As TextWriter)
-            output.WriteLine("")
-            output.WriteLine(String.Format("{0,-19}{1,-7}/   {2,-7}/   {3,-7}", "", "Min.", "Mean", "Max."))
-
+        ' Python map: src/greaseweazle/tools/bandwidth.py::measure_bandwidth.
+        ' Pure-data version: does the round-trip USB I/O, returns a typed
+        ' BandwidthResult capturing every measurement the legacy text-mode
+        ' helper used to print. The CLI front-end's BandwidthFormatter
+        ' renders the structured result to the console.
+        Public Shared Function Measure(usbClient As Unit) As Greaseweazle.Actions.BandwidthResult
             Dim seed As UInteger = &H12345678UI
             Dim count = 1000000
             Dim writeBuffer = GenerateRandomBuffer(count, seed)
@@ -46,13 +51,19 @@ Namespace Greaseweazle.Tools
             sw.Stop()
             Dim avgWrite = (count * 8.0) / (sw.Elapsed.TotalSeconds * 1000000.0)
             Dim writeStats = usbClient.BwStats()
-            output.WriteLine(String.Format(Globalization.CultureInfo.InvariantCulture,
-                                           "Write Bandwidth: {0,8:F3} / {1,8:F3} / {2,8:F3} Mbps",
-                                           writeStats.Item1, avgWrite, writeStats.Item2))
-            ' Python: soft-fail on garbled write — print error and return.
+            Dim writeRow As New Greaseweazle.Actions.BandwidthRow(
+                writeStats.Item1, avgWrite, writeStats.Item2)
+
+            ' Python: soft-fail on garbled write — emit the row, set the
+            ' garble flag, and return; the caller surfaces the error and
+            ' skips the read measurement.
             If ack <> 0 Then
-                output.WriteLine("ERROR: USB write data garbled (Host -> Device)")
-                Return
+                Return New Greaseweazle.Actions.BandwidthResult(
+                    writeRow:=writeRow,
+                    writeGarbled:=True,
+                    readRow:=Nothing,
+                    readGarbled:=False,
+                    summary:=Nothing)
             End If
 
             sw.Restart()
@@ -60,30 +71,48 @@ Namespace Greaseweazle.Tools
             sw.Stop()
             Dim avgRead = (count * 8.0) / (sw.Elapsed.TotalSeconds * 1000000.0)
             Dim readStats = usbClient.BwStats()
-            output.WriteLine(String.Format(Globalization.CultureInfo.InvariantCulture,
-                                           "Read Bandwidth:  {0,8:F3} / {1,8:F3} / {2,8:F3} Mbps",
-                                           readStats.Item1, avgRead, readStats.Item2))
-            ' Python: soft-fail on garbled read — print error and return.
+            Dim readRow As New Greaseweazle.Actions.BandwidthRow(
+                readStats.Item1, avgRead, readStats.Item2)
+
+            ' Python: soft-fail on garbled read — emit the row, set the
+            ' garble flag, and skip the summary.
             If sourceBuffer IsNot Nothing AndAlso Not sourceBuffer.SequenceEqual(writeBuffer) Then
-                output.WriteLine("ERROR: USB read data garbled (Device -> Host)")
-                Return
+                Return New Greaseweazle.Actions.BandwidthResult(
+                    writeRow:=writeRow,
+                    writeGarbled:=False,
+                    readRow:=readRow,
+                    readGarbled:=True,
+                    summary:=Nothing)
             End If
 
             Dim estMin = EstimateConsistentMinimumBandwidth(readStats.Item1, writeStats.Item1)
-            output.WriteLine("")
-            output.WriteLine(String.Format(Globalization.CultureInfo.InvariantCulture, "Estimated Consistent Min. Bandwidth: {0:F3} Mbps", estMin))
-            Dim status = BuildBandwidthStatus(estMin)
-            If status.StartsWith("warning=", StringComparison.Ordinal) Then
-                Dim value = status.Substring("warning=".Length)
-                output.WriteLine(String.Format(" -> **WARNING** BELOW REQUIRED MIN.: {0} Mbps", value))
+            Dim required = ComputeRequiredMinimumBandwidth()
+            Dim summary As Greaseweazle.Actions.BandwidthSummary
+            If required > estMin Then
+                summary = New Greaseweazle.Actions.BandwidthSummary(
+                    estimatedMinMbps:=estMin,
+                    belowRequirement:=True,
+                    requiredMinMbps:=required,
+                    maxFluxRateMsps:=0,
+                    minAvgFluxUs:=0)
             Else
-                Dim parts = status.Split(";"c)
-                Dim maxFlux = parts(0).Substring("max_flux=".Length)
-                Dim minAve = parts(1).Substring("min_ave_flux=".Length)
-                output.WriteLine(String.Format(" -> Max. Flux Rate: {0} Msamples/sec", maxFlux))
-                output.WriteLine(String.Format(" -> Min. Ave. Flux: {0} us", minAve))
+                ' Same arithmetic as BuildBandwidthStatus.
+                Dim maxFluxRateHz = ((estMin * 0.9) * 1000000.0) / 8.0
+                summary = New Greaseweazle.Actions.BandwidthSummary(
+                    estimatedMinMbps:=estMin,
+                    belowRequirement:=False,
+                    requiredMinMbps:=0,
+                    maxFluxRateMsps:=maxFluxRateHz / 1000000.0,
+                    minAvgFluxUs:=1000000.0 / maxFluxRateHz)
             End If
-        End Sub
+
+            Return New Greaseweazle.Actions.BandwidthResult(
+                writeRow:=writeRow,
+                writeGarbled:=False,
+                readRow:=readRow,
+                readGarbled:=False,
+                summary:=summary)
+        End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ComputeRequiredMinimumBandwidth)
         Public Shared Function ComputeRequiredMinimumBandwidth() As Double
@@ -111,7 +140,7 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As BandwidthRuntimePreview
+        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As BandwidthOptions
             Dim live = True
             Dim device As String = Nothing
             Dim positionals As New List(Of String)()
@@ -150,7 +179,7 @@ Namespace Greaseweazle.Tools
             If positionals.Count > 0 Then
                 Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
-            Return New BandwidthRuntimePreview With {.Live = live, .Device = device}
+            Return New BandwidthOptions With {.Live = live, .Device = device}
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration CheckOptionValue)

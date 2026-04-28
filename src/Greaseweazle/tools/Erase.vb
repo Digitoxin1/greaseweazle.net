@@ -1,20 +1,23 @@
 Imports Greaseweazle.Core
 Imports Greaseweazle.Infrastructure
 Imports Greaseweazle.Shared
-Imports System.IO
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed erase runtime state.
-    Public Class EraseRuntimePreview
+    ' Strongly-typed options for the `erase` action.
+    Public Class EraseOptions
         Public Property Tracks As String
         Public Property TrackSet As TrackSet
         Public Property Revs As Integer
         Public Property Hfreq As Boolean
         Public Property FakeIndex As Double?
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
         Public Property Drive As DriveSpec
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As EraseOptions
+            Return [Erase].BuildRuntimePreview(args)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/erase.py (direct command-algorithm parity mapping).
@@ -41,10 +44,16 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/tools/erase.py::erase
-        Public Shared Sub [Erase](usbClient As Unit,
-                                  preview As EraseRuntimePreview,
-                                  tracks As IReadOnlyList(Of TrackIter),
-                                  output As TextWriter)
+        '
+        ' Performs the per-track erase loop. `onTrackStarting` is invoked
+        ' just before each TrackIter is touched so the caller (the typed
+        ' EraseCommand or any other library consumer) can render progress
+        ' UI without this routine generating any text itself. Returns the
+        ' number of tracks visited.
+        Public Shared Function [Erase](usbClient As Unit,
+                                       preview As EraseOptions,
+                                       tracks As IReadOnlyList(Of TrackIter),
+                                       onTrackStarting As Action(Of TrackIter)) As Integer
             Dim driveTicks As Double
             If preview.FakeIndex.HasValue Then
                 driveTicks = preview.FakeIndex.Value * usbClient.SampleFreq
@@ -52,8 +61,11 @@ Namespace Greaseweazle.Tools
                 driveTicks = usbClient.ReadTrack(2, 0).TicksPerRev
             End If
 
+            Dim processed = 0
             For Each track In tracks
-                output.WriteLine(String.Format("T{0}.{1}: Erasing Track", track.Cyl, track.Head))
+                If onTrackStarting IsNot Nothing Then
+                    onTrackStarting(track)
+                End If
                 usbClient.Seek(track.PhysicalCyl, track.PhysicalHead)
                 For rev = 0 To preview.Revs - 1
                     If preview.Hfreq Then
@@ -64,11 +76,13 @@ Namespace Greaseweazle.Tools
                         usbClient.EraseTrack(ComputeEraseTicks(driveTicks))
                     End If
                 Next
+                processed += 1
             Next
-        End Sub
+            Return processed
+        End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As EraseRuntimePreview
+        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As EraseOptions
             Dim tracksSpec As String = Nothing
             Dim revs = 1
             Dim hfreq = False
@@ -161,7 +175,7 @@ Namespace Greaseweazle.Tools
             Catch ex As ArgumentException
                 Throw New FatalException(ex.Message)
             End Try
-            Return New EraseRuntimePreview With {
+            Return New EraseOptions With {
                 .Tracks = resolvedTracks.ToString(),
                 .TrackSet = resolvedTracks,
                 .Revs = revs,

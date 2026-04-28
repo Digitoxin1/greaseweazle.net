@@ -2,12 +2,11 @@ Imports Greaseweazle.Core
 Imports Greaseweazle.Codecs
 Imports Greaseweazle.Infrastructure
 Imports Greaseweazle.Shared
-Imports System.IO
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed align runtime state.
-    Public Class AlignRuntimePreview
+    ' Strongly-typed options for the `align` action.
+    Public Class AlignOptions
         Public Property Header As String
         Public Property Format As String
         Public Property DiskDefsPath As String
@@ -30,9 +29,14 @@ Namespace Greaseweazle.Tools
         Public Property FakeIndexPeriod As Nullable(Of Double)
         Public Property GenTg43 As Boolean
         Public Property Densel As Nullable(Of Boolean)
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
         Public Property Drive As DriveSpec
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String),
+                                        knownFormats As IEnumerable(Of String)) As AlignOptions
+            Return Align.BuildRuntimePreview(args, knownFormats)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/align.py (direct command-algorithm parity mapping).
@@ -138,50 +142,53 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/tools/align.py::align_track
-        Public Shared Sub AlignTrack(usbClient As Unit,
-                                     tracks As IReadOnlyList(Of TrackIter),
-                                     reads As Integer,
-                                     revs As Integer,
-                                     ticks As Integer,
-                                     output As TextWriter,
-                                     reverse As Boolean,
-                                     hardSectors As Boolean,
-                                     raw As Boolean,
-                                     adjustSpeed As Nullable(Of Double),
-                                     driveTicksPerRev As Nullable(Of Double),
-                                     Optional fakeIndexPeriod As Nullable(Of Double) = Nothing,
-                                     Optional formatDef As DiskDef = Nothing,
-                                     Optional formatName As String = Nothing,
-                                     Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing,
-                                     Optional formatLine As String = Nothing)
+        '
+        ' Performs the read loop. Two callbacks expose progress without
+        ' the algorithm producing any text:
+        '   onStarted        (tracks, reads, revs, formatName)
+        '   onReadCompleted  (AlignReadCompletedEventArgs)
+        ' Returns the number of read passes that fully completed
+        ' (always equal to `reads` on the success path).
+        Public Shared Function AlignTrack(usbClient As Unit,
+                                          tracks As IReadOnlyList(Of TrackIter),
+                                          reads As Integer,
+                                          revs As Integer,
+                                          ticks As Integer,
+                                          reverse As Boolean,
+                                          hardSectors As Boolean,
+                                          raw As Boolean,
+                                          adjustSpeed As Nullable(Of Double),
+                                          driveTicksPerRev As Nullable(Of Double),
+                                          onStarted As Action(Of IReadOnlyList(Of TrackIter), Integer, Integer, String),
+                                          onReadCompleted As Action(Of Greaseweazle.Actions.AlignReadCompletedEventArgs),
+                                          Optional fakeIndexPeriod As Nullable(Of Double) = Nothing,
+                                          Optional formatDef As DiskDef = Nothing,
+                                          Optional formatName As String = Nothing,
+                                          Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing) As Integer
             Dim trackList = tracks.ToList()
             Dim pairs = trackList.Select(Function(t) Tuple.Create(t.Cyl, t.Head)).ToList()
             ValidateTrackCylinders(pairs)
 
-            Dim cyl = trackList(0).Cyl
-            ' Python prints the "Aligning ..." header AFTER all revs adjustments
-            ' (fractional collapse + hard-sectors multiplier), so the displayed
-            ' revs reflects the *effective* read count, not the parse-time value.
-            ' AlignAction defers this print to here in live mode for that reason;
-            ' the caller-supplied formatLine (if any) is then emitted before the
-            ' read loop, mirroring align.py:106-107.
-            If trackList.Count = 1 Then
-                Dim t = trackList(0)
-                output.WriteLine(BuildSingleTrackHeader(BuildTrackSpec(t.Cyl, t.Head, t.PhysicalCyl, t.PhysicalHead), reads, revs))
-            Else
-                output.WriteLine(BuildMultiTrackHeader(cyl, trackList.Select(Function(t) t.Head).ToList(), reads, revs))
-            End If
-            If Not String.IsNullOrEmpty(formatLine) Then
-                output.WriteLine("Format " & formatLine)
+            ' Python prints the "Aligning ..." header AFTER all revs
+            ' adjustments (fractional collapse + hard-sectors multiplier),
+            ' so the displayed revs reflects the *effective* read count.
+            If onStarted IsNot Nothing Then
+                onStarted(trackList, reads, revs, formatName)
             End If
 
+            Dim completed = 0
             For readNum = 1 To reads
                 Dim t = trackList(ResolveAlternatingTrackIndex(readNum, trackList.Count))
-                Dim tspec = BuildTrackSpec(t.Cyl, t.Head, t.PhysicalCyl, t.PhysicalHead)
                 usbClient.Seek(t.PhysicalCyl, t.PhysicalHead)
                 Dim flux = ReadAndNormalise(usbClient, revs, ticks, driveTicksPerRev, reverse, hardSectors, raw, adjustSpeed, fakeIndexPeriod)
+                Dim args As Greaseweazle.Actions.AlignReadCompletedEventArgs
                 If formatDef Is Nothing Then
-                    output.WriteLine(String.Format("{0}: {1}", tspec, flux.SummaryString()))
+                    args = New Greaseweazle.Actions.AlignReadCompletedEventArgs(
+                        t,
+                        Greaseweazle.Actions.AlignReadOutcome.NoFormat,
+                        flux.SummaryString(),
+                        Nothing,
+                        Nothing)
                 Else
                     ' Python (align.py:126-135): `dat = fmt_cls.decode_flux(cyl, head, flux)`
                     ' creates the codec instance and runs the first decode pass; each retry
@@ -189,37 +196,43 @@ Namespace Greaseweazle.Tools
                     ' PLL profiles cumulatively merge any newly-recovered sectors via the
                     ' IBMTrack_Fixed.decode_flux raw-reconcile pass (first-good-wins).
                     Dim profiles = If(pllProfiles, Plls.Values)
-                    ' Python's first decode reads plls[0]; --pll has mutated that to the
-                    ' user override. Pass profiles(0) explicitly because VB's Plls.Values
-                    ' is immutable.
                     Dim firstPll As Pll = If(profiles.Count > 0, profiles(0), Nothing)
                     Dim decoded = formatDef.DecodeFlux(t.Cyl, t.Head, flux, firstPll)
                     If decoded Is Nothing Then
-                        output.WriteLine(String.Format("{0}: WARNING: Out of range for format '{1}': No format conversion applied: {2}",
-                                                       tspec,
-                                                       If(formatName, String.Empty),
-                                                       flux.SummaryString()))
+                        args = New Greaseweazle.Actions.AlignReadCompletedEventArgs(
+                            t,
+                            Greaseweazle.Actions.AlignReadOutcome.OutOfRange,
+                            flux.SummaryString(),
+                            Nothing,
+                            If(formatName, String.Empty))
                     Else
                         Dim nr = 1
                         While decoded.NrMissing() <> 0 AndAlso nr < profiles.Count
                             decoded.DecodeFlux(flux, profiles(nr))
                             nr += 1
                         End While
-                        output.WriteLine(String.Format("{0}: {1} from {2}",
-                                                       tspec,
-                                                       decoded.SummaryString(),
-                                                       flux.SummaryString()))
+                        args = New Greaseweazle.Actions.AlignReadCompletedEventArgs(
+                            t,
+                            Greaseweazle.Actions.AlignReadOutcome.Decoded,
+                            flux.SummaryString(),
+                            decoded.SummaryString(),
+                            Nothing)
                     End If
                 End If
+                If onReadCompleted IsNot Nothing Then
+                    onReadCompleted(args)
+                End If
+                completed += 1
                 If readNum < reads Then
                     Threading.Thread.Sleep(100)
                 End If
             Next
-        End Sub
+            Return completed
+        End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
         Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String),
-                                                   knownFormats As IEnumerable(Of String)) As AlignRuntimePreview
+                                                   knownFormats As IEnumerable(Of String)) As AlignOptions
             Dim format As String = Nothing
             Dim diskDefsPath As String = Nothing
             Dim tracksSpec As String = Nothing
@@ -381,7 +394,7 @@ Namespace Greaseweazle.Tools
                 header = BuildMultiTrackHeader(trackList(0).Cyl, heads, reads, resolvedRevs)
             End If
 
-            Return New AlignRuntimePreview With {
+            Return New AlignOptions With {
                 .Header = header,
                 .Format = format,
                 .DiskDefsPath = diskDefsPath,

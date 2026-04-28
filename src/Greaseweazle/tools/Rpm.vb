@@ -2,12 +2,16 @@ Imports Greaseweazle.Core
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed rpm runtime state.
-    Public Class RpmRuntimePreview
+    ' Strongly-typed options for the `rpm` action.
+    Public Class RpmOptions
         Public Property Nr As Integer
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
         Public Property Drive As DriveSpec
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As RpmOptions
+            Return Rpm.BuildRuntimePreview(args)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/rpm.py (direct command-algorithm parity mapping).
@@ -47,7 +51,7 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As RpmRuntimePreview
+        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As RpmOptions
             Dim nr = 1
             Dim live = True
             Dim device As String = Nothing
@@ -97,7 +101,7 @@ Namespace Greaseweazle.Tools
             If positionals.Count > 0 Then
                 Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
-            Return New RpmRuntimePreview With {
+            Return New RpmOptions With {
                 .Nr = nr,
                 .Live = live,
                 .Device = device,

@@ -2,7 +2,6 @@ Imports Greaseweazle.Core
 Imports Greaseweazle.Codecs
 Imports Greaseweazle.Images
 Imports Greaseweazle.Shared
-Imports System.IO
 
 Namespace Greaseweazle.Tools
 
@@ -17,13 +16,6 @@ Namespace Greaseweazle.Tools
         Inherits ConvertTrackAddress
         Public Property PhysicalCyl As Integer
         Public Property PhysicalHead As Integer
-    End Class
-
-    ' Python map: no-1:1 with Python symbols; this helper DTO captures simulated process/emit/cache traces for parity tests.
-    Public Class ConvertLoopSimulationResult
-        Public Property ProcessCalls As List(Of String)
-        Public Property EmitTargets As List(Of String)
-        Public Property CacheKeys As List(Of String)
     End Class
 
     ' Python map: src/greaseweazle/tools/convert.py::TrackIdentity
@@ -64,16 +56,26 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/tools/convert.py::process_input_track
+        '
+        ' Performs the per-track decode/preprocess pipeline. Two
+        ' callbacks expose progress without the algorithm producing
+        ' any text:
+        '   onHardSectorsApplied (only when --hard-sectors is set
+        '                         and detection succeeds)
+        '   onTrackProcessed     (always, with the typed outcome)
+        ' Returns the final HasFlux to be emitted to the output image
+        ' (Nothing when the track was skipped).
         Public Shared Function ProcessInputTrack(t As TrackIdentity,
                                                  inImage As Image,
-                                                 output As TextWriter,
+                                                 onHardSectorsApplied As Action(Of Greaseweazle.Actions.ConvertHardSectorsEventArgs),
+                                                 onTrackProcessed As Action(Of Greaseweazle.Actions.ConvertTrackProcessedEventArgs),
                                                  Optional fmtCls As DiskDef = Nothing,
                                                  Optional formatName As String = Nothing,
                                                  Optional reverse As Boolean = False,
                                                  Optional hardSectors As Boolean = False,
                                                  Optional adjustSpeed As Nullable(Of Double) = Nothing,
                                                  Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing) As HasFlux
-            Dim tspec = Greaseweazle.Tools.Convert.BuildTrackSummary(t.Cyl, t.Head, t.PhysicalCyl, t.PhysicalHead)
+            Dim trackInfo = New Greaseweazle.Actions.ConvertTrackInfo(t.Cyl, t.Head, t.PhysicalCyl, t.PhysicalHead)
             Dim track = inImage.GetTrack(t.PhysicalCyl, t.PhysicalHead)
             If track Is Nothing Then
                 Return Nothing
@@ -90,10 +92,12 @@ Namespace Greaseweazle.Tools
                 flux.IdentifyHardSectors()
                 track = flux
                 ErrorHandling.Check(flux.SectorList IsNot Nothing AndAlso flux.SectorList.Count > 0,
-                                   String.Format("{0}: Unable to identify hard sectors", tspec))
-                output.WriteLine(String.Format("{0}: Converted to {1} hard sectors",
-                                              tspec,
-                                              flux.SectorList(flux.SectorList.Count - 1).Count))
+                                   String.Format("{0}: Unable to identify hard sectors",
+                                                 Greaseweazle.Tools.Convert.BuildTrackSummary(t.Cyl, t.Head, t.PhysicalCyl, t.PhysicalHead)))
+                Dim count = flux.SectorList(flux.SectorList.Count - 1).Count
+                If onHardSectorsApplied IsNot Nothing Then
+                    onHardSectorsApplied(New Greaseweazle.Actions.ConvertHardSectorsEventArgs(trackInfo, count))
+                End If
             End If
 
             If adjustSpeed.HasValue Then
@@ -112,19 +116,29 @@ Namespace Greaseweazle.Tools
             End If
 
             If fmtCls Is Nothing OrElse TypeOf track Is Codec Then
-                output.WriteLine(String.Format("{0}: {1}", tspec, track.SummaryString()))
+                If onTrackProcessed IsNot Nothing Then
+                    onTrackProcessed(New Greaseweazle.Actions.ConvertTrackProcessedEventArgs(
+                        trackInfo,
+                        Greaseweazle.Actions.ConvertTrackOutcome.NoFormat,
+                        track.SummaryString(),
+                        Nothing,
+                        Nothing))
+                End If
                 Return track
             End If
 
             Dim profiles = If(pllProfiles, Plls.Values)
-            ' Python: args.fmt_cls.decode_flux(cyl, head, track) implicitly uses
-            ' plls[0], which has been mutated to the user --pll override (if any).
-            ' Pass profiles(0) explicitly to mirror that behaviour without mutating
-            ' the immutable Plls.Values list.
             Dim firstPll As Pll = If(profiles.Count > 0, profiles(0), Nothing)
             Dim dat = fmtCls.DecodeFlux(t.Cyl, t.Head, track, firstPll)
             If dat Is Nothing Then
-                output.WriteLine(String.Format("{0}: WARNING: Out of range for format '{1}': Track skipped", tspec, If(formatName, "")))
+                If onTrackProcessed IsNot Nothing Then
+                    onTrackProcessed(New Greaseweazle.Actions.ConvertTrackProcessedEventArgs(
+                        trackInfo,
+                        Greaseweazle.Actions.ConvertTrackOutcome.OutOfRange,
+                        track.SummaryString(),
+                        Nothing,
+                        If(formatName, "")))
+                End If
                 Return Nothing
             End If
             For i = 1 To profiles.Count - 1
@@ -133,22 +147,34 @@ Namespace Greaseweazle.Tools
                 End If
                 dat.DecodeFlux(track, profiles(i))
             Next
-            output.WriteLine(String.Format("{0}: {1} from {2}", tspec, dat.SummaryString(), track.SummaryString()))
+            If onTrackProcessed IsNot Nothing Then
+                onTrackProcessed(New Greaseweazle.Actions.ConvertTrackProcessedEventArgs(
+                    trackInfo,
+                    Greaseweazle.Actions.ConvertTrackOutcome.Decoded,
+                    track.SummaryString(),
+                    dat.SummaryString(),
+                    Nothing))
+            End If
             Return dat
         End Function
 
         ' Python map: src/greaseweazle/tools/convert.py::convert
-        Public Shared Sub [Convert](outTracks As IEnumerable(Of TrackIter),
-                                    tracks As TrackSet,
-                                    inImage As Image,
-                                    outImage As Image,
-                                    output As TextWriter,
-                                    Optional fmtCls As DiskDef = Nothing,
-                                    Optional formatName As String = Nothing,
-                                    Optional reverse As Boolean = False,
-                                    Optional hardSectors As Boolean = False,
-                                    Optional adjustSpeed As Nullable(Of Double) = Nothing,
-                                    Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing)
+        '
+        ' Walks the output track set and decodes/emits each one.
+        ' Returns the post-decode summary dict so the caller can
+        ' surface a typed SectorSummaryGrid via SummaryReady.
+        Public Shared Function [Convert](outTracks As IEnumerable(Of TrackIter),
+                                         tracks As TrackSet,
+                                         inImage As Image,
+                                         outImage As Image,
+                                         onHardSectorsApplied As Action(Of Greaseweazle.Actions.ConvertHardSectorsEventArgs),
+                                         onTrackProcessed As Action(Of Greaseweazle.Actions.ConvertTrackProcessedEventArgs),
+                                         Optional fmtCls As DiskDef = Nothing,
+                                         Optional formatName As String = Nothing,
+                                         Optional reverse As Boolean = False,
+                                         Optional hardSectors As Boolean = False,
+                                         Optional adjustSpeed As Nullable(Of Double) = Nothing,
+                                         Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing) As IDictionary(Of Tuple(Of Integer, Integer), Codec)
             Dim summary As New Dictionary(Of Tuple(Of Integer, Integer), Codec)()
             For Each t In outTracks
                 Dim key = Tuple.Create(t.Cyl, t.Head)
@@ -158,7 +184,8 @@ Namespace Greaseweazle.Tools
                 ElseIf tracks.Contains(t.Cyl, t.Head) Then
                     dat = ProcessInputTrack(New TrackIdentity(tracks, t.Cyl, t.Head),
                                             inImage,
-                                            output,
+                                            onHardSectorsApplied,
+                                            onTrackProcessed,
                                             fmtCls,
                                             formatName,
                                             reverse,
@@ -176,12 +203,12 @@ Namespace Greaseweazle.Tools
                 End If
                 outImage.EmitTrack(t.PhysicalCyl, t.PhysicalHead, dat)
             Next
-            ReadWrite.PrintSummary(tracks, summary, output)
-        End Sub
+            Return summary
+        End Function
     End Class
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed convert runtime state.
-    Public Class ConvertRuntimePreview
+    ' Strongly-typed options for the `convert` action.
+    Public Class ConvertOptions
         Public Property InputFile As String
         Public Property OutputFile As String
         Public Property Format As String
@@ -197,6 +224,11 @@ Namespace Greaseweazle.Tools
         Public Property Reverse As Boolean
         Public Property AdjustSpeed As Nullable(Of Double)
         Public Property PllProfiles As IReadOnlyList(Of Pll)
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String),
+                                        knownFormats As IEnumerable(Of String)) As ConvertOptions
+            Return Convert.BuildRuntimePreview(args, knownFormats)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/convert.py (direct algorithm parity for convert option/track resolution logic).
@@ -265,53 +297,9 @@ Namespace Greaseweazle.Tools
             Return Tuple.Create(defaultTracks, outDefaultTracks)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration SimulateConvertLoop)
-        Public Shared Function SimulateConvertLoop(outTracks As IReadOnlyList(Of ConvertOutTrackAddress),
-                                                   inTracks As IReadOnlyList(Of ConvertTrackAddress),
-                                                   availableTracks As IReadOnlyList(Of ConvertTrackAddress),
-                                                   cacheEnabled As Boolean) As ConvertLoopSimulationResult
-            Dim processCalls As New List(Of String)()
-            Dim emitTargets As New List(Of String)()
-            Dim cacheKeys As New List(Of String)()
-            Dim summary As New HashSet(Of String)(StringComparer.Ordinal)
-            Dim inSet = New HashSet(Of String)(inTracks.Select(Function(t) TrackKey(t.Cyl, t.Head)), StringComparer.Ordinal)
-            Dim availableSet = New HashSet(Of String)(availableTracks.Select(Function(t) TrackKey(t.Cyl, t.Head)), StringComparer.Ordinal)
-
-            For Each t In outTracks
-                Dim key = TrackKey(t.Cyl, t.Head)
-                Dim shouldEmit = False
-                If summary.Contains(key) Then
-                    shouldEmit = True
-                ElseIf inSet.Contains(key) Then
-                    processCalls.Add(key)
-                    If availableSet.Contains(key) Then
-                        shouldEmit = True
-                        If cacheEnabled Then
-                            summary.Add(key)
-                            cacheKeys.Add(key)
-                        End If
-                    End If
-                End If
-
-                If shouldEmit Then
-                    emitTargets.Add(String.Format("{0}.{1}<={2}.{3}",
-                                                 t.PhysicalCyl,
-                                                 t.PhysicalHead,
-                                                 t.Cyl,
-                                                 t.Head))
-                End If
-            Next
-
-            Return New ConvertLoopSimulationResult With {
-                .ProcessCalls = processCalls,
-                .EmitTargets = emitTargets,
-                .CacheKeys = cacheKeys
-            }
-        End Function
-
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
         Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String),
-                                                   knownFormats As IEnumerable(Of String)) As ConvertRuntimePreview
+                                                   knownFormats As IEnumerable(Of String)) As ConvertOptions
             Dim format As String = Nothing
             Dim tracksSpec As String = Nothing
             Dim outTracksSpec As String = Nothing
@@ -428,7 +416,7 @@ Namespace Greaseweazle.Tools
                 pllProfiles.Add(pllOverride)
             End If
             pllProfiles.AddRange(Plls.Values)
-            Return New ConvertRuntimePreview With {
+            Return New ConvertOptions With {
                 .InputFile = inFile,
                 .OutputFile = outFile,
                 .Format = format,
@@ -450,11 +438,6 @@ Namespace Greaseweazle.Tools
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CloneTrackSet)
         Private Shared Function CloneTrackSet(value As TrackSet) As TrackSet
             Return New TrackSet(value.ToString())
-        End Function
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration TrackKey)
-        Private Shared Function TrackKey(cyl As Integer, head As Integer) As String
-            Return String.Format("{0}.{1}", cyl, head)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration CheckOptionValue)

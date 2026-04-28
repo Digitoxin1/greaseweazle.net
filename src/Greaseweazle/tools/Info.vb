@@ -5,11 +5,18 @@ Imports System.Net
 
 Namespace Greaseweazle.Tools
 
-    ' Python map: no-1:1 with Python symbols; this DTO captures parsed info runtime state.
-    Public Class InfoRuntimePreview
+    ' Strongly-typed options for the `info` action. Public surface for DLL
+    ' consumers (the CLI front-end and any external tool); the algorithm in
+    ' Info.BuildRuntimePreview parses argv and builds an instance, exposed via
+    ' FromArgs().
+    Public Class InfoOptions
         Public Property Bootloader As Boolean
-        Public Property Live As Boolean
+        Public Property Live As Boolean = True
         Public Property Device As String
+
+        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As InfoOptions
+            Return Info.BuildRuntimePreview(args)
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/info.py (direct command-algorithm parity mapping).
@@ -112,7 +119,7 @@ Namespace Greaseweazle.Tools
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As InfoRuntimePreview
+        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As InfoOptions
             Dim bootloader = False
             Dim live = True
             Dim device As String = Nothing
@@ -157,7 +164,7 @@ Namespace Greaseweazle.Tools
             If positionals.Count > 0 Then
                 Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
-            Return New InfoRuntimePreview With {.Bootloader = bootloader, .Live = live, .Device = device}
+            Return New InfoOptions With {.Bootloader = bootloader, .Live = live, .Device = device}
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration CheckOptionValue)

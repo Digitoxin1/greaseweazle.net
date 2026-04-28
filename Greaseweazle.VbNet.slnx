@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Greaseweazle/Greaseweazle.vbproj" />
-    <Project Path="src/Greaseweazle.Parity/Greaseweazle.Parity.vbproj" />
+    <Project Path="src/Greaseweazle.Cli/Greaseweazle.Cli.vbproj" />
   </Folder>
 </Solution>

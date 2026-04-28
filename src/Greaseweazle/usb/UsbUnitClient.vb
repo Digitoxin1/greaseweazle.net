@@ -339,13 +339,9 @@ Namespace Greaseweazle.Infrastructure
                 End Try
                 trk0 = Not GetPin(26)
             End If
-            ErrorHandling.Check(cyl < 0 OrElse (cyl = 0) = trk0,
-                                String.Format(
-                                    "Track0 signal {0} after seek to cylinder {1}" & vbLf &
-                                    " 1. Try ""gw reset"" to re-calibrate the drive-head position" & vbLf &
-                                    " 2. If the error persists try slowing down seek operations" & vbLf &
-                                    "     eg. ""gw delays --step 20000"" for 20ms per step",
-                                    If(trk0, "asserted", "absent"), cyl))
+            If Not (cyl < 0 OrElse (cyl = 0) = trk0) Then
+                Throw New Track0SeekMismatchException(trk0, cyl)
+            End If
             SendCmd(New Byte() {CByte(UsbProtocol.Cmd.Head), 3, CByte(head)})
         End Sub
 

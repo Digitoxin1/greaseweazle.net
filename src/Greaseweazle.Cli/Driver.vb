@@ -1,5 +1,6 @@
 Imports Greaseweazle.Actions
 Imports Greaseweazle.Cli.Formatters
+Imports Greaseweazle.Cli.Parsers
 Imports Greaseweazle.Cli.Prompts
 Imports Greaseweazle.Codecs
 Imports Greaseweazle.Core
@@ -54,6 +55,12 @@ Namespace Greaseweazle.Cli
             ' default Ctrl-C terminates the process without running our Finally
             ' blocks and the firmware keeps spinning the drive for several seconds.
             InterruptControl.Install()
+
+            ' Route library-internal informational/warning text to the CLI's
+            ' redirected stdout (= stderr post-SetOut, matching Python's
+            ' print(...) semantics). Library hosts that don't want these
+            ' messages simply leave the event unsubscribed.
+            AddHandler LibraryDiagnostics.MessageEmitted, AddressOf OnLibraryDiagnostic
 
             Dim backtrace = False
             Dim startTime As DateTime? = Nothing
@@ -123,6 +130,16 @@ Namespace Greaseweazle.Cli
                 Throw
             Catch ex As NullReferenceException
                 Throw
+            Catch ex As FatalException
+                ' Strongly-typed library failures (UnknownFormatException, the
+                ' device-firmware-mode family, etc.) carry only a structured
+                ' payload; the FatalErrorFormatter renders the catalogue /
+                ' bullet list / hint block. Plain FatalException("...") sites
+                ' fall through the formatter's default branch and are written
+                ' verbatim, preserving the previous one-line behaviour.
+                If backtrace Then Throw
+                FatalErrorFormatter.Render(ex, stderr)
+                result = 1
             Catch ex As Exception
                 If backtrace Then Throw
                 ' Python: assertion/index/type errors propagate; FATAL banner only for ordinary exceptions.
@@ -194,7 +211,7 @@ Namespace Greaseweazle.Cli
         Private Function RunReset(args As String(), output As IO.TextWriter) As Integer
             Try
                 Dim cmd As New ResetCommand()
-                cmd.Run(ResetOptions.FromArgs(args))
+                cmd.Run(ResetOptionsParser.Parse(args))
                 Return 0
             Catch ex As CmdError
                 CommandFailedFormatter.Render(ex.Message, output)
@@ -208,7 +225,7 @@ Namespace Greaseweazle.Cli
         Private Function RunPin(args As String(), output As IO.TextWriter) As Integer
             Try
                 Dim cmd As New PinCommand()
-                Dim result = cmd.Run(PinOptions.FromArgs(args))
+                Dim result = cmd.Run(PinOptionsParser.Parse(args))
                 Return PinFormatter.Render(result, output)
             Catch ex As CmdError
                 CommandFailedFormatter.Render(ex.Message, output)
@@ -223,7 +240,7 @@ Namespace Greaseweazle.Cli
         Private Function RunDelays(args As String(), output As IO.TextWriter) As Integer
             Try
                 Dim cmd As New DelaysCommand()
-                Dim result = cmd.Run(DelaysOptions.FromArgs(args))
+                Dim result = cmd.Run(DelaysOptionsParser.Parse(args))
                 DelaysFormatter.Render(result, output)
                 Return 0
             Catch ex As CmdError
@@ -239,7 +256,7 @@ Namespace Greaseweazle.Cli
         Private Function RunInfo(args As String(), output As IO.TextWriter) As Integer
             Try
                 Dim cmd As New InfoCommand()
-                Dim result = cmd.Run(InfoOptions.FromArgs(args))
+                Dim result = cmd.Run(InfoOptionsParser.Parse(args))
                 InfoFormatter.Render(result, output)
                 Return 0
             Catch ex As CmdError
@@ -254,7 +271,7 @@ Namespace Greaseweazle.Cli
         Private Function RunBandwidth(args As String(), output As IO.TextWriter) As Integer
             Try
                 Dim cmd As New BandwidthCommand()
-                Dim result = cmd.Run(BandwidthOptions.FromArgs(args))
+                Dim result = cmd.Run(BandwidthOptionsParser.Parse(args))
                 BandwidthFormatter.Render(result, output)
                 Return 0
             Catch ex As CmdError
@@ -272,7 +289,7 @@ Namespace Greaseweazle.Cli
                 Dim cmd As New SeekCommand() With {
                     .Prompter = New ConsoleSeekPrompter(output, input)
                 }
-                cmd.Run(SeekOptions.FromArgs(args))
+                cmd.Run(SeekOptionsParser.Parse(args))
                 Return 0
             Catch ex As CmdError
                 CommandFailedFormatter.Render(ex.Message, output)
@@ -288,7 +305,7 @@ Namespace Greaseweazle.Cli
             Try
                 Dim cmd As New EraseCommand()
                 Using New EraseFormatter(cmd, output)
-                    cmd.Run(EraseOptions.FromArgs(args))
+                    cmd.Run(EraseOptionsParser.Parse(args))
                 End Using
                 Return 0
             Catch ex As CmdError
@@ -305,7 +322,7 @@ Namespace Greaseweazle.Cli
             Try
                 Dim cmd As New CleanCommand()
                 Using New CleanFormatter(cmd, output)
-                    cmd.Run(CleanOptions.FromArgs(args))
+                    cmd.Run(CleanOptionsParser.Parse(args))
                 End Using
                 Return 0
             Catch ex As CmdError
@@ -323,7 +340,7 @@ Namespace Greaseweazle.Cli
             Try
                 Dim cmd As New RpmCommand()
                 Using New RpmFormatter(cmd, output)
-                    cmd.Run(RpmOptions.FromArgs(args))
+                    cmd.Run(RpmOptionsParser.Parse(args))
                 End Using
                 Return 0
             Catch ex As CmdError
@@ -339,7 +356,7 @@ Namespace Greaseweazle.Cli
         ' processed: OutOfFlash + Main Firmware, or OutOfSRAM +
         ' Bootloader, render specialised ERROR lines.
         Private Function RunUpdate(args As String(), output As IO.TextWriter) As Integer
-            Dim opts = UpdateOptions.FromArgs(args)
+            Dim opts = UpdateOptionsParser.Parse(args)
             Try
                 Dim cmd As New UpdateCommand()
                 Using New UpdateFormatter(cmd, output)
@@ -361,7 +378,7 @@ Namespace Greaseweazle.Cli
             Try
                 Dim cmd As New AlignCommand()
                 Using New AlignFormatter(cmd, output)
-                    cmd.Run(AlignOptions.FromArgs(args, CodecRegistry.GetFormats()))
+                    cmd.Run(AlignOptionsParser.Parse(args, CodecRegistry.GetFormats()))
                 End Using
                 Return 0
             Catch ex As CmdError
@@ -381,7 +398,7 @@ Namespace Greaseweazle.Cli
             Try
                 Dim cmd As New ConvertCommand()
                 Using New ConvertFormatter(cmd, output)
-                    cmd.Run(ConvertOptions.FromArgs(args, CodecRegistry.GetFormats()))
+                    cmd.Run(ConvertOptionsParser.Parse(args, CodecRegistry.GetFormats()))
                 End Using
                 Return 0
             Catch ex As CmdError
@@ -405,7 +422,7 @@ Namespace Greaseweazle.Cli
             Try
                 Dim cmd As New ReadCommand()
                 Using New ReadFormatter(cmd, output)
-                    cmd.Run(ReadOptions.FromArgs(args, CodecRegistry.GetFormats()))
+                    cmd.Run(ReadOptionsParser.Parse(args, CodecRegistry.GetFormats()))
                 End Using
                 Return 0
             Catch ex As CmdError
@@ -424,7 +441,7 @@ Namespace Greaseweazle.Cli
             Try
                 Dim cmd As New WriteCommand()
                 Using New WriteFormatter(cmd, output)
-                    cmd.Run(WriteOptions.FromArgs(args, CodecRegistry.GetFormats()))
+                    cmd.Run(WriteOptionsParser.Parse(args, CodecRegistry.GetFormats()))
                 End Using
                 Return 0
             Catch ex As CmdError
@@ -467,6 +484,18 @@ Namespace Greaseweazle.Cli
             End If
             Return 0
         End Function
+
+        ' Python map: src/greaseweazle/cli.py::(no direct 1:1 symbol; VB helper renders LibraryDiagnostics events to the CLI's redirected stdout).
+        '
+        ' Python's tools call `print(...)` for the same messages this hook
+        ' surfaces (e.g. "SCP: Imported legacy single-sided image",
+        ' "T{c}.{h}: Ignoring unexpected sector ...") so emitting through
+        ' Console.Out preserves byte-for-byte parity (Console.Out has been
+        ' redirected to Console.Error in Main, matching cli.py's
+        ' `sys.stdout = sys.stderr` redirect).
+        Private Sub OnLibraryDiagnostic(sender As Object, e As LibraryDiagnosticEventArgs)
+            Console.Out.WriteLine(e.Message)
+        End Sub
 
         ' Python map: src/greaseweazle/cli.py::(no direct 1:1 symbol; VB helper extracted from inline token checks inside argument handling).
         Private Function IsHelpToken(token As String) As Boolean

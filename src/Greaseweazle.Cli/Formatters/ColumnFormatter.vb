@@ -1,9 +1,11 @@
-Namespace Greaseweazle.Shared
+Namespace Greaseweazle.Cli.Formatters
 
-    ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB class declaration ColumnFormatter)
+    ' Pure-presentation helper that columnifies a list of strings for the
+    ' CLI's "Known formats" / "Known suffixes" / catalogue output. Lives
+    ' alongside the other CLI formatters because columnification is a
+    ' presentation concern, not part of the library contract.
     Public NotInheritable Class ColumnFormatter
 
-        ' Python map: src/greaseweazle/tools/util.py::(no direct 1:1 symbol; VB static utility class constructor)
         Private Sub New()
         End Sub
 

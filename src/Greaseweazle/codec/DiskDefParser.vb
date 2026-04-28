@@ -137,11 +137,6 @@ Namespace Greaseweazle.Codecs
         End Function
 
         ' Python map: src/greaseweazle/codec/codec.py::print_formats
-        Public Shared Function PrintFormats(formats As IEnumerable(Of String)) As String
-            Return ColumnFormatter.Columnify(formats.OrderBy(Function(x) x))
-        End Function
-
-        ' Python map: src/greaseweazle/codec/codec.py::print_formats
         Public Shared Function GetAllFormats(Optional diskDefPath As String = Nothing) As List(Of String)
             Dim source = New DiskDefFile(diskDefPath, Nothing)
             Dim formats = CollectAllFormats("", source)

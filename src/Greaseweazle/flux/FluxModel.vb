@@ -162,7 +162,7 @@ Namespace Greaseweazle.Core
             ErrorHandling.Check(IndexList.Count >= 2,
                                 "Not enough revolutions of flux data to cue at index." &
                                 vbLf &
-                                "Try dumping more revolutions (larger --revs value).")
+                                "Try dumping more revolutions.")
 
             Dim toIndex = IndexList(0)
             Dim cut = -1

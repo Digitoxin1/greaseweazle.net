@@ -151,8 +151,9 @@ Namespace Greaseweazle.Tools
             Dim writeNsi = String.Equals(outExt, ".nsi", StringComparison.OrdinalIgnoreCase)
             Dim writeImd = String.Equals(outExt, ".imd", StringComparison.OrdinalIgnoreCase)
             Dim writeHfe = String.Equals(outExt, ".hfe", StringComparison.OrdinalIgnoreCase)
-            ErrorHandling.Check(writeScp OrElse writeSector OrElse writeRaw OrElse writeD88 OrElse writeNsi OrElse writeImd OrElse writeHfe OrElse Not String.IsNullOrEmpty(readOnlyType),
-                                String.Format("{0}: Unrecognised file suffix '{1}'", outPath, Path.GetExtension(outPath)))
+            If Not (writeScp OrElse writeSector OrElse writeRaw OrElse writeD88 OrElse writeNsi OrElse writeImd OrElse writeHfe OrElse Not String.IsNullOrEmpty(readOnlyType)) Then
+                Throw New UnrecognisedSuffixException(outPath, Path.GetExtension(outPath))
+            End If
             If Not String.IsNullOrEmpty(readOnlyType) Then
                 Throw New FatalException(String.Format("{0}: Cannot create {1} image files", outPath, readOnlyType))
             End If
@@ -170,14 +171,14 @@ Namespace Greaseweazle.Tools
                 scpImage.ApplyWOpts(outOpts)
             ElseIf writeImd Then
                 Dim effectiveFormat = preview.Format
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMD output requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMD output requires a disk format")
                 imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
                 imdImage = New Imd()
                 imdImage.FileName = outPath
                 imdImage.ApplyWOpts(outOpts)
             ElseIf writeHfe Then
                 Dim effectiveFormat = preview.Format
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "HFE output requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "HFE output requires a disk format")
                 imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
                 hfeImage = New Hfe()
                 hfeImage.FileName = outPath
@@ -187,7 +188,7 @@ Namespace Greaseweazle.Tools
                 If String.IsNullOrEmpty(effectiveFormat) Then
                     effectiveFormat = ImageDefaults.DefaultFormatForExtension(outExt)
                 End If
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG output requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG output requires a disk format")
                 imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
                 imgImage = New Img(imgDisk)
                 ConfigureSectorImageDefaults(imgImage, outExt)
@@ -197,14 +198,14 @@ Namespace Greaseweazle.Tools
                 rawImage = New KryoFlux(outPath)
             ElseIf writeNsi Then
                 Dim effectiveFormat = preview.Format
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "NSI output requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "NSI output requires a disk format")
                 imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
                 nsiImage = New Nsi(imgDisk)
                 nsiImage.FileName = outPath
                 nsiImage.ApplyWOpts(outOpts)
             ElseIf writeD88 Then
                 Dim effectiveFormat = preview.Format
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D88 output requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D88 output requires a disk format")
                 imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
                 d88Image = New D88(imgDisk)
                 d88Image.FileName = outPath
@@ -450,7 +451,7 @@ Namespace Greaseweazle.Tools
         Private Shared Function ResolveDiskDefinition(formatName As String, diskDefsPath As String) As DiskDef
             Dim path = If(String.IsNullOrEmpty(diskDefsPath), FindDiskDefsPath(), diskDefsPath)
             Dim disk = DiskDefParser.GetDiskdef(formatName, path)
-            ErrorHandling.Check(disk IsNot Nothing, String.Format("Unknown format '{0}'", formatName))
+            If disk Is Nothing Then Throw New UnknownFormatException(formatName)
             Return disk
         End Function
 
@@ -804,7 +805,7 @@ Namespace Greaseweazle.Tools
                     If String.IsNullOrEmpty(effectiveFormat) Then
                         effectiveFormat = ImageDefaults.DefaultFormatForExtension(inExt)
                     End If
-                    ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D64 input requires --format")
+                    ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D64 input requires a disk format")
                     Dim disk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
                     d64Input = New D64(disk, effectiveFormat)
                     d64Input.Sequential = String.Equals(inExt, ".d71", StringComparison.OrdinalIgnoreCase)
@@ -856,11 +857,11 @@ Namespace Greaseweazle.Tools
                     If imgDisk Is Nothing AndAlso imgInput.Format IsNot Nothing Then
                         imgDisk = imgInput.Format
                     End If
-                    ErrorHandling.Check(imgDisk IsNot Nothing, "IMG input requires --format")
+                    ErrorHandling.Check(imgDisk IsNot Nothing, "IMG input requires a disk format")
                 ElseIf useRawInput Then
                     rawInput = New KryoFlux(inPath)
                 Else
-                    Throw New FatalException(String.Format("{0}: Unrecognised file suffix '{1}'", inPath, Path.GetExtension(inPath)))
+                    Throw New UnrecognisedSuffixException(inPath, Path.GetExtension(inPath))
                 End If
                 Dim usbClient As Unit = Nothing
                 Dim prevPin2 As Nullable(Of Boolean) = Nothing
@@ -1621,7 +1622,7 @@ Namespace Greaseweazle.Tools
         Private Shared Function ResolveDiskDefinition(formatName As String, diskDefsPath As String) As DiskDef
             Dim path = If(String.IsNullOrEmpty(diskDefsPath), FindDiskDefsPath(), diskDefsPath)
             Dim disk = DiskDefParser.GetDiskdef(formatName, path)
-            ErrorHandling.Check(disk IsNot Nothing, String.Format("Unknown format '{0}'", formatName))
+            If disk Is Nothing Then Throw New UnknownFormatException(formatName)
             Return disk
         End Function
 
@@ -1936,7 +1937,7 @@ Namespace Greaseweazle.Tools
                 Return image
             End If
             If String.Equals(ext, ".dsk", StringComparison.OrdinalIgnoreCase) AndAlso IsApridiskFile(resolvedName) Then
-                ErrorHandling.Check(Not String.IsNullOrEmpty(formatName), "Apridisk input requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(formatName), "Apridisk input requires a disk format")
                 Dim disk = ResolveDiskDefinitionForConvert(formatName, diskDefsPath)
                 Dim image As New Apridisk(disk)
                 image.FileName = resolvedName
@@ -2031,7 +2032,7 @@ Namespace Greaseweazle.Tools
                 If String.IsNullOrEmpty(effectiveFormat) Then
                     effectiveFormat = DefaultFormatForSectorExtension(ext)
                 End If
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D64 input requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D64 input requires a disk format")
                 Dim disk = ResolveDiskDefinitionForConvert(effectiveFormat, diskDefsPath)
                 Dim image As New D64(disk, effectiveFormat)
                 image.Sequential = String.Equals(ext, ".d71", StringComparison.OrdinalIgnoreCase)
@@ -2075,7 +2076,7 @@ Namespace Greaseweazle.Tools
                 If String.IsNullOrEmpty(effectiveFormat) Then
                     effectiveFormat = DefaultFormatForSectorExtension(ext)
                 End If
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG input requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG input requires a disk format")
                 Dim disk = ResolveDiskDefinitionForConvert(effectiveFormat, diskDefsPath)
                 Dim image As New Img(disk)
                 ConfigureSectorImageDefaults(image, ext)
@@ -2084,7 +2085,7 @@ Namespace Greaseweazle.Tools
                 image.FromBytes(File.ReadAllBytes(resolvedName))
                 Return image
             End If
-            Throw New FatalException(String.Format("{0}: Unrecognised file suffix '{1}'", resolvedName, ext))
+            Throw New UnrecognisedSuffixException(resolvedName, ext)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration OpenImageForWrite)
@@ -2113,7 +2114,7 @@ Namespace Greaseweazle.Tools
                 Return image
             End If
             If String.Equals(ext, ".nsi", StringComparison.OrdinalIgnoreCase) Then
-                ErrorHandling.Check(Not String.IsNullOrEmpty(formatName), "NSI output requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(formatName), "NSI output requires a disk format")
                 Dim disk = ResolveDiskDefinitionForConvert(formatName, diskDefsPath)
                 Dim image As New Nsi(disk)
                 image.FileName = resolvedName
@@ -2121,7 +2122,7 @@ Namespace Greaseweazle.Tools
                 Return image
             End If
             If String.Equals(ext, ".d88", StringComparison.OrdinalIgnoreCase) Then
-                ErrorHandling.Check(Not String.IsNullOrEmpty(formatName), "D88 output requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(formatName), "D88 output requires a disk format")
                 Dim disk = ResolveDiskDefinitionForConvert(formatName, diskDefsPath)
                 Dim image As New D88(disk)
                 image.FileName = resolvedName
@@ -2134,7 +2135,7 @@ Namespace Greaseweazle.Tools
                 If String.IsNullOrEmpty(effectiveFormat) Then
                     effectiveFormat = DefaultFormatForSectorExtension(ext)
                 End If
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D64 output requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D64 output requires a disk format")
                 Dim disk = ResolveDiskDefinitionForConvert(effectiveFormat, diskDefsPath)
                 Dim image As New D64(disk, effectiveFormat)
                 image.Sequential = String.Equals(ext, ".d71", StringComparison.OrdinalIgnoreCase)
@@ -2160,14 +2161,14 @@ Namespace Greaseweazle.Tools
                 If String.IsNullOrEmpty(effectiveFormat) Then
                     effectiveFormat = DefaultFormatForSectorExtension(ext)
                 End If
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG output requires --format")
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG output requires a disk format")
                 Dim disk = ResolveDiskDefinitionForConvert(effectiveFormat, diskDefsPath)
                 Dim image As New Img(disk) With {.FileName = resolvedName}
                 ConfigureSectorImageDefaults(image, ext)
                 image.ApplyWOpts(opts)
                 Return image
             End If
-            Throw New FatalException(String.Format("{0}: Unrecognised file suffix '{1}'", resolvedName, ext))
+            Throw New UnrecognisedSuffixException(resolvedName, ext)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration SplitImageFileOptions)
@@ -2383,7 +2384,7 @@ Namespace Greaseweazle.Tools
         Private Shared Function ResolveDiskDefinitionForConvert(formatName As String, diskDefsPath As String) As DiskDef
             Dim path = If(String.IsNullOrEmpty(diskDefsPath), FindDiskDefsPathForConvert(), diskDefsPath)
             Dim disk = DiskDefParser.GetDiskdef(formatName, path)
-            ErrorHandling.Check(disk IsNot Nothing, String.Format("Unknown format '{0}'", formatName))
+            If disk Is Nothing Then Throw New UnknownFormatException(formatName)
             Return disk
         End Function
 
@@ -2527,7 +2528,7 @@ Namespace Greaseweazle.Tools
                 ' Default-deny: a caller that ignored the Prompter
                 ' property and lands here unprompted aborts rather than
                 ' silently risking a head-crash.
-                If prompter Is Nothing OrElse Not prompter.Confirm(preview.PromptText) Then
+                If prompter Is Nothing OrElse Not prompter.ConfirmExtremeCylinder(preview.Cyl) Then
                     Return New Greaseweazle.Actions.SeekResult(
                         Greaseweazle.Actions.SeekOutcome.Aborted, preview.Cyl)
                 End If
@@ -2601,28 +2602,31 @@ Namespace Greaseweazle.Tools
                     values(i) = BitConverter.ToUInt16(padded, i * 2)
                 Next
 
+                ' Maps DelaysOptions.Values' domain keys to the matching
+                ' UsbProtocol.Params.Delays slot (mirrors the byte layout the
+                ' device firmware expects). Keys are CLI-flag-free.
                 Dim optionToIndex As New Dictionary(Of String, Integer)(StringComparer.OrdinalIgnoreCase) From {
-                    {"--select", 0},
-                    {"--step", 1},
-                    {"--settle", 2},
-                    {"--motor", 3},
-                    {"--watchdog", 4},
-                    {"--pre-write", 5},
-                    {"--post-write", 6},
-                    {"--index-mask", 7}
+                    {"select", 0},
+                    {"step", 1},
+                    {"settle", 2},
+                    {"motor", 3},
+                    {"watchdog", 4},
+                    {"pre-write", 5},
+                    {"post-write", 6},
+                    {"index-mask", 7}
                 }
 
                 For Each kvp In preview.Values
                     Dim key = kvp.Key
                     Dim idx = optionToIndex(key)
-                    If String.Equals(key, "--pre-write", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 12 Then
-                        Throw New FatalException("Option --pre-write requires updated firmware")
+                    If String.Equals(key, "pre-write", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 12 Then
+                        Throw New FatalException("Pre-write delay setting requires updated firmware")
                     End If
-                    If String.Equals(key, "--post-write", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 14 Then
-                        Throw New FatalException("Option --post-write requires updated firmware")
+                    If String.Equals(key, "post-write", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 14 Then
+                        Throw New FatalException("Post-write delay setting requires updated firmware")
                     End If
-                    If String.Equals(key, "--index-mask", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 16 Then
-                        Throw New FatalException("Option --index-mask requires updated firmware")
+                    If String.Equals(key, "index-mask", StringComparison.OrdinalIgnoreCase) AndAlso paramSize < 16 Then
+                        Throw New FatalException("Index-mask delay setting requires updated firmware")
                     End If
                     values(idx) = CUShort(kvp.Value)
                 Next

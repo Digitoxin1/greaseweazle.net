@@ -63,7 +63,7 @@ Namespace Greaseweazle.Images
         ' Python map: src/greaseweazle/image/msa.py::MSA.emit_track
         Public Overrides Sub EmitTrack(cyl As Integer, side As Integer, track As HasFlux)
             ErrorHandling.Check(TypeOf track Is IbmTrackFixed,
-                                String.Format("MSA: Track {0}.{1} is not an IBM track: Maybe missing --format= option?", cyl, side))
+                                String.Format("MSA: Track {0}.{1} is not an IBM track: a disk format may need to be specified", cyl, side))
             _tracks(Tuple.Create(cyl, side)) = CType(track, IbmTrackFixed)
         End Sub
 

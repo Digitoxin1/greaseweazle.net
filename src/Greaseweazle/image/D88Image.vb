@@ -76,7 +76,7 @@ Namespace Greaseweazle.Images
                 Return
             End If
 
-            ErrorHandling.Check(Format IsNot Nothing, "D88 output requires --format")
+            ErrorHandling.Check(Format IsNot Nothing, "D88 output requires a disk format")
             Dim decoded = Format.DecodeFlux(cyl, side, track)
             If decoded Is Nothing Then
                 Return
@@ -335,8 +335,8 @@ Namespace Greaseweazle.Images
                 Dim newSecs = RemoveDuplicateSectors(secs)
                 Dim ndups = secs.Count - newSecs.Count
                 If ndups <> 0 Then
-                    Console.Out.WriteLine(String.Format("T{0}.{1}: D88: Removed {2} duplicate sectors from oversized track",
-                                                        cyl, head, ndups))
+                    LibraryDiagnostics.EmitInfo(String.Format("T{0}.{1}: D88: Removed {2} duplicate sectors from oversized track",
+                                                              cyl, head, ndups))
                 End If
                 secs = newSecs
                 built = TryBuildFromConfig(formatName, mediaFlag, isFm, cyl, head, secs)

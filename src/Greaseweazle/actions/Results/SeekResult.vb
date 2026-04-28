@@ -31,11 +31,14 @@ Namespace Greaseweazle.Actions
     End Class
 
     ' Pluggable prompt strategy used by SeekCommand when the requested
-    ' cylinder is "extreme" (cyl < 0 OR cyl > 83) and --force is not set.
-    ' The CLI front-end ships a ConsoleSeekPrompter that writes the
-    ' supplied promptText to stdout and reads an answer from stdin; a
-    ' GUI consumer would implement Confirm() to show a Yes/No dialog
-    ' (and ignore the supplied text or use it as the dialog body).
+    ' cylinder is "extreme" (cyl < 0 OR cyl > 83) and the user did not
+    ' opt out of the safety check. The library only passes structured
+    ' data (the cylinder number); the prompter implementation owns the
+    ' user-facing text. The CLI front-end ships a ConsoleSeekPrompter
+    ' that writes "Seek to extreme cylinder N, Yes/No? " to stdout and
+    ' reads an answer from stdin; a GUI consumer would implement
+    ' ConfirmExtremeCylinder() to show a Yes/No dialog formatted however
+    ' it likes.
     '
     ' If SeekCommand.Prompter is Nothing when the algorithm needs a
     ' confirmation, the algorithm aborts (Outcome = Aborted) — the
@@ -43,7 +46,7 @@ Namespace Greaseweazle.Actions
     ' accidentally damaging a drive by stepping past its end stop.
     Public Interface ISeekPrompter
 
-        Function Confirm(promptText As String) As Boolean
+        Function ConfirmExtremeCylinder(cyl As Integer) As Boolean
 
     End Interface
 

@@ -916,8 +916,8 @@ Namespace Greaseweazle.Codecs
                 DecodeMfmFlux(track, pll, mismatchOrder, mismatchSeen)
             End If
             For Each m In mismatchOrder
-                Console.Out.WriteLine(String.Format("T{0}.{1}: Ignoring unexpected sector C:{2} H:{3} R:{4} N:{5}",
-                                                    _cyl, _head, m.Item1, m.Item2, m.Item3, m.Item4))
+                LibraryDiagnostics.EmitInfo(String.Format("T{0}.{1}: Ignoring unexpected sector C:{2} H:{3} R:{4} N:{5}",
+                                                          _cyl, _head, m.Item1, m.Item2, m.Item3, m.Item4))
             Next
         End Sub
 

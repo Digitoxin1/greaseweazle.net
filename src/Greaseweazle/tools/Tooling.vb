@@ -1,52 +1,10 @@
 Imports Greaseweazle.Core
 Imports Greaseweazle.Infrastructure
-Imports Greaseweazle.Shared
 Imports System.IO
 Imports System.IO.Ports
 Imports System.Threading
 
 Namespace Greaseweazle.Tools
-
-    ' Python map: src/greaseweazle/tools/util.py::CmdlineHelpFormatter
-    Public Class CmdlineHelpFormatter
-        ' Python map: src/greaseweazle/tools/util.py::CmdlineHelpFormatter._get_help_string
-        Public Function GetHelpString(help As String, defaultValue As Object) As String
-            If help Is Nothing Then
-                Return String.Empty
-            End If
-            If help.IndexOf("%no_default", StringComparison.Ordinal) >= 0 Then
-                Return help.Replace("%no_default", String.Empty)
-            End If
-            If help.IndexOf("%(default)", StringComparison.Ordinal) >= 0 OrElse
-               defaultValue Is Nothing OrElse
-               (TypeOf defaultValue Is Boolean AndAlso Not CBool(defaultValue)) Then
-                Return help
-            End If
-            Return help & " (default: %(default)s)"
-        End Function
-    End Class
-
-    ' Python map: src/greaseweazle/tools/util.py::ArgumentParser
-    Public Class ArgumentParser
-        Public ReadOnly Property Formatter As CmdlineHelpFormatter
-
-        ' Python map: src/greaseweazle/tools/util.py::ArgumentParser.__init__
-        Public Sub New(Optional formatter As CmdlineHelpFormatter = Nothing)
-            Me.Formatter = If(formatter, New CmdlineHelpFormatter())
-        End Sub
-    End Class
-
-    ' Python map: src/greaseweazle/tools/util.py::Drive
-    Public Class Drive
-        ' Python map: src/greaseweazle/tools/util.py::Drive.__init__
-        Public Sub New()
-        End Sub
-
-        ' Python map: src/greaseweazle/tools/util.py::Drive.__call__
-        Public Function [Call](token As String) As DriveSpec
-            Return ToolOptions.Drive(token)
-        End Function
-    End Class
 
     ' Python map: src/greaseweazle/tools/util.py (direct helper parity for option/drive parsing and port selection).
     Public NotInheritable Class ToolOptions
@@ -55,127 +13,9 @@ Namespace Greaseweazle.Tools
         Private Sub New()
         End Sub
 
-        ' Python map: src/greaseweazle/tools/util.py::period
-        Public Shared Function Period(arg As String) As Double
-            ' Python uses re.match (start-anchored). Mirror that with a regex anchored
-            ' at the beginning of the string and look at each suffix in priority order.
-            Dim m = System.Text.RegularExpressions.Regex.Match(arg, "^(\d*\.\d+|\d+)rpm")
-            If m.Success Then
-                Return 60.0 / Double.Parse(m.Groups(1).Value, Globalization.CultureInfo.InvariantCulture)
-            End If
-            m = System.Text.RegularExpressions.Regex.Match(arg, "^(\d*\.\d+|\d+)ms")
-            If m.Success Then
-                Return Double.Parse(m.Groups(1).Value, Globalization.CultureInfo.InvariantCulture) / 1000.0
-            End If
-            m = System.Text.RegularExpressions.Regex.Match(arg, "^(\d*\.\d+|\d+)us")
-            If m.Success Then
-                Return Double.Parse(m.Groups(1).Value, Globalization.CultureInfo.InvariantCulture) / 1000000.0
-            End If
-            m = System.Text.RegularExpressions.Regex.Match(arg, "^(\d*\.\d+|\d+)ns")
-            If m.Success Then
-                Return Double.Parse(m.Groups(1).Value, Globalization.CultureInfo.InvariantCulture) / 1000000000.0
-            End If
-            m = System.Text.RegularExpressions.Regex.Match(arg, "^(\d*\.\d+|\d+)scp")
-            If m.Success Then
-                Return Double.Parse(m.Groups(1).Value, Globalization.CultureInfo.InvariantCulture) / 40000000.0
-            End If
-            Return 60.0 / Double.Parse(arg, Globalization.CultureInfo.InvariantCulture)
-        End Function
-
-        ' Python map: src/greaseweazle/tools/util.py::split_opts
-        Public Shared Function SplitOpts(input As String) As Tuple(Of String, Dictionary(Of String, String))
-            Return OptionParser.SplitOpts(input)
-        End Function
-
-        ' Python map: src/greaseweazle/tools/util.py::Drive.__call__
-        Public Shared Function Drive(token As String) As DriveSpec
-            Dim map As New Dictionary(Of String, Tuple(Of UsbProtocol.BusType, Integer))(StringComparer.OrdinalIgnoreCase) From {
-                {"A", Tuple.Create(UsbProtocol.BusType.IBMPC, 0)},
-                {"B", Tuple.Create(UsbProtocol.BusType.IBMPC, 1)},
-                {"0", Tuple.Create(UsbProtocol.BusType.Shugart, 0)},
-                {"1", Tuple.Create(UsbProtocol.BusType.Shugart, 1)},
-                {"2", Tuple.Create(UsbProtocol.BusType.Shugart, 2)},
-                {"3", Tuple.Create(UsbProtocol.BusType.Shugart, 3)}
-            }
-            If Not map.ContainsKey(token) Then
-                Throw New ArgumentException(String.Format("invalid drive letter: '{0}'", token))
-            End If
-            Dim mapped = map(token)
-            Return New DriveSpec With {.Bus = mapped.Item1, .UnitId = mapped.Item2}
-        End Function
-
-        ' Python map: src/greaseweazle/tools/util.py::level
-        Public Shared Function Level(token As String) As Boolean
-            Dim map As New Dictionary(Of String, Boolean)(StringComparer.OrdinalIgnoreCase) From {
-                {"H", True},
-                {"L", False}
-            }
-            If Not map.ContainsKey(token) Then
-                Throw New ArgumentException(String.Format("invalid pin level: '{0}'", token))
-            End If
-            Return map(token)
-        End Function
-
-        ' Python map: src/greaseweazle/tools/util.py::min_int
-        Public Shared Function MinInt(minimum As Integer) As Func(Of String, Integer)
-            Return Function(value As String)
-                       Dim parsed = Integer.Parse(value, Globalization.CultureInfo.InvariantCulture)
-                       If parsed < minimum Then
-                           Throw New ArgumentException(String.Format("must be {0} or greater", minimum))
-                       End If
-                       Return parsed
-                   End Function
-        End Function
-
-        ' Python map: src/greaseweazle/tools/util.py::range_str
-        Public Shared Function RangeStr(values As IEnumerable(Of Integer)) As String
-            Dim items = values.ToList()
-            If items.Count = 0 Then
-                Return "<none>"
-            End If
-            Dim result As New Text.StringBuilder()
-            Dim currentStart As Nullable(Of Integer) = Nothing
-            Dim currentEnd As Nullable(Of Integer) = Nothing
-            For Each i In items
-                If currentEnd.HasValue AndAlso i = currentEnd.Value + 1 Then
-                    currentEnd = i
-                    Continue For
-                End If
-                If currentStart.HasValue Then
-                    If currentStart.Value = currentEnd.Value Then
-                        result.AppendFormat(Globalization.CultureInfo.InvariantCulture, "{0},", currentStart.Value)
-                    Else
-                        result.AppendFormat(Globalization.CultureInfo.InvariantCulture, "{0}-{1},", currentStart.Value, currentEnd.Value)
-                    End If
-                End If
-                currentStart = i
-                currentEnd = i
-            Next
-
-            If currentStart.HasValue Then
-                If currentStart.Value = currentEnd.Value Then
-                    result.AppendFormat(Globalization.CultureInfo.InvariantCulture, "{0}", currentStart.Value)
-                Else
-                    result.AppendFormat(Globalization.CultureInfo.InvariantCulture, "{0}-{1}", currentStart.Value, currentEnd.Value)
-                End If
-            End If
-
-            Return result.ToString()
-        End Function
-
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ValidSerialId)
         Public Shared Function ValidSerialId(serialId As String) As Boolean
             Return Not String.IsNullOrEmpty(serialId) AndAlso serialId.ToUpperInvariant().StartsWith("GW", StringComparison.Ordinal)
-        End Function
-
-        ' Python map: src/greaseweazle/tools/util.py::get_image_class
-        Public Shared Function GetImageClass(name As String) As String
-            Return New ImageTypeRegistry().ResolveType(name).Item1
-        End Function
-
-        ' Python map: src/greaseweazle/tools/util.py::valid_ser_id
-        Public Shared Function ValidSerId(serialId As String) As Boolean
-            Return ValidSerialId(serialId)
         End Function
 
         ' Python map: src/greaseweazle/tools/util.py::score_port
@@ -304,22 +144,7 @@ Namespace Greaseweazle.Tools
                 End Try
             Next
 
-            Throw New IOException("Could not find the Greaseweazle device after switching firmware mode." &
-                                  Environment.NewLine &
-                                  "If you are connected via a USB hub, instead try connecting directly.")
-        End Function
-
-        ' Python map: src/greaseweazle/tools/util.py::print_update_instructions
-        Public Shared Function PrintUpdateInstructions(usb As Unit) As List(Of String)
-            Dim lines As New List(Of String) From {"To perform an Update:"}
-            If Not usb.JumperlessUpdate Then
-                lines.Add(" - Disconnect from USB")
-                Dim pins = If(usb.HwModel <> 1, "RXI-TXO", "DCLK-GND")
-                lines.Add(String.Format(" - Install the Update Jumper at pins {0}", pins))
-                lines.Add(" - Reconnect to USB")
-            End If
-            lines.Add(" - Run ""gw update"" to download and install latest firmware")
-            Return lines
+            Throw New DeviceNotFoundAfterModeSwitchException()
         End Function
 
         ' Python map: src/greaseweazle/tools/util.py::usb_mode_check
@@ -331,17 +156,7 @@ Namespace Greaseweazle.Tools
                         Return usb
                     End If
                 End If
-                Dim message As New List(Of String) From {
-                    "ERROR: Device is in Firmware Update Mode",
-                    " - The only available action is ""gw update"""
-                }
-                If usb.UpdateJumpered Then
-                    Dim pins = If(usb.HwModel <> 1, "RXI-TXO", "DCLK-GND")
-                    message.Add(String.Format(" - For normal operation disconnect from USB and remove the Update Jumper at pins {0}", pins))
-                Else
-                    message.Add(" - Main firmware is erased: You *must* perform an update!")
-                End If
-                Throw New FatalException(String.Join(Environment.NewLine, message))
+                Throw New DeviceInUpdateModeException(usb.UpdateJumpered, usb.HwModel)
             End If
 
             If isUpdate AndAlso Not usb.UpdateMode Then
@@ -352,20 +167,11 @@ Namespace Greaseweazle.Tools
 "If the problem persists, install the Update Jumper at pins RXI-TXO.")
                     Return usb
                 End If
-                Dim lines As New List(Of String) From {"ERROR: Device is not in Firmware Update Mode"}
-                lines.AddRange(PrintUpdateInstructions(usb))
-                Throw New FatalException(String.Join(Environment.NewLine, lines))
+                Throw New DeviceNotInUpdateModeException(usb.JumperlessUpdate, usb.HwModel)
             End If
 
             If Not usb.UpdateMode AndAlso usb.UpdateNeeded Then
-                Dim lines As New List(Of String) From {
-                    String.Format(Globalization.CultureInfo.InvariantCulture,
-                                  "ERROR: Device firmware version {0}.{1} is unsupported",
-                                  usb.Major,
-                                  usb.Minor)
-                }
-                lines.AddRange(PrintUpdateInstructions(usb))
-                Throw New FatalException(String.Join(Environment.NewLine, lines))
+                Throw New DeviceFirmwareUnsupportedException(usb.Major, usb.Minor, usb.JumperlessUpdate, usb.HwModel)
             End If
 
             Return usb
@@ -441,8 +247,10 @@ Namespace Greaseweazle.Tools
             Catch ex As KeyboardInterruptException
                 ' Parity-test path: tests directly throw KeyboardInterruptException
                 ' to exercise the same cleanup. Python prints a bare newline
-                ' before reset() so any in-flight progress line ends cleanly.
-                Console.Error.WriteLine()
+                ' before reset() so any in-flight progress line ends cleanly;
+                ' route it through LibraryDiagnostics so the CLI emits the
+                ' newline and the library stays Console-free.
+                LibraryDiagnostics.EmitInfo(String.Empty)
                 Try : usb.Reset() : Catch : End Try
                 Throw
             Catch ex As Exception When InterruptControl.Aborted
@@ -459,7 +267,7 @@ Namespace Greaseweazle.Tools
                 ' with UnauthorizedAccessException ("Access to the port
                 ' 'COMx' is denied") so the subsequent motor-off command can't
                 ' be delivered and the drive keeps spinning.
-                Console.Error.WriteLine()
+                LibraryDiagnostics.EmitInfo(String.Empty)
                 InterruptControl.WaitForCloseComplete()
                 Try : usb.Reset() : Catch : End Try
                 Throw New KeyboardInterruptException()
@@ -698,12 +506,9 @@ Namespace Greaseweazle.Tools
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ResolveType)
         Public Function ResolveType(fileName As String) As Tuple(Of String, String)
             Dim ext = IO.Path.GetExtension(fileName)
-            ErrorHandling.Check(_types.ContainsKey(ext),
-                                String.Format("{0}: Unrecognised file suffix '{1}'{2}Known suffixes:{2}{3}",
-                                              fileName,
-                                              ext,
-                                              Environment.NewLine,
-                                              ColumnFormatter.Columnify(GetKnownSuffixes())))
+            If Not _types.ContainsKey(ext) Then
+                Throw New UnrecognisedSuffixException(fileName, ext, GetKnownSuffixes().ToList())
+            End If
             Return _types(ext)
         End Function
     End Class

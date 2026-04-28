@@ -78,7 +78,7 @@ Namespace Greaseweazle.Images
                 computedChecksum = CUInt((CULng(computedChecksum) + CULng(data(i))) And &HFFFFFFFFUL)
             Next
             If computedChecksum <> storedChecksum Then
-                Console.Out.WriteLine("SCP: WARNING: Bad image checksum")
+                LibraryDiagnostics.EmitWarning("SCP: WARNING: Bad image checksum")
             End If
 
             ' Python: index_cued = (flags & 1) == 1 or nr_revs == 1
@@ -223,7 +223,7 @@ Namespace Greaseweazle.Images
             If singleSided = 0 AndAlso diskType = 0 AndAlso sideCounts(1) > 0 _
                 AndAlso sideCounts(0) = sideCounts(1) + 1 AndAlso sideCounts(0) < 42 Then
                 singleSided = 1
-                Console.Out.WriteLine("SCP: Importing C64 image with halftracks")
+                LibraryDiagnostics.EmitInfo("SCP: Importing C64 image with halftracks")
             End If
             If singleSided <> 0 AndAlso sideCounts(0) > 0 AndAlso sideCounts(1) > 0 Then
                 Dim remap As New Dictionary(Of Integer, Flux)()
@@ -234,7 +234,7 @@ Namespace Greaseweazle.Images
                 For Each kvp In remap
                     _tracks(kvp.Key) = kvp.Value
                 Next
-                Console.Out.WriteLine("SCP: Imported legacy single-sided image")
+                LibraryDiagnostics.EmitInfo("SCP: Imported legacy single-sided image")
             End If
         End Sub
 

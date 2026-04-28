@@ -1,5 +1,5 @@
+Imports Greaseweazle.Cli.Formatters
 Imports Greaseweazle.Codecs
-Imports Greaseweazle.Shared
 Imports Greaseweazle.Tools
 
 Namespace Greaseweazle.Cli

@@ -17,10 +17,6 @@ Namespace Greaseweazle.Tools
         Public Property Bootloader As Boolean
         Public Property Live As Boolean = True
         Public Property Device As String
-
-        Public Shared Function FromArgs(args As IReadOnlyList(Of String)) As UpdateOptions
-            Return Update.BuildRuntimePreview(args)
-        End Function
     End Class
 
     ' Python map: no-1:1 with Python symbols; this DTO carries selected firmware payload bytes in managed flow.
@@ -58,78 +54,6 @@ Namespace Greaseweazle.Tools
             End If
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildRuntimePreview)
-        Public Shared Function BuildRuntimePreview(args As IReadOnlyList(Of String)) As UpdateOptions
-            Dim fileValue As String = Nothing
-            Dim tagValue As String = Nothing
-            Dim force = False
-            Dim bootloader = False
-            Dim live = True
-            Dim device As String = Nothing
-            Dim positionals As New List(Of String)()
-
-            Dim i = 0
-            While i < args.Count
-                Dim rawToken = args(i)
-                If String.Equals(rawToken, "--", StringComparison.Ordinal) Then
-                    For j = i To args.Count - 1
-                        positionals.Add(args(j))
-                    Next
-                    Exit While
-                End If
-                Dim token = rawToken
-                Dim inlineValue As String = Nothing
-                Dim equalsIndex = rawToken.IndexOf("="c)
-                If rawToken.StartsWith("--", StringComparison.Ordinal) AndAlso equalsIndex > 2 Then
-                    token = rawToken.Substring(0, equalsIndex)
-                    inlineValue = rawToken.Substring(equalsIndex + 1)
-                End If
-                Select Case token
-                    Case "--file"
-                        fileValue = TakeOptionValue(args, i, token, inlineValue)
-                    Case "--tag"
-                        tagValue = TakeOptionValue(args, i, token, inlineValue)
-                    Case "--device"
-                        device = TakeOptionValue(args, i, token, inlineValue)
-                    Case "--force"
-                        If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
-                        End If
-                        force = True
-                    Case "--bootloader"
-                        If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
-                        End If
-                        bootloader = True
-                    Case "--test"
-                        If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
-                        End If
-                        live = False
-                    Case Else
-                        If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
-                        End If
-                        positionals.Add(rawToken)
-                End Select
-                i += 1
-            End While
-
-            If positionals.Count > 0 Then
-                Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
-            End If
-            ValidateTagFileExclusion(fileValue, tagValue)
-
-            Return New UpdateOptions With {
-                .FileValue = fileValue,
-                .TagValue = tagValue,
-                .Force = force,
-                .Bootloader = bootloader,
-                .Live = live,
-                .Device = device
-            }
-        End Function
-
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ResolvePayload)
         '
         ' Loads the requested payload from disk or downloads it from
@@ -152,11 +76,6 @@ Namespace Greaseweazle.Tools
             End If
 
             Return DownloadLatest(onDownloadStarting)
-        End Function
-
-        ' Python map: src/greaseweazle/tools/update.py::download
-        Public Shared Function BuildDownloadLine(name As String) As String
-            Return "Downloading latest firmware: " & name
         End Function
 
         ' Python map: src/greaseweazle/tools/update.py::extract_update
@@ -352,30 +271,6 @@ Namespace Greaseweazle.Tools
                 Next
             Next
             Return crc
-        End Function
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration CheckOptionValue)
-        Private Shared Sub CheckOptionValue(args As IReadOnlyList(Of String), index As Integer, optionName As String)
-            Dim hasValue = index < args.Count
-            If hasValue Then
-                Dim value = args(index)
-                If value.StartsWith("-", StringComparison.Ordinal) Then
-                    hasValue = False
-                End If
-            End If
-            ErrorHandling.Check(hasValue, String.Format("missing value for option {0}", optionName))
-        End Sub
-
-        Private Shared Function TakeOptionValue(args As IReadOnlyList(Of String),
-                                                ByRef index As Integer,
-                                                optionName As String,
-                                                inlineValue As String) As String
-            If inlineValue IsNot Nothing Then
-                Return inlineValue
-            End If
-            index += 1
-            CheckOptionValue(args, index, optionName)
-            Return args(index)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB class declaration GithubRelease)

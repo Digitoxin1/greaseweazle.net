@@ -46,6 +46,22 @@ Namespace Greaseweazle.Codecs
             Return out
         End Function
 
+        ' Single-byte MSB-first overload. Several codecs / images need this in
+        ' inline pattern construction (see TrackModel weak-pattern builder
+        ' and Apple2 GCR sector header expansion).
+        Public Shared Function BytesToBits(b As Byte) As Boolean()
+            Return New Boolean() {
+                (b And &H80) <> 0,
+                (b And &H40) <> 0,
+                (b And &H20) <> 0,
+                (b And &H10) <> 0,
+                (b And &H8) <> 0,
+                (b And &H4) <> 0,
+                (b And &H2) <> 0,
+                (b And &H1) <> 0
+            }
+        End Function
+
         ' MSB-first bit list -> bytes. Assumes bits.Count is a multiple of 8.
         ' Trailing bits past the last full byte boundary are silently dropped,
         ' which mirrors all the per-codec copies this replaces.
@@ -193,6 +209,20 @@ Namespace Greaseweazle.Codecs
                 Return off
             Next
             Return -1
+        End Function
+
+        ' Parses a "01"-style ASCII string into an MSB-first Boolean array.
+        ' '1' becomes True, anything else becomes False (callers always pass
+        ' a string of just '0' / '1'). Replaces three identical local copies
+        ' (IBMFixedCodec, IBMScanCodec, C64GcrCodec) used to construct the
+        ' DEC MMFM, FM-sync, and similar long sync patterns at module-load
+        ' time.
+        Public Shared Function BitsFrom01(spec As String) As Boolean()
+            Dim bits(spec.Length - 1) As Boolean
+            For i = 0 To spec.Length - 1
+                bits(i) = (spec(i) = "1"c)
+            Next
+            Return bits
         End Function
 
     End Class

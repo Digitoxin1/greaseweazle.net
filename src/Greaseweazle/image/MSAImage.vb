@@ -192,14 +192,14 @@ Namespace Greaseweazle.Images
             End If
         End Sub
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ReadUInt16BE)
+        ' Python map: shared helper. See Greaseweazle.Core.ByteOrder.
         Private Shared Function ReadUInt16BE(data As Byte(), offset As Integer) As UShort
-            Return CUShort((CInt(data(offset)) << 8) Or CInt(data(offset + 1)))
+            Return ByteOrder.ReadU16BE(data, offset)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ToUInt16BE)
+        ' Python map: shared helper. See Greaseweazle.Core.ByteOrder.
         Private Shared Function ToUInt16BE(value As Integer) As Byte()
-            Return {CByte((value >> 8) And &HFF), CByte(value And &HFF)}
+            Return ByteOrder.WriteU16BE(CUShort(value And &HFFFF))
         End Function
 
     End Class

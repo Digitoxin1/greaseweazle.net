@@ -137,32 +137,10 @@ Namespace Greaseweazle.Cli.Parsers
             End If
             ParserHelpers.ValidateFormatIfSpecified(format, knownFormats, diskDefsPath)
 
-            ' Mirror Python argparse: empty `--tracks=''` is an argparse error.
-            If tracksSpec IsNot Nothing AndAlso tracksSpec.Length = 0 Then
-                Argparse("argument --tracks: invalid TrackSet value: ''")
-            End If
-
-            ' Python write.py:274-279: when --format resolves a fmt_cls, the format's
-            ' tracks become the default trackset (overlaid by --tracks if supplied).
-            Dim tracks As TrackSet = Nothing
-            If Not String.IsNullOrEmpty(format) Then
-                Try
-                    Dim fmtCls = DiskDefParser.GetDiskdef(format, diskDefsPath)
-                    If fmtCls IsNot Nothing AndAlso fmtCls.Tracks IsNot Nothing Then
-                        tracks = TrackResolution.ResolveDefaultTracksFromFormat(fmtCls.Tracks, tracksSpec)
-                    End If
-                Catch ex As ArgumentException When tracksSpec IsNot Nothing
-                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
-                Catch
-                End Try
-            End If
-            If tracks Is Nothing Then
-                Try
-                    tracks = TrackResolution.ResolveDefaultTracks("c=0-81:h=0-1", tracksSpec)
-                Catch ex As ArgumentException When tracksSpec IsNot Nothing
-                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
-                End Try
-            End If
+            ' Python write.py:274-279: shared resolution of --tracks against
+            ' the format's default range. See ParserHelpers.ResolveTracksOption.
+            Dim tracks As TrackSet = ParserHelpers.ResolveTracksOption(
+                "write", "--tracks", tracksSpec, format, diskDefsPath, "c=0-81:h=0-1")
 
             Dim precompText As String = Nothing
             If Not String.IsNullOrEmpty(precompSpec) Then

@@ -1,4 +1,5 @@
 Imports System.Text
+Imports Greaseweazle.Codecs
 
 Namespace Greaseweazle.Core
 
@@ -221,18 +222,10 @@ Namespace Greaseweazle.Core
             Me.New(BytesToBoolList(bytes), timePerRev, bitTicks, splice, weak, hardsectorBits)
         End Sub
 
-        ' Python map: src/greaseweazle/track.py::(no direct 1:1 symbol; VB helper for bytes->bits expansion)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function BytesToBoolList(bytes As Byte()) As IEnumerable(Of Boolean)
-            Dim count = If(bytes Is Nothing, 0, bytes.Length)
-            Dim result As New List(Of Boolean)(count * 8)
-            If bytes IsNot Nothing Then
-                For Each b In bytes
-                    For i = 7 To 0 Step -1
-                        result.Add(((b >> i) And 1) = 1)
-                    Next
-                Next
-            End If
-            Return result
+            If bytes Is Nothing Then Return New Boolean() {}
+            Return BitHelpers.BytesToBits(bytes)
         End Function
 
         Public Property Verify As HasVerify
@@ -564,13 +557,9 @@ Namespace Greaseweazle.Core
             Return output
         End Function
 
-        ' Python map: src/greaseweazle/track.py::(no direct 1:1 symbol; VB helper for bit expansion)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function ByteToBits(value As Byte) As IEnumerable(Of Boolean)
-            Dim bits As New List(Of Boolean)(8)
-            For i = 7 To 0 Step -1
-                bits.Add(((value >> i) And 1) = 1)
-            Next
-            Return bits
+            Return BitHelpers.BytesToBits(value)
         End Function
     End Class
 

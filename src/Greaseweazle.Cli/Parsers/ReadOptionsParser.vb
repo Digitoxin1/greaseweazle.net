@@ -182,34 +182,10 @@ Namespace Greaseweazle.Cli.Parsers
                 revsDisplay = resolvedRevs.ToString(Globalization.CultureInfo.InvariantCulture)
             End If
 
-            ' Mirror Python argparse: empty `--tracks=''` is an argparse error,
-            ' not equivalent to "no spec".
-            If tracksSpec IsNot Nothing AndAlso tracksSpec.Length = 0 Then
-                Argparse("argument --tracks: invalid TrackSet value: ''")
-            End If
-
-            ' Python read.py:275-281: when --format resolves a fmt_cls, the format's
-            ' tracks become the default trackset (overlaid by --tracks if supplied).
-            Dim tracks As TrackSet = Nothing
-            If Not String.IsNullOrEmpty(format) Then
-                Try
-                    Dim fmtCls = DiskDefParser.GetDiskdef(format, diskDefsPath)
-                    If fmtCls IsNot Nothing AndAlso fmtCls.Tracks IsNot Nothing Then
-                        tracks = TrackResolution.ResolveDefaultTracksFromFormat(fmtCls.Tracks, tracksSpec)
-                    End If
-                Catch ex As ArgumentException When tracksSpec IsNot Nothing
-                    ' Bad track spec rather than a format-resolution problem.
-                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
-                Catch
-                End Try
-            End If
-            If tracks Is Nothing Then
-                Try
-                    tracks = TrackResolution.ResolveDefaultTracks("c=0-81:h=0-1", tracksSpec)
-                Catch ex As ArgumentException When tracksSpec IsNot Nothing
-                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
-                End Try
-            End If
+            ' Python read.py:275-281: shared resolution of --tracks against
+            ' the format's default range. See ParserHelpers.ResolveTracksOption.
+            Dim tracks As TrackSet = ParserHelpers.ResolveTracksOption(
+                "read", "--tracks", tracksSpec, format, diskDefsPath, "c=0-81:h=0-1")
             Dim drive As DriveSpec = Nothing
             Try
                 drive = ParserHelpers.Drive(driveToken)

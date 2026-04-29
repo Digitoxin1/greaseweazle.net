@@ -298,19 +298,9 @@ Namespace Greaseweazle.Codecs
             Return out.ToArray()
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration MfmEncode)
+        ' Python map: shared helper. See IbmHelpers.MfmEncode in IBMFixedCodec.vb.
         Private Shared Function MfmEncode(data As Byte()) As Byte()
-            Dim y As Integer = 0
-            Dim out As New List(Of Byte)(data.Length)
-            For Each x In data
-                y = (y << 8) Or x
-                If (x And &HAA) = 0 Then
-                    y = y Or (Not ((y >> 1) Or (y << 1)) And &HAAAA)
-                End If
-                y = y And &HFF
-                out.Add(CByte(y))
-            Next
-            Return out.ToArray()
+            Return IbmHelpers.MfmEncode(data)
         End Function
 
         ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.

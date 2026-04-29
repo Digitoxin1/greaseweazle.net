@@ -229,23 +229,10 @@ Namespace Greaseweazle.Images
             Return ranges
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration RotateList)
+        ' Python map: shared helper. See Greaseweazle.Core.CollectionHelpers.
         Protected Shared Function RotateList(Of T)(values As List(Of T), index As Integer) As List(Of T)
-            If values Is Nothing OrElse values.Count = 0 Then
-                Return values
-            End If
-            Dim n = values.Count
-            Dim wrapped = ((index Mod n) + n) Mod n
-            ' Was Skip(i).Concat(Take(i)).ToList() — replace with indexed
-            ' pre-sized List build to avoid two LINQ iterators per call.
-            Dim result As New List(Of T)(n)
-            For j = wrapped To n - 1
-                result.Add(values(j))
-            Next
-            For j = 0 To wrapped - 1
-                result.Add(values(j))
-            Next
-            Return result
+            If values Is Nothing Then Return values
+            Return CollectionHelpers.RotateList(values, index)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ClipAndSortRanges)

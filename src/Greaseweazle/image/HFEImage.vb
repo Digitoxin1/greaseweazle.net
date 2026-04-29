@@ -635,24 +635,9 @@ Namespace Greaseweazle.Images
             Return result
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration RotateList)
+        ' Python map: shared helper. See Greaseweazle.Core.CollectionHelpers.
         Private Shared Function RotateList(Of T)(values As IList(Of T), index As Integer) As List(Of T)
-            If values Is Nothing OrElse values.Count = 0 Then
-                Return New List(Of T)()
-            End If
-            Dim n = values.Count
-            Dim wrapped = ((index Mod n) + n) Mod n
-            ' Was Skip(wrapped).Concat(Take(wrapped)).ToList() — two LINQ
-            ' iterators plus a final ToList copy. Indexed pre-sized List build
-            ' is one allocation + two tight loops.
-            Dim result As New List(Of T)(n)
-            For i = wrapped To n - 1
-                result.Add(values(i))
-            Next
-            For i = 0 To wrapped - 1
-                result.Add(values(i))
-            Next
-            Return result
+            Return CollectionHelpers.RotateList(values, index)
         End Function
 
         ' Python map: src/greaseweazle/image/hfe.py::HFE.emit_track (double_rate predicate)

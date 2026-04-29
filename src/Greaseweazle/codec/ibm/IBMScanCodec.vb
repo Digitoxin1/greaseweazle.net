@@ -505,13 +505,9 @@ Namespace Greaseweazle.Codecs
             Return Crc16Ccitt.Compute(data)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BitsFrom01)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function BitsFrom01(spec As String) As Boolean()
-            Dim bits As New List(Of Boolean)(spec.Length)
-            For Each ch In spec
-                bits.Add(ch = "1"c)
-            Next
-            Return bits.ToArray()
+            Return BitHelpers.BitsFrom01(spec)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration SyncWordBits)

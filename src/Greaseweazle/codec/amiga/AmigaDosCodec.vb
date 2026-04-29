@@ -281,50 +281,28 @@ Namespace Greaseweazle.Codecs
             Return (csum Xor (csum >> 1)) And &H55555555UI
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BytesToUInt32BE)
+        ' Python map: shared helper. See Greaseweazle.Core.ByteOrder.
         Private Shared Function BytesToUInt32BE(data As Byte()) As UInteger
-            Return BytesToUInt32BE(data, 0)
+            Return ByteOrder.ReadU32BE(data, 0)
         End Function
 
         Private Shared Function BytesToUInt32BE(data As Byte(), offset As Integer) As UInteger
-            Return (CUInt(data(offset)) << 24) _
-                Or (CUInt(data(offset + 1)) << 16) _
-                Or (CUInt(data(offset + 2)) << 8) _
-                Or CUInt(data(offset + 3))
+            Return ByteOrder.ReadU32BE(data, offset)
         End Function
 
-        ' Allocate a fresh Byte() containing source[offset..offset+length).
-        ' Equivalent to source.Skip(offset).Take(length).ToArray() but
-        ' uses Array.Copy (O(length)) instead of Enumerable.Skip (O(offset+length)).
+        ' Python map: shared helper. See Greaseweazle.Core.ByteArrayHelpers.
         Private Shared Function SubArray(source As Byte(), offset As Integer, length As Integer) As Byte()
-            Dim result(length - 1) As Byte
-            Array.Copy(source, offset, result, 0, length)
-            Return result
+            Return ByteArrayHelpers.SubArray(source, offset, length)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration UInt32ToBytesBE)
+        ' Python map: shared helper. See Greaseweazle.Core.ByteOrder.
         Private Shared Function UInt32ToBytesBE(value As UInteger) As Byte()
-            Return New Byte() {
-                CByte((value >> 24) And &HFFUI),
-                CByte((value >> 16) And &HFFUI),
-                CByte((value >> 8) And &HFFUI),
-                CByte(value And &HFFUI)
-            }
+            Return ByteOrder.WriteU32BE(value)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration MfmEncode)
+        ' Python map: shared helper. See IbmHelpers.MfmEncode in IBMFixedCodec.vb.
         Private Shared Function MfmEncode(values As Byte()) As Byte()
-            Dim output As New List(Of Byte)(values.Length)
-            Dim y As Integer = 0
-            For Each x In values
-                y = ((y << 8) Or x) And &HFFFF
-                If (x And &HAA) = 0 Then
-                    y = y Or ((Not ((y >> 1) Or (y << 1))) And &HAAAA)
-                End If
-                y = y And &HFF
-                output.Add(CByte(y))
-            Next
-            Return output.ToArray()
+            Return IbmHelpers.MfmEncode(values)
         End Function
 
         ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.

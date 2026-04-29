@@ -314,6 +314,49 @@ during normal use.
     sizes are byte-identical between binaries. `convert` parity matrix
     + malformed sweep both unchanged from prior pass.
 
+- [x] **Code-duplication sweep.** Pulled together helpers that had been
+  copy-pasted across the codec / image / CLI layers:
+  - **`Update.vb` CRC** — final straggler of the `crc-ccitt-false`
+    consolidation routed through `Greaseweazle.Codecs.Crc16Ccitt`.
+  - **`MfmEncode` × 6** (IBMFixed private, AmigaDos, NorthStar,
+    Micropolis, EDSK, DMK) all delegate to the public
+    `IbmHelpers.MfmEncode`. Identical algorithm; the duplicates were
+    just copies of one another with different signatures.
+  - **`BytesPerSectorToN`** dead-code copy removed from `IBMFixedCodec`
+    (the still-live `HeaderBytesPerSectorToN` survives).
+  - **`ByteToBits`/`BytesToBoolList`** in EDSK, DMK, Apple2 GCR, and
+    `TrackModel` removed; new `BitHelpers.BytesToBits(b As Byte)`
+    overload covers the single-byte case and the multi-byte overload
+    already covered the rest.
+  - **`RotateList(Of T)`** moved to a new
+    `Greaseweazle.Core.CollectionHelpers`; HFEImage and CAPSImage
+    delegate.
+  - **`EncodeDoubled` / `DecodeDoubled`** (HpMmfm, DataGeneral) folded
+    into a new `Greaseweazle.Codecs.DoubleBitCodec` with a shared
+    256-entry lookup table. EDSK and DMK's per-file `BuildEncodeList`
+    + `EncodeBytes` now share the same table (was the same table
+    formula computed in two places).
+  - **`BitsFrom01`** (IBMFixed, IBMScan, C64 GCR) collapsed into one
+    `BitHelpers.BitsFrom01`.
+  - **`SubArray` / `RepeatByte`** moved to a new
+    `Greaseweazle.Core.ByteArrayHelpers`; the AmigaDos and EDSK
+    private copies delegate.
+  - **CLI `--tracks` plumbing** — the duplicated 25-line
+    "argparse-empty-check + format-default-resolve + ArgumentException-
+    -to-Argparse" block in `ReadOptionsParser` and `WriteOptionsParser`
+    collapsed into `ParserHelpers.ResolveTracksOption`. Each call site
+    is now a single line.
+  - **`ByteOrder` helper** — new
+    `Greaseweazle.Core.ByteOrder` with `ReadU16BE/LE`, `ReadU32BE/LE`,
+    `WriteU16BE/LE`, `WriteU32BE/LE`. Migrated MSAImage's
+    `ReadUInt16BE`/`ToUInt16BE` and AmigaDos's `BytesToUInt32BE`
+    overloads + `UInt32ToBytesBE`. Available for any future
+    image-format work that needs explicit endianness.
+  - **Verified**: byte-equality regression and full malformed-input
+    sweep re-run after each tier; SHA-256 still matches `gw.exe` 1.23
+    on every BYTE-EQUAL row, and the malformed contract suite stays at
+    21 OK / 7 expected / 0 diverged.
+
 - [x] **Post-LINQ audit — beyond LINQ.** Subsequent sweep targeted hot
   paths flagged by the audit that weren't LINQ chains:
   - **CRC-CCITT-FALSE table.** Four near-identical bit-by-bit

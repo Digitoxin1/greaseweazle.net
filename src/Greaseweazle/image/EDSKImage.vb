@@ -9,7 +9,6 @@ Namespace Greaseweazle.Images
 
         Private ReadOnly _tracks As New Dictionary(Of Tuple(Of Integer, Integer), MasterTrack)()
         Private ReadOnly _ibmTracks As New Dictionary(Of Tuple(Of Integer, Integer), IbmTrackFixed)()
-        Private Shared ReadOnly EncodeList As UShort() = BuildEncodeList()
 
         Private Const MarkIam As Byte = &HFC
         Private Const MarkIdam As Byte = &HFE
@@ -265,18 +264,9 @@ Namespace Greaseweazle.Images
             Return output.ToArray()
         End Function
 
-        ' Allocates a fresh Byte() filled with `value`. Used as a drop-in for
-        ' Enumerable.Repeat(value, count).ToArray() in the gap-fill hot paths
-        ' (called per-sector × per-track ≈ 10K times per disk write).
+        ' Python map: shared helper. See Greaseweazle.Core.ByteArrayHelpers.
         Private Shared Function RepeatByte(value As Byte, count As Integer) As Byte()
-            If count <= 0 Then Return Array.Empty(Of Byte)()
-            Dim result(count - 1) As Byte
-            If value <> 0 Then
-                For i = 0 To count - 1
-                    result(i) = value
-                Next
-            End If
-            Return result
+            Return ByteArrayHelpers.RepeatByte(value, count)
         End Function
 
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::MFMGaps.gap3 (table lookup helper)
@@ -396,58 +386,19 @@ Namespace Greaseweazle.Images
             Public Property Data As Byte()
         End Class
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ByteToBits)
-        Private Shared Function ByteToBits(value As Byte) As IEnumerable(Of Boolean)
-            Dim bits As New List(Of Boolean)(8)
-            For i = 7 To 0 Step -1
-                bits.Add(((value >> i) And 1) <> 0)
-            Next
-            Return bits
-        End Function
-
         ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function BytesToBits(data As Byte()) As IEnumerable(Of Boolean)
             Return BitHelpers.BytesToBits(data)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildEncodeList)
-        Private Shared Function BuildEncodeList() As UShort()
-            Dim table(255) As UShort
-            For x = 0 To 255
-                Dim y As Integer = 0
-                For i = 0 To 7
-                    y <<= 2
-                    y = y Or ((x >> (7 - i)) And 1)
-                Next
-                table(x) = CUShort(y And &HFFFF)
-            Next
-            Return table
-        End Function
-
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration MfmEncode)
+        ' Python map: shared helper. See IbmHelpers.MfmEncode in IBMFixedCodec.vb.
         Private Shared Function MfmEncode(dat As Byte()) As Byte()
-            Dim y As Integer = 0
-            Dim out As New List(Of Byte)(dat.Length)
-            For Each x In dat
-                y = ((y << 8) Or x) And &HFFFF
-                If (x And &HAA) = 0 Then
-                    y = y Or ((Not ((y >> 1) Or (y << 1))) And &HAAAA)
-                End If
-                y = y And &HFF
-                out.Add(CByte(y))
-            Next
-            Return out.ToArray()
+            Return IbmHelpers.MfmEncode(dat)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration EncodeBytes)
+        ' Python map: shared helper. See Greaseweazle.Codecs.DoubleBitCodec.
         Private Shared Function EncodeBytes(dat As Byte()) As Byte()
-            Dim out As New List(Of Byte)(dat.Length * 2)
-            For Each x In dat
-                Dim y = CInt(EncodeList(x))
-                out.Add(CByte((y >> 8) And &HFF))
-                out.Add(CByte(y And &HFF))
-            Next
-            Return out.ToArray()
+            Return DoubleBitCodec.Encode(dat)
         End Function
 
         ' Python map: src/greaseweazle/codec/ibm/ibm.py uses

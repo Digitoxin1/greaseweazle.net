@@ -316,13 +316,9 @@ Namespace Greaseweazle.Codecs
             Return BitHelpers.FindPatternOffsets(bits, pattern)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ByteToBits)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function ByteToBits(value As Byte) As IEnumerable(Of Boolean)
-            Dim bits As New List(Of Boolean)(8)
-            For i = 7 To 0 Step -1
-                bits.Add(((value >> i) And 1) = 1)
-            Next
-            Return bits
+            Return BitHelpers.BytesToBits(value)
         End Function
 
         ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.

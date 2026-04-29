@@ -242,34 +242,14 @@ Namespace Greaseweazle.Codecs
             Return y And &HFFFF
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration EncodeDoubled)
+        ' Python map: shared helper. See Greaseweazle.Codecs.DoubleBitCodec.
         Private Shared Function EncodeDoubled(data As Byte()) As Byte()
-            Dim out As New List(Of Byte)(data.Length * 2)
-            For Each x In data
-                Dim y As Integer = 0
-                For i = 7 To 0 Step -1
-                    y <<= 2
-                    y = y Or ((x >> i) And 1)
-                Next
-                out.Add(CByte((y >> 8) And &HFF))
-                out.Add(CByte(y And &HFF))
-            Next
-            Return out.ToArray()
+            Return DoubleBitCodec.Encode(data)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration DecodeDoubled)
+        ' Python map: shared helper. See Greaseweazle.Codecs.DoubleBitCodec.
         Private Shared Function DecodeDoubled(data As Byte()) As Byte()
-            Dim out As New List(Of Byte)(data.Length \ 2)
-            Dim pairs = data.Length \ 2
-            For i = 0 To pairs - 1
-                Dim word = (CInt(data(i * 2)) << 8) Or data(i * 2 + 1)
-                Dim index = word And &H5555
-                Dim y = (index + (index >> 1)) And &H3333
-                y = (y + (y >> 2)) And &H0F0F
-                y = (y + (y >> 4)) And &H00FF
-                out.Add(CByte(y))
-            Next
-            Return out.ToArray()
+            Return DoubleBitCodec.Decode(data)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration FmEncode)

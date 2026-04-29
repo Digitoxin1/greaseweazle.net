@@ -1630,17 +1630,6 @@ Namespace Greaseweazle.Codecs
             Public Property Crc As UShort
         End Class
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BytesPerSectorToN)
-        Private Shared Function BytesPerSectorToN(bytesPerSector As Integer) As Integer
-            Dim n = 0
-            Dim value = 128
-            While value < bytesPerSector AndAlso n < 8
-                value <<= 1
-                n += 1
-            End While
-            Return n
-        End Function
-
         ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function FindPatternOffsets(bits As List(Of Boolean), pattern As Boolean()) As IEnumerable(Of Integer)
             Return BitHelpers.FindPatternOffsets(bits, pattern)
@@ -1661,13 +1650,9 @@ Namespace Greaseweazle.Codecs
             Return BitsFrom01("0100010001000100010001000100010001010101000100010001")
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BitsFrom01)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function BitsFrom01(spec As String) As Boolean()
-            Dim bits As New List(Of Boolean)(spec.Length)
-            For Each ch In spec
-                bits.Add(ch = "1"c)
-            Next
-            Return bits.ToArray()
+            Return BitHelpers.BitsFrom01(spec)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration SumRange)
@@ -1726,19 +1711,11 @@ Namespace Greaseweazle.Codecs
             Return bytes
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration MfmEncode)
+        ' Python map: shared helper. See IbmHelpers.MfmEncode (same file).
+        ' This private shadow exists only so callers within IbmTrackFixed
+        ' don't need to qualify the module name.
         Private Shared Function MfmEncode(values As IEnumerable(Of Byte)) As Byte()
-            Dim output As New List(Of Byte)()
-            Dim y As Integer = 0
-            For Each x In values
-                y = ((y << 8) Or x) And &HFFFF
-                If (x And &HAA) = 0 Then
-                    y = y Or ((Not ((y >> 1) Or (y << 1))) And &HAAAA)
-                End If
-                y = y And &HFF
-                output.Add(CByte(y))
-            Next
-            Return output.ToArray()
+            Return IbmHelpers.MfmEncode(values)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration AppendRawMfmSync)

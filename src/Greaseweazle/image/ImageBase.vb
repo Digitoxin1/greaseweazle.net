@@ -62,6 +62,7 @@ Namespace Greaseweazle.Images
             For Each pair In opts
                 Options.RSet(FileName, pair.Key, pair.Value)
             Next
+            ValidateOptions()
         End Sub
 
         ' Python map: src/greaseweazle/image/image.py::Image.apply_w_opts
@@ -72,6 +73,15 @@ Namespace Greaseweazle.Images
             For Each pair In opts
                 Options.WSet(FileName, pair.Key, pair.Value)
             Next
+            ValidateOptions()
+        End Sub
+
+        ' Subclass hook for eager option validation. Subclasses that defer
+        ' interpretation of `Options.Values` until output-emission time
+        ' (e.g. HFE bitrate) can override this to surface malformed values
+        ' before a 160-track convert loop runs. Default: no-op.
+        ' Python map: src/greaseweazle/image/image.py::ImageOpts.__setattr__
+        Public Overridable Sub ValidateOptions()
         End Sub
 
         ' Python map: src/greaseweazle/image/image.py::Image.__enter__

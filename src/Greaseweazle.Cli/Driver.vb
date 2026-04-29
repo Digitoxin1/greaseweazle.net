@@ -130,6 +130,16 @@ Namespace Greaseweazle.Cli
                 Throw
             Catch ex As NullReferenceException
                 Throw
+            Catch argEx As ArgparseException
+                ' argparse-style failures (unknown option, missing positional,
+                ' bad --tracks, etc.) match Python's two-line stderr format:
+                '   usage: gw.exe ACTION [options] in_file out_file
+                '   gw.exe ACTION: error: MESSAGE
+                ' and exit with code 2. Plain FatalException stays exit 1.
+                If backtrace Then Throw
+                stderr.WriteLine(argEx.UsageLine)
+                stderr.WriteLine(String.Format("gw-vb {0}: error: {1}", argEx.Action, argEx.Message))
+                result = 2
             Catch ex As FatalException
                 ' Strongly-typed library failures (UnknownFormatException, the
                 ' device-firmware-mode family, etc.) carry only a structured

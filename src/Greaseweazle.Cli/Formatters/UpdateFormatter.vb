@@ -1,7 +1,6 @@
 Imports System.Globalization
 Imports System.IO
 Imports Greaseweazle.Actions
-Imports Greaseweazle.Core
 Imports Greaseweazle.Infrastructure
 
 Namespace Greaseweazle.Cli.Formatters

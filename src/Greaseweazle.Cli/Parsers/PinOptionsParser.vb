@@ -8,7 +8,29 @@ Namespace Greaseweazle.Cli.Parsers
     ' subcommand dispatch and `--device`/`--drive` handling.
     Public NotInheritable Class PinOptionsParser
 
+        Private Const ActionName As String = "pin"
+
         Private Sub New()
+        End Sub
+
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
+        End Sub
+
+        ' Pin uses argparse subparsers (`get`, `set`), so the usage banner
+        ' once a subcommand is in flight differs from the top-level pin
+        ' banner. Python's argparse prints e.g.
+        '   usage: gw.exe pin set [options] pin level
+        '   gw.exe pin set: error: ...
+        ' while a typo at the top level keeps the parent banner. The shared
+        ' ParserHelpers.Argparse always uses the parent ("pin") banner, so
+        ' this throws ArgparseException directly with the subparser-specific
+        ' usage + action label to match gw.exe's output.
+        Private Shared Sub ArgparseSub(subcommand As String, message As String)
+            Dim usage = String.Format("usage: gw-vb pin {0} [options] pin{1}",
+                                      subcommand,
+                                      If(String.Equals(subcommand, "set", StringComparison.Ordinal), " level", ""))
+            Throw New ArgparseException(String.Format("pin {0}", subcommand), usage, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String)) As PinOptions
@@ -17,6 +39,16 @@ Namespace Greaseweazle.Cli.Parsers
             End If
 
             Dim subcommand = args(0)
+            ' Anything other than `get` / `set` falls through to usage mode -
+            ' Python's argparse handles unrecognised subcommands by reprinting
+            ' the parent usage banner (which the CLI's PinFormatter renders).
+            ' Don't strict-validate flags in that mode.
+            Dim isKnownSub = String.Equals(subcommand, "set", StringComparison.Ordinal) OrElse
+                             String.Equals(subcommand, "get", StringComparison.Ordinal)
+            If Not isKnownSub Then
+                Return New PinOptions With {.Mode = "usage"}
+            End If
+
             Dim live = True
             Dim device As String = Nothing
             Dim driveToken = "A"
@@ -40,7 +72,7 @@ Namespace Greaseweazle.Cli.Parsers
                 Select Case token
                     Case "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            ArgparseSub(subcommand, String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         live = False
                     Case "--device", "--drive"
@@ -52,7 +84,7 @@ Namespace Greaseweazle.Cli.Parsers
                         End If
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            ArgparseSub(subcommand, String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
@@ -60,41 +92,52 @@ Namespace Greaseweazle.Cli.Parsers
             End While
 
             If String.Equals(subcommand, "set", StringComparison.Ordinal) Then
-                ErrorHandling.Check(positionals.Count = 2, "pin set requires <pin> <level>")
-                Dim pin = ParseUInt(positionals(0), "pin")
-                Dim level As Boolean
+                If positionals.Count < 2 Then
+                    ArgparseSub("set", "the following arguments are required: pin, level")
+                ElseIf positionals.Count > 2 Then
+                    ArgparseSub("set", String.Format("unrecognized arguments: {0}", String.Join(" ", positionals.Skip(2))))
+                End If
+                Dim pin = ParseUInt(positionals(0), "pin", "set")
+                Dim level As Boolean = False
                 Try
                     level = ParserHelpers.Level(positionals(1))
                 Catch ex As ArgumentException
-                    Throw New FatalException(ex.Message)
+                    ' Python wraps ParserHelpers.Level (argparse type=level)
+                    ' so its error is prefixed with `argument level: ...`.
+                    ArgparseSub("set", String.Format("argument level: {0}", ex.Message))
                 End Try
                 Return New PinOptions With {
                     .Mode = "set",
                     .Live = live,
                     .Device = device,
-                    .Drive = ResolveDrive(driveToken),
+                    .Drive = ResolveDrive(driveToken, "set"),
                     .Pin = pin,
                     .Level = level
                 }
             End If
-            If String.Equals(subcommand, "get", StringComparison.Ordinal) Then
-                ErrorHandling.Check(positionals.Count = 1, "pin get requires <pin>")
-                Dim pin = ParseUInt(positionals(0), "pin")
-                Return New PinOptions With {
-                    .Mode = "get",
-                    .Live = live,
-                    .Device = device,
-                    .Drive = ResolveDrive(driveToken),
-                    .Pin = pin
-                }
+            ' subcommand = "get" (validated above)
+            If positionals.Count < 1 Then
+                ArgparseSub("get", "the following arguments are required: pin")
+            ElseIf positionals.Count > 1 Then
+                ArgparseSub("get", String.Format("unrecognized arguments: {0}", String.Join(" ", positionals.Skip(1))))
             End If
-            Return New PinOptions With {.Mode = "usage"}
+            Dim getPin = ParseUInt(positionals(0), "pin", "get")
+            Return New PinOptions With {
+                .Mode = "get",
+                .Live = live,
+                .Device = device,
+                .Drive = ResolveDrive(driveToken, "get"),
+                .Pin = getPin
+            }
         End Function
 
-        Private Shared Function ParseUInt(value As String, fieldName As String) As Integer
+        Private Shared Function ParseUInt(value As String, fieldName As String, subcommand As String) As Integer
             Dim parsed As Integer
+            ' Python's pin.py: positional uses `type=lambda x: int(x)`; argparse
+            ' surfaces the lambda's parameter name ("x") in the error message.
+            ' Mirror gw.exe's wording verbatim.
             If Not Integer.TryParse(value, Globalization.NumberStyles.Integer, Globalization.CultureInfo.InvariantCulture, parsed) OrElse parsed < 0 Then
-                Throw New FatalException(String.Format("invalid {0}: {1}", fieldName, value))
+                ArgparseSub(subcommand, String.Format("argument {0}: invalid x value: '{1}'", fieldName, value))
             End If
             Return parsed
         End Function
@@ -122,11 +165,12 @@ Namespace Greaseweazle.Cli.Parsers
             Return args(index)
         End Function
 
-        Private Shared Function ResolveDrive(token As String) As DriveSpec
+        Private Shared Function ResolveDrive(token As String, subcommand As String) As DriveSpec
             Try
                 Return ParserHelpers.Drive(token)
             Catch ex As ArgumentException
-                Throw New FatalException(ex.Message)
+                ArgparseSub(subcommand, ex.Message)
+                Return Nothing
             End Try
         End Function
 

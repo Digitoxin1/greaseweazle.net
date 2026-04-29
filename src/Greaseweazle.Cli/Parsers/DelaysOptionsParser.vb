@@ -9,7 +9,13 @@ Namespace Greaseweazle.Cli.Parsers
     ' --watchdog/--pre-write/--post-write/--index-mask/--device.
     Public NotInheritable Class DelaysOptionsParser
 
+        Private Const ActionName As String = "delays"
+
         Private Sub New()
+        End Sub
+
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String)) As DelaysOptions
@@ -50,12 +56,12 @@ Namespace Greaseweazle.Cli.Parsers
                     End If
                 ElseIf String.Equals(token, "--test", StringComparison.Ordinal) Then
                     If inlineValue IsNot Nothing Then
-                        Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                        Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                     End If
                     live = False
                 Else
                     If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                        Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                        Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                     End If
                     positionals.Add(rawToken)
                 End If
@@ -63,7 +69,7 @@ Namespace Greaseweazle.Cli.Parsers
             End While
 
             If positionals.Count > 0 Then
-                Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
             Return New DelaysOptions With {.Values = values, .Live = live, .Device = device}
         End Function
@@ -71,7 +77,7 @@ Namespace Greaseweazle.Cli.Parsers
         Private Shared Function ParseUInt(value As String, optionName As String) As Integer
             Dim parsed As Integer
             If Not Integer.TryParse(value, Globalization.NumberStyles.Integer, Globalization.CultureInfo.InvariantCulture, parsed) OrElse parsed < 0 Then
-                Throw New FatalException(String.Format("invalid value for {0}: {1}", optionName, value))
+                Argparse(String.Format("invalid value for {0}: {1}", optionName, value))
             End If
             Return parsed
         End Function

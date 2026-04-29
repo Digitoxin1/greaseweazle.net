@@ -13,7 +13,16 @@ Namespace Greaseweazle.Cli.Parsers
     ' UnknownFormatException for an unrecognised --format.
     Public NotInheritable Class ReadOptionsParser
 
+        Private Const ActionName As String = "read"
+
         Private Sub New()
+        End Sub
+
+        ' Local shim for ParserHelpers.Argparse - argparse-style failures
+        ' here surface as exit 2 with the `usage: gw-vb read [options] file`
+        ' two-liner, matching gw.exe's argparse contract.
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String),
@@ -82,19 +91,19 @@ Namespace Greaseweazle.Cli.Parsers
                             Try
                                 pllOverride = New Pll(optionValue)
                             Catch ex As ArgumentException
-                                Throw New FatalException(ex.Message)
+                                Argparse(ex.Message)
                             End Try
                         ElseIf String.Equals(token, "--densel", StringComparison.Ordinal) OrElse
                                String.Equals(token, "--dd", StringComparison.Ordinal) Then
                             Try
                                 densel = ParserHelpers.Level(optionValue)
                             Catch ex As ArgumentException
-                                Throw New FatalException(ex.Message)
+                                Argparse(ex.Message)
                             End Try
                         End If
                     Case "--raw", "--hard-sectors", "--no-clobber", "-n", "--gen-tg43", "--reverse"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         If String.Equals(token, "--raw", StringComparison.Ordinal) Then
                             raw = True
@@ -110,26 +119,31 @@ Namespace Greaseweazle.Cli.Parsers
                         End If
                     Case "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         live = False
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
                 i += 1
             End While
 
-            ErrorHandling.Check(positionals.Count = 1, "read requires output file argument")
+            ' Mirror Python argparse's positional-arg error wording.
+            If positionals.Count = 0 Then
+                Argparse("the following arguments are required: file")
+            ElseIf positionals.Count > 1 Then
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals.Skip(1))))
+            End If
             ' Python read.py:231-234: --fake-index and --hard-sectors are mutex.
             If fakeIndexPeriod.HasValue AndAlso hardSectors Then
-                Throw New FatalException("argument --hard-sectors: not allowed with argument --fake-index")
+                Argparse("argument --hard-sectors: not allowed with argument --fake-index")
             End If
             ' Python read.py:247-251: --densel/--dd and --gen-tg43 are mutex.
             If densel.HasValue AndAlso genTg43 Then
-                Throw New FatalException("argument --gen-tg43: not allowed with argument --densel")
+                Argparse("argument --gen-tg43: not allowed with argument --densel")
             End If
 
             ' Python read.py:267-268: if not args.format: args.format = image_class.default_format
@@ -168,6 +182,12 @@ Namespace Greaseweazle.Cli.Parsers
                 revsDisplay = resolvedRevs.ToString(Globalization.CultureInfo.InvariantCulture)
             End If
 
+            ' Mirror Python argparse: empty `--tracks=''` is an argparse error,
+            ' not equivalent to "no spec".
+            If tracksSpec IsNot Nothing AndAlso tracksSpec.Length = 0 Then
+                Argparse("argument --tracks: invalid TrackSet value: ''")
+            End If
+
             ' Python read.py:275-281: when --format resolves a fmt_cls, the format's
             ' tracks become the default trackset (overlaid by --tracks if supplied).
             Dim tracks As TrackSet = Nothing
@@ -177,17 +197,24 @@ Namespace Greaseweazle.Cli.Parsers
                     If fmtCls IsNot Nothing AndAlso fmtCls.Tracks IsNot Nothing Then
                         tracks = TrackResolution.ResolveDefaultTracksFromFormat(fmtCls.Tracks, tracksSpec)
                     End If
+                Catch ex As ArgumentException When tracksSpec IsNot Nothing
+                    ' Bad track spec rather than a format-resolution problem.
+                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
                 Catch
                 End Try
             End If
             If tracks Is Nothing Then
-                tracks = TrackResolution.ResolveDefaultTracks("c=0-81:h=0-1", tracksSpec)
+                Try
+                    tracks = TrackResolution.ResolveDefaultTracks("c=0-81:h=0-1", tracksSpec)
+                Catch ex As ArgumentException When tracksSpec IsNot Nothing
+                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
+                End Try
             End If
-            Dim drive As DriveSpec
+            Dim drive As DriveSpec = Nothing
             Try
                 drive = ParserHelpers.Drive(driveToken)
             Catch ex As ArgumentException
-                Throw New FatalException(ex.Message)
+                Argparse(ex.Message)
             End Try
             Dim pllProfiles As New List(Of Pll)()
             If pllOverride IsNot Nothing Then
@@ -246,7 +273,7 @@ Namespace Greaseweazle.Cli.Parsers
         Private Shared Function ParseUInt(value As String, optionName As String) As Integer
             Dim parsed As Integer
             If Not Integer.TryParse(value, Globalization.NumberStyles.Integer, Globalization.CultureInfo.InvariantCulture, parsed) OrElse parsed < 0 Then
-                Throw New FatalException(String.Format("invalid value for {0}: {1}", optionName, value))
+                Argparse(String.Format("invalid value for {0}: {1}", optionName, value))
             End If
             Return parsed
         End Function

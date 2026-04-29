@@ -7,7 +7,13 @@ Namespace Greaseweazle.Cli.Parsers
     ' Bandwidth.BuildRuntimePreview.
     Public NotInheritable Class BandwidthOptionsParser
 
+        Private Const ActionName As String = "bandwidth"
+
         Private Sub New()
+        End Sub
+
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String)) As BandwidthOptions
@@ -33,21 +39,21 @@ Namespace Greaseweazle.Cli.Parsers
                 Select Case token
                     Case "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         live = False
                     Case "--device"
                         device = TakeOptionValue(args, i, token, inlineValue)
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
                 i += 1
             End While
             If positionals.Count > 0 Then
-                Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
             Return New BandwidthOptions With {.Live = live, .Device = device}
         End Function

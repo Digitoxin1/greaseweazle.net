@@ -36,6 +36,27 @@ Namespace Greaseweazle.Core
         End Sub
     End Class
 
+    ' Raised by CLI parsers when an argv error matches argparse's failure
+    ' contract (missing positional, unknown option, type-conversion error,
+    ' invalid choice). The Driver catches this to render Python's
+    '   usage: gw.exe ACTION [options] ...
+    '   gw.exe ACTION: error: MESSAGE
+    ' two-line block on stderr and exit with code 2 — argparse's default
+    ' for argument errors. Plain FatalException remains exit-code 1 for
+    ' library/runtime failures.
+    Public Class ArgparseException
+        Inherits FatalException
+
+        Public ReadOnly Property Action As String
+        Public ReadOnly Property UsageLine As String
+
+        Public Sub New(action As String, usageLine As String, message As String)
+            MyBase.New(message)
+            Me.Action = action
+            Me.UsageLine = usageLine
+        End Sub
+    End Class
+
     ' Raised when a caller asks for a disk format that isn't registered.
     ' The base Message is a short domain-level summary so non-CLI library
     ' consumers can still display ex.Message directly. The CLI front-end

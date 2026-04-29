@@ -10,7 +10,13 @@ Namespace Greaseweazle.Cli.Parsers
     ' surfaces a domain-language error rather than "missing value".
     Public NotInheritable Class EraseOptionsParser
 
+        Private Const ActionName As String = "erase"
+
         Private Sub New()
+        End Sub
+
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String)) As EraseOptions
@@ -63,12 +69,12 @@ Namespace Greaseweazle.Cli.Parsers
                         fakeIndex = ParserHelpers.Period(TakeOptionValue(args, i, token, inlineValue))
                     Case "--hfreq"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         hfreq = True
                     Case "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         live = False
                     Case "--device", "--drive"
@@ -80,7 +86,7 @@ Namespace Greaseweazle.Cli.Parsers
                         End If
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
@@ -88,23 +94,23 @@ Namespace Greaseweazle.Cli.Parsers
             End While
 
             If positionals.Count > 0 Then
-                Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
             If tracksSpec IsNot Nothing AndAlso tracksSpec.Length = 0 Then
-                Throw New FatalException("invalid value for option --tracks: ''")
+                Argparse("invalid value for option --tracks: ''")
             End If
 
-            Dim resolvedTracks As TrackSet
+            Dim resolvedTracks As TrackSet = Nothing
             Try
                 resolvedTracks = TrackResolution.ResolveDefaultTracks("c=0-81:h=0-1", tracksSpec)
             Catch ex As Exception When tracksSpec IsNot Nothing
-                Throw New FatalException(String.Format("invalid value for option --tracks: '{0}'", tracksSpec))
+                Argparse(String.Format("invalid value for option --tracks: '{0}'", tracksSpec))
             End Try
-            Dim drive As DriveSpec
+            Dim drive As DriveSpec = Nothing
             Try
                 drive = ParserHelpers.Drive(driveToken)
             Catch ex As ArgumentException
-                Throw New FatalException(ex.Message)
+                Argparse(ex.Message)
             End Try
             Return New EraseOptions With {
                 .Tracks = resolvedTracks.ToString(),

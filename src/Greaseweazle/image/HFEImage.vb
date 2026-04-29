@@ -66,6 +66,26 @@ Namespace Greaseweazle.Images
             Options.WriteSettings.Add("uniform")
         End Sub
 
+        ' Mirror Python's HFEOpts.__setattr__ semantics: malformed
+        ' bitrate / version values must surface immediately so a
+        ' subsequent 160-track convert loop doesn't run before the
+        ' invalid option is rejected. ResolveOutput* re-validate at
+        ' emit time as well (defensive); calling them here is harmless
+        ' if they parse successfully.
+        Public Overrides Sub ValidateOptions()
+            Dim configured As String = Nothing
+            If Options.Values.TryGetValue("bitrate", configured) Then
+                Dim parsed As Integer
+                ErrorHandling.Check(Integer.TryParse(configured, Globalization.NumberStyles.Integer, Globalization.CultureInfo.InvariantCulture, parsed) AndAlso parsed > 0,
+                                    String.Format("HFE: Invalid bitrate: '{0}'", configured))
+            End If
+            If Options.Values.TryGetValue("version", configured) Then
+                Dim parsedVersion As Integer
+                ErrorHandling.Check(Integer.TryParse(configured, Globalization.NumberStyles.Integer, Globalization.CultureInfo.InvariantCulture, parsedVersion) AndAlso (parsedVersion = 1 OrElse parsedVersion = 3),
+                                    String.Format("HFE: Invalid version: '{0}'", configured))
+            End If
+        End Sub
+
         ' Python map: src/greaseweazle/image/hfe.py::HFE.from_bytes
         Public Overrides Sub FromBytes(data As Byte())
             _tracks.Clear()
@@ -105,14 +125,20 @@ Namespace Greaseweazle.Images
                 End If
 
                 For side = 0 To nSide - 1
-                    Dim tdat As New List(Of Byte)()
+                    Dim tdat As New List(Of Byte)(todo)
                     Dim walkOffset = offset
                     Dim remaining = todo
                     While remaining > 0
                         Dim dOff = walkOffset * 512 + side * 256
                         Dim dNr = Math.Min(256, remaining)
                         ErrorHandling.Check(dOff >= 0 AndAlso (dOff + dNr) <= data.Length, "HFE: Truncated track data")
-                        tdat.AddRange(data.Skip(dOff).Take(dNr))
+                        ' Avoid `data.Skip(dOff).Take(dNr)` — that LINQ chain
+                        ' walks the entire array each call, making this O(N²)
+                        ' across the ~16k chunks of a 4MB HFE input. Copy the
+                        ' slice directly into the per-track byte buffer.
+                        Dim chunk(dNr - 1) As Byte
+                        Array.Copy(data, dOff, chunk, 0, dNr)
+                        tdat.AddRange(chunk)
                         remaining -= dNr
                         walkOffset += 1
                     End While
@@ -182,6 +208,14 @@ Namespace Greaseweazle.Images
             _tracks(Tuple.Create(cyl, side)) = master
             If autoBitrateKbps.HasValue Then
                 _bitrateKbps = autoBitrateKbps.Value
+                ' Python emits this informational line the first time a track
+                ' lets HFE auto-detect its bitrate (image/hfe.py::HFE.emit_track).
+                ' Surface it through LibraryDiagnostics so the CLI mirrors gw.exe
+                ' byte-for-byte; library consumers that ignore the event simply
+                ' don't see the line.
+                LibraryDiagnostics.EmitInfo(String.Format(Globalization.CultureInfo.InvariantCulture,
+                                                          "HFE: Data bitrate detected: {0} kbit/s",
+                                                          autoBitrateKbps.Value))
             End If
         End Sub
 

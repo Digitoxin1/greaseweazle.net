@@ -133,13 +133,45 @@ Namespace Greaseweazle.Cli.Parsers
             Return False
         End Function
 
-        ' Convenience for parsers that reject inline values on flag-only
-        ' options (e.g. `--test` shouldn't accept `--test=foo`). Mirrors
-        ' Python argparse's "ignored explicit argument" error.
-        Public Shared Sub RejectInlineValue(token As String, inlineValue As String)
-            If inlineValue IsNot Nothing Then
-                Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
-            End If
+        ' Action -> argparse `usage:` banner. Matches gw.exe's per-action
+        ' usage line one-for-one (verified by running each action with no
+        ' args / `--nope` against H:\gw\gw.exe). The two-line stderr block
+        '   usage: gw-vb <action> [options] ...
+        '   gw-vb <action>: error: <msg>
+        ' is what the Driver's ArgparseException catch renders to match
+        ' Python argparse's contract (and exit with code 2).
+        Public Shared Function ArgparseUsage(action As String) As String
+            Select Case action
+                Case "info" : Return "usage: gw-vb info [options]"
+                Case "read" : Return "usage: gw-vb read [options] file"
+                Case "write" : Return "usage: gw-vb write [options] file"
+                Case "convert" : Return "usage: gw-vb convert [options] in_file out_file"
+                Case "erase" : Return "usage: gw-vb erase [options]"
+                Case "clean" : Return "usage: gw-vb clean [options]"
+                Case "seek" : Return "usage: gw-vb seek [options] cylinder"
+                Case "delays" : Return "usage: gw-vb delays [options]"
+                Case "update" : Return "usage: gw-vb update [options]"
+                Case "pin" : Return "usage: gw-vb pin get|set [-h] ..."
+                Case "reset" : Return "usage: gw-vb reset [options]"
+                Case "bandwidth" : Return "usage: gw-vb bandwidth [options]"
+                Case "rpm" : Return "usage: gw-vb rpm [options]"
+                Case "align" : Return "usage: gw-vb align [options]"
+            End Select
+            ' Defensive fallback - any unknown action gets a generic banner
+            ' so we never end up with an empty `usage:` line on stderr.
+            Return String.Format("usage: gw-vb {0} [options]", action)
+        End Function
+
+        ' Throw an argparse-style failure: the Driver renders the per-action
+        ' `usage:` / `gw-vb action: error: ...` two-line block on stderr and
+        ' exits 2 (matching Python argparse). Use this for argv-validation
+        ' failures only - missing positional, unknown option, type-conversion
+        ' error, mutually-exclusive flags, invalid choice, malformed value
+        ' (`--tracks=cyl=abc`). Reserve plain FatalException for runtime
+        ' problems the library raises (file IO, USB, codec) - those keep
+        ' exit code 1 and the FatalErrorFormatter rendering.
+        Public Shared Sub Argparse(action As String, message As String)
+            Throw New ArgparseException(action, ArgparseUsage(action), message)
         End Sub
 
         ' Default diskdefs.xml path resolution shared by every parser that

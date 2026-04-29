@@ -8,7 +8,13 @@ Namespace Greaseweazle.Cli.Parsers
     ' (otherwise `-3` would be rejected as an unknown flag).
     Public NotInheritable Class SeekOptionsParser
 
+        Private Const ActionName As String = "seek"
+
         Private Sub New()
+        End Sub
+
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String)) As SeekOptions
@@ -38,17 +44,17 @@ Namespace Greaseweazle.Cli.Parsers
                 Select Case token
                     Case "--force"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         force = True
                     Case "--motor-on"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         motorOn = True
                     Case "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         live = False
                     Case "--device", "--drive"
@@ -61,22 +67,33 @@ Namespace Greaseweazle.Cli.Parsers
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) AndAlso
                            Not IsSignedIntegerToken(rawToken) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
                 i += 1
             End While
 
-            ErrorHandling.Check(positionals.Count >= 1, "seek requires cylinder argument")
-            ErrorHandling.Check(positionals.Count = 1, "seek takes exactly one cylinder argument")
-            Dim cyl = ParseUint(positionals(0), "cylinder")
+            If positionals.Count = 0 Then
+                Argparse("the following arguments are required: cylinder")
+            ElseIf positionals.Count > 1 Then
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals.Skip(1))))
+            End If
+            ' Python's seek.py uses `type=lambda x: int(x)` for the positional;
+            ' argparse extracts the literal parameter name from the lambda
+            ' source ("x") when emitting the error message:
+            '   argument cylinder: invalid x value: '<input>'
+            ' Matching that wording verbatim keeps stderr byte-equal with gw.exe.
+            Dim cyl As Integer
+            If Not Integer.TryParse(positionals(0), Globalization.NumberStyles.Integer, Globalization.CultureInfo.InvariantCulture, cyl) OrElse cyl < 0 Then
+                Argparse(String.Format("argument cylinder: invalid x value: '{0}'", positionals(0)))
+            End If
             Dim promptNeeded = Greaseweazle.Tools.Seek.ShouldPromptForExtremeCylinder(cyl, force)
-            Dim drive As DriveSpec
+            Dim drive As DriveSpec = Nothing
             Try
                 drive = ParserHelpers.Drive(driveToken)
             Catch ex As ArgumentException
-                Throw New FatalException(ex.Message)
+                Argparse(ex.Message)
             End Try
 
             Return New SeekOptions With {
@@ -111,14 +128,6 @@ Namespace Greaseweazle.Cli.Parsers
             index += 1
             CheckOptionValue(args, index, optionName)
             Return args(index)
-        End Function
-
-        Private Shared Function ParseUint(value As String, fieldName As String) As Integer
-            Dim parsed As Integer
-            If Not Integer.TryParse(value, Globalization.NumberStyles.Integer, Globalization.CultureInfo.InvariantCulture, parsed) OrElse parsed < 0 Then
-                Throw New FatalException(String.Format("invalid {0}: {1}", fieldName, value))
-            End If
-            Return parsed
         End Function
 
         Private Shared Function IsSignedIntegerToken(value As String) As Boolean

@@ -1371,14 +1371,20 @@ Namespace Greaseweazle.Tools
             Dim outputDefaultFormat = ImageDefaults.DefaultFormatForFile(outputPath)
             Dim effectiveFormat = Convert.ResolveFormat(preview.Format, inputDefaultFormat, outputDefaultFormat)
 
-            If preview.NoClobber AndAlso File.Exists(outputPath) Then
-                Throw New FatalException(String.Format("{0}: File exists", outputPath))
-            End If
+            ' NB: the no-clobber check is intentionally deferred to AFTER
+            ' OpenImageForWrite below. Python's convert.py first runs
+            ' open_output_image — which validates the output format / disk
+            ' definition / image opts — and only THEN consults --no-clobber.
+            ' If we check here, an unrelated `--no-clobber` failure would
+            ' shadow Python's "Sector image requires a disk format to be
+            ' specified" message for cases like
+            '   convert input.hfe existing.img --no-clobber.
 
             ' Suffix-only validation BEFORE the input/output opens so an unknown
             ' suffix surfaces as "Unrecognised file suffix" instead of being
-            ' masked by an "IMG input/output requires a disk format" thrown
-            ' from inside OpenImageForRead/Write. Python's convert.py runs
+            ' masked by a "Sector image requires a disk format to be specified"
+            ' (or other format-related) message thrown from inside
+            ' OpenImageForRead/Write. Python's convert.py runs
             ' get_image_class() for both paths up front and reports the output
             ' path first, so we mirror that ordering here.
             ValidateConvertSuffix(outputPath)
@@ -1401,8 +1407,12 @@ Namespace Greaseweazle.Tools
             If String.IsNullOrEmpty(effectiveFormat) AndAlso fmtCls IsNot Nothing Then
                 effectiveFormat = fmtCls.Name
             End If
-            Dim outputImage = OpenImageForWrite(preview.OutputFile, effectiveFormat, preview.DiskDefsPath)
-            outputImage.NoClobber = preview.NoClobber
+
+            ' Python convert.py emits the "Converting c=...:h=... -> c=...:h=..."
+            ' header line BEFORE open_output_image runs, so any output-side
+            ' errors (sector image needs format, no-clobber, malformed
+            ' bitrate, etc.) surface AFTER that header — not before. Mirror
+            ' that ordering here so error diffs against gw.exe match.
             Dim resolvedTracks = Convert.ResolveTrackSets(If(fmtCls IsNot Nothing, fmtCls.Tracks, Nothing),
                                                           preview.TracksSpec,
                                                           preview.OutTracksSpec)
@@ -1411,6 +1421,15 @@ Namespace Greaseweazle.Tools
 
             If cmd IsNot Nothing Then
                 cmd.OnStarted(New Greaseweazle.Actions.ConvertStartedEventArgs(effectiveFormat, inSpec, outSpec))
+            End If
+
+            Dim outputImage = OpenImageForWrite(preview.OutputFile, effectiveFormat, preview.DiskDefsPath)
+            outputImage.NoClobber = preview.NoClobber
+            ' Deferred --no-clobber check (see comment above): matches Python's
+            ' convert.py order — open_output_image first (which surfaces format
+            ' errors), then the existence check.
+            If preview.NoClobber AndAlso File.Exists(outputPath) Then
+                Throw New FatalException(String.Format("{0}: File exists", outputPath))
             End If
 
             Dim hardSectorsCallback As Action(Of Greaseweazle.Actions.ConvertHardSectorsEventArgs) = Nothing
@@ -1647,7 +1666,12 @@ Namespace Greaseweazle.Tools
                 If String.IsNullOrEmpty(effectiveFormat) Then
                     effectiveFormat = DefaultFormatForSectorExtension(ext)
                 End If
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG input requires a disk format")
+                ' Python uses the same generic message for both directions of
+                ' a sector-image: "Sector image requires a disk format to be
+                ' specified". Matching that here keeps gw / gw-vb byte-equal
+                ' for `convert <missing>.img out.hfe` and similar cases where
+                ' the input format can't be resolved.
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "Sector image requires a disk format to be specified")
                 Dim disk = ResolveDiskDefinitionForConvert(effectiveFormat, diskDefsPath)
                 Dim image As New Img(disk)
                 ConfigureSectorImageDefaults(image, ext)
@@ -1732,7 +1756,10 @@ Namespace Greaseweazle.Tools
                 If String.IsNullOrEmpty(effectiveFormat) Then
                     effectiveFormat = DefaultFormatForSectorExtension(ext)
                 End If
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG output requires a disk format")
+                ' Mirror Python: "Sector image requires a disk format to be
+                ' specified" (used for both reading and writing IMG/IMA-style
+                ' files). See OpenImageForRead above for the same wording.
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "Sector image requires a disk format to be specified")
                 Dim disk = ResolveDiskDefinitionForConvert(effectiveFormat, diskDefsPath)
                 Dim image As New Img(disk) With {.FileName = resolvedName}
                 ConfigureSectorImageDefaults(image, ext)

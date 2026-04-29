@@ -9,7 +9,13 @@ Namespace Greaseweazle.Cli.Parsers
     ' the same `--file` + `--tag` exclusion error fires from the CLI.
     Public NotInheritable Class UpdateOptionsParser
 
+        Private Const ActionName As String = "update"
+
         Private Sub New()
+        End Sub
+
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String)) As UpdateOptions
@@ -46,22 +52,22 @@ Namespace Greaseweazle.Cli.Parsers
                         device = TakeOptionValue(args, i, token, inlineValue)
                     Case "--force"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         force = True
                     Case "--bootloader"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         bootloader = True
                     Case "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         live = False
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
@@ -69,7 +75,7 @@ Namespace Greaseweazle.Cli.Parsers
             End While
 
             If positionals.Count > 0 Then
-                Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
             Greaseweazle.Tools.Update.ValidateTagFileExclusion(fileValue, tagValue)
 

@@ -7,7 +7,13 @@ Namespace Greaseweazle.Cli.Parsers
     ' preserves --bootloader / --test / --device handling.
     Public NotInheritable Class InfoOptionsParser
 
+        Private Const ActionName As String = "info"
+
         Private Sub New()
+        End Sub
+
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String)) As InfoOptions
@@ -34,26 +40,26 @@ Namespace Greaseweazle.Cli.Parsers
                 Select Case token
                     Case "--bootloader"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         bootloader = True
                     Case "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         live = False
                     Case "--device"
                         device = TakeOptionValue(args, i, token, inlineValue)
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
                 i += 1
             End While
             If positionals.Count > 0 Then
-                Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
             Return New InfoOptions With {.Bootloader = bootloader, .Live = live, .Device = device}
         End Function

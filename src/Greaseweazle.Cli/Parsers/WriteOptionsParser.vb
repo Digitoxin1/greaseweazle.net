@@ -1,6 +1,5 @@
 Imports Greaseweazle.Codecs
 Imports Greaseweazle.Core
-Imports Greaseweazle.Images
 Imports Greaseweazle.Shared
 Imports Greaseweazle.Tools
 
@@ -13,7 +12,15 @@ Namespace Greaseweazle.Cli.Parsers
     ' --gen-tg43/--densel mutex checks.
     Public NotInheritable Class WriteOptionsParser
 
+        Private Const ActionName As String = "write"
+
         Private Sub New()
+        End Sub
+
+        ' See ParserHelpers.Argparse - exit code 2 + per-action `usage:`
+        ' two-liner on stderr for argv-validation failures.
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String),
@@ -75,12 +82,12 @@ Namespace Greaseweazle.Cli.Parsers
                             Try
                                 densel = ParserHelpers.Level(optionValue)
                             Catch ex As ArgumentException
-                                Throw New FatalException(ex.Message)
+                                Argparse(ex.Message)
                             End Try
                         End If
                     Case "--pre-erase", "--erase-empty", "--hard-sectors", "--no-verify", "--reverse", "--gen-tg43"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         If String.Equals(token, "--pre-erase", StringComparison.Ordinal) Then
                             preErase = True
@@ -97,27 +104,31 @@ Namespace Greaseweazle.Cli.Parsers
                         End If
                     Case "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         live = False
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
                 i += 1
             End While
 
-            ErrorHandling.Check(positionals.Count = 1, "write requires input file argument")
+            If positionals.Count = 0 Then
+                Argparse("the following arguments are required: file")
+            ElseIf positionals.Count > 1 Then
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals.Skip(1))))
+            End If
 
             ' Python write.py:231-234: --fake-index / --hard-sectors mutex.
             If fakeIndexPeriod.HasValue AndAlso hardSectors Then
-                Throw New FatalException("argument --hard-sectors: not allowed with argument --fake-index")
+                Argparse("argument --hard-sectors: not allowed with argument --fake-index")
             End If
             ' Python write.py:244-251: --densel/--dd / --gen-tg43 mutex.
             If densel.HasValue AndAlso genTg43 Then
-                Throw New FatalException("argument --gen-tg43: not allowed with argument --densel")
+                Argparse("argument --gen-tg43: not allowed with argument --densel")
             End If
 
             ' Python write.py:260-261: if not args.format: args.format = image_class.default_format
@@ -125,6 +136,11 @@ Namespace Greaseweazle.Cli.Parsers
                 format = ImageDefaults.DefaultFormatForFile(positionals(0))
             End If
             ParserHelpers.ValidateFormatIfSpecified(format, knownFormats, diskDefsPath)
+
+            ' Mirror Python argparse: empty `--tracks=''` is an argparse error.
+            If tracksSpec IsNot Nothing AndAlso tracksSpec.Length = 0 Then
+                Argparse("argument --tracks: invalid TrackSet value: ''")
+            End If
 
             ' Python write.py:274-279: when --format resolves a fmt_cls, the format's
             ' tracks become the default trackset (overlaid by --tracks if supplied).
@@ -135,22 +151,28 @@ Namespace Greaseweazle.Cli.Parsers
                     If fmtCls IsNot Nothing AndAlso fmtCls.Tracks IsNot Nothing Then
                         tracks = TrackResolution.ResolveDefaultTracksFromFormat(fmtCls.Tracks, tracksSpec)
                     End If
+                Catch ex As ArgumentException When tracksSpec IsNot Nothing
+                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
                 Catch
                 End Try
             End If
             If tracks Is Nothing Then
-                tracks = TrackResolution.ResolveDefaultTracks("c=0-81:h=0-1", tracksSpec)
+                Try
+                    tracks = TrackResolution.ResolveDefaultTracks("c=0-81:h=0-1", tracksSpec)
+                Catch ex As ArgumentException When tracksSpec IsNot Nothing
+                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
+                End Try
             End If
 
             Dim precompText As String = Nothing
             If Not String.IsNullOrEmpty(precompSpec) Then
                 precompText = New PrecompSpec(precompSpec).ToString()
             End If
-            Dim drive As DriveSpec
+            Dim drive As DriveSpec = Nothing
             Try
                 drive = ParserHelpers.Drive(driveToken)
             Catch ex As ArgumentException
-                Throw New FatalException(ex.Message)
+                Argparse(ex.Message)
             End Try
             Return New WriteOptions With {
                 .FileName = positionals(0),
@@ -201,7 +223,7 @@ Namespace Greaseweazle.Cli.Parsers
         Private Shared Function ParseUInt(value As String, optionName As String) As Integer
             Dim parsed As Integer
             If Not Integer.TryParse(value, Globalization.NumberStyles.Integer, Globalization.CultureInfo.InvariantCulture, parsed) OrElse parsed < 0 Then
-                Throw New FatalException(String.Format("invalid value for {0}: {1}", optionName, value))
+                Argparse(String.Format("invalid value for {0}: {1}", optionName, value))
             End If
             Return parsed
         End Function

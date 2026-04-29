@@ -9,7 +9,13 @@ Namespace Greaseweazle.Cli.Parsers
     ' just walks the pre-computed schedule.
     Public NotInheritable Class CleanOptionsParser
 
+        Private Const ActionName As String = "clean"
+
         Private Sub New()
+        End Sub
+
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String)) As CleanOptions
@@ -53,12 +59,12 @@ Namespace Greaseweazle.Cli.Parsers
                         End If
                     Case "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         live = False
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
@@ -66,7 +72,7 @@ Namespace Greaseweazle.Cli.Parsers
             End While
 
             If positionals.Count > 0 Then
-                Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
             ErrorHandling.Check(cyls >= 0, "--cyls must be >= 0")
             ErrorHandling.Check(passes >= 0, "--passes must be >= 0")
@@ -116,7 +122,11 @@ Namespace Greaseweazle.Cli.Parsers
             Try
                 Return ParserHelpers.Drive(token)
             Catch ex As ArgumentException
-                Throw New FatalException(ex.Message)
+                Argparse(ex.Message)
+                ' Argparse always throws - the Return below is unreachable but
+                ' the compiler can't prove it, so the assignment to a Nothing
+                ' DriveSpec satisfies definite-assignment without ever running.
+                Return Nothing
             End Try
         End Function
 

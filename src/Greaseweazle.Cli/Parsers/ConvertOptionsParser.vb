@@ -12,7 +12,17 @@ Namespace Greaseweazle.Cli.Parsers
     ' what Greaseweazle.Tools.Convert used to produce.
     Public NotInheritable Class ConvertOptionsParser
 
+        Private Const ActionName As String = "convert"
+
         Private Sub New()
+        End Sub
+
+        ' Local shim that forwards to ParserHelpers.Argparse. Keeps call
+        ' sites in this file short (no need to repeat ActionName at every
+        ' throw point) while delegating the actual ArgparseException
+        ' construction + usage-line lookup to the shared helper.
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String),
@@ -61,12 +71,12 @@ Namespace Greaseweazle.Cli.Parsers
                             Try
                                 pllOverride = New Pll(optionValue)
                             Catch ex As ArgumentException
-                                Throw New FatalException(ex.Message)
+                                Argparse(ex.Message)
                             End Try
                         End If
                     Case "--hard-sectors", "--reverse", "--no-clobber", "-n"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         If String.Equals(token, "--no-clobber", StringComparison.Ordinal) OrElse
                            String.Equals(token, "-n", StringComparison.Ordinal) Then
@@ -78,14 +88,23 @@ Namespace Greaseweazle.Cli.Parsers
                         End If
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
                 i += 1
             End While
 
-            ErrorHandling.Check(positionals.Count = 2, "convert requires input and output files")
+            ' Mirror Python argparse: positional-argument errors cite the
+            ' missing parameter names. This is structurally important so
+            ' tooling parsing the error stream can pattern-match.
+            If positionals.Count = 0 Then
+                Argparse("the following arguments are required: in_file, out_file")
+            ElseIf positionals.Count = 1 Then
+                Argparse("the following arguments are required: out_file")
+            ElseIf positionals.Count > 2 Then
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals.Skip(2))))
+            End If
 
             ' Pass the raw `path::opt1=val1:opt2=val2` strings through to the
             ' action layer untouched — ConvertAction.OpenImageForRead/Write
@@ -96,12 +115,24 @@ Namespace Greaseweazle.Cli.Parsers
             ' each positional has a non-empty path component.
             Dim inFile = positionals(0)
             Dim outFile = positionals(1)
-            If String.IsNullOrEmpty(ParserHelpers.SplitOpts(inFile).Item1) OrElse
-               String.IsNullOrEmpty(ParserHelpers.SplitOpts(outFile).Item1) Then
-                Throw New FatalException("convert requires input and output files")
+            If String.IsNullOrEmpty(ParserHelpers.SplitOpts(inFile).Item1) Then
+                Argparse("the following arguments are required: in_file")
+            End If
+            If String.IsNullOrEmpty(ParserHelpers.SplitOpts(outFile).Item1) Then
+                Argparse("the following arguments are required: out_file")
             End If
 
             ParserHelpers.ValidateFormatIfSpecified(format, knownFormats, diskDefsPath)
+
+            ' Mirror Python argparse: empty `--tracks=''` and `--out-tracks=''` are
+            ' rejected with a TrackSet-parse error rather than silently treated as
+            ' "no spec" (which is what String.IsNullOrEmpty would do below).
+            If tracksSpec IsNot Nothing AndAlso tracksSpec.Length = 0 Then
+                Argparse("argument --tracks: invalid TrackSet value: ''")
+            End If
+            If outTracksSpec IsNot Nothing AndAlso outTracksSpec.Length = 0 Then
+                Argparse("argument --out-tracks: invalid TrackSet value: ''")
+            End If
 
             Dim formatTracks As TrackSet = Nothing
             If Not String.IsNullOrEmpty(format) Then
@@ -112,7 +143,21 @@ Namespace Greaseweazle.Cli.Parsers
                 End If
             End If
 
-            Dim resolved = Greaseweazle.Tools.Convert.ResolveTrackSets(formatTracks, tracksSpec, outTracksSpec)
+            Dim resolved As Tuple(Of TrackSet, TrackSet) = Nothing
+            Try
+                resolved = Greaseweazle.Tools.Convert.ResolveTrackSets(formatTracks, tracksSpec, outTracksSpec)
+            Catch ex As ArgumentException
+                ' TrackSet.UpdateFromTrackspec throws ArgumentException for malformed
+                ' segments and unknown keys (e.g. `cyl=abc`). Convert to an
+                ' argparse-style error so the Driver doesn't surface the .NET
+                ' stack trace; mirrors Python argparse's `invalid TrackSet
+                ' value:` line. (The compiler can't tell that Argparse always
+                ' throws — initialising `resolved` to Nothing above silences
+                ' the use-before-assignment warning that follows.)
+                Dim badArg As String = If(tracksSpec IsNot Nothing, tracksSpec, outTracksSpec)
+                Dim badName As String = If(tracksSpec IsNot Nothing, "--tracks", "--out-tracks")
+                Argparse(String.Format("argument {0}: invalid TrackSet value: '{1}'", badName, badArg))
+            End Try
             Dim pllProfiles As New List(Of Pll)()
             If pllOverride IsNot Nothing Then
                 pllProfiles.Add(pllOverride)

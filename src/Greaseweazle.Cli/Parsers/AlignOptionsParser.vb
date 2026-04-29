@@ -12,7 +12,13 @@ Namespace Greaseweazle.Cli.Parsers
     ' Greaseweazle.Tools.Align used to produce.
     Public NotInheritable Class AlignOptionsParser
 
+        Private Const ActionName As String = "align"
+
         Private Sub New()
+        End Sub
+
+        Private Shared Sub Argparse(message As String)
+            ParserHelpers.Argparse(ActionName, message)
         End Sub
 
         Public Shared Function Parse(args As IReadOnlyList(Of String),
@@ -78,19 +84,19 @@ Namespace Greaseweazle.Cli.Parsers
                             Try
                                 pllOverride = New Pll(optionValue)
                             Catch ex As ArgumentException
-                                Throw New FatalException(ex.Message)
+                                Argparse(ex.Message)
                             End Try
                         ElseIf String.Equals(token, "--densel", StringComparison.Ordinal) OrElse
                                String.Equals(token, "--dd", StringComparison.Ordinal) Then
                             Try
                                 densel = ParserHelpers.Level(optionValue)
                             Catch ex As ArgumentException
-                                Throw New FatalException(ex.Message)
+                                Argparse(ex.Message)
                             End Try
                         End If
                     Case "--raw", "--hard-sectors", "--gen-tg43", "--reverse", "--test"
                         If inlineValue IsNot Nothing Then
-                            Throw New FatalException(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
+                            Argparse(String.Format("argument {0}: ignored explicit argument '{1}'", token, inlineValue))
                         End If
                         If String.Equals(token, "--raw", StringComparison.Ordinal) Then
                             raw = True
@@ -105,7 +111,7 @@ Namespace Greaseweazle.Cli.Parsers
                         End If
                     Case Else
                         If rawToken.StartsWith("-", StringComparison.Ordinal) Then
-                            Throw New FatalException(String.Format("unrecognized arguments: {0}", rawToken))
+                            Argparse(String.Format("unrecognized arguments: {0}", rawToken))
                         End If
                         positionals.Add(rawToken)
                 End Select
@@ -113,9 +119,11 @@ Namespace Greaseweazle.Cli.Parsers
             End While
 
             If positionals.Count > 0 Then
-                Throw New FatalException(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
+                Argparse(String.Format("unrecognized arguments: {0}", String.Join(" ", positionals)))
             End If
-            ErrorHandling.Check(Not String.IsNullOrEmpty(tracksSpec), "align requires --tracks")
+            If String.IsNullOrEmpty(tracksSpec) Then
+                Argparse("the following arguments are required: --tracks")
+            End If
             ParserHelpers.ValidateFormatIfSpecified(format, knownFormats, diskDefsPath)
             Dim formatDef As DiskDef = Nothing
             ' Python: load DiskDef whenever --format is supplied, not only when running live.
@@ -154,11 +162,11 @@ Namespace Greaseweazle.Cli.Parsers
             Dim pairs = trackList.Select(Function(t) Tuple.Create(t.Cyl, t.Head)).ToList()
             Greaseweazle.Tools.Align.ValidateTrackCylinders(pairs)
 
-            Dim drive As DriveSpec
+            Dim drive As DriveSpec = Nothing
             Try
                 drive = ParserHelpers.Drive(driveToken)
             Catch ex As ArgumentException
-                Throw New FatalException(ex.Message)
+                Argparse(ex.Message)
             End Try
             Dim pllProfiles As New List(Of Pll)()
             If pllOverride IsNot Nothing Then
@@ -228,7 +236,7 @@ Namespace Greaseweazle.Cli.Parsers
         Private Shared Function ParseUInt(value As String, optionName As String) As Integer
             Dim parsed As Integer
             If Not Integer.TryParse(value, Globalization.NumberStyles.Integer, Globalization.CultureInfo.InvariantCulture, parsed) OrElse parsed < 0 Then
-                Throw New FatalException(String.Format("invalid value for {0}: {1}", optionName, value))
+                Argparse(String.Format("invalid value for {0}: {1}", optionName, value))
             End If
             Return parsed
         End Function

@@ -103,6 +103,19 @@ Namespace Greaseweazle.Cli.Formatters
                 }
             End If
 
+            Dim caps = TryCast(ex, CapsLibraryNotFoundException)
+            If caps IsNot Nothing Then
+                Dim lines As New List(Of String) From {
+                    caps.Message,
+                    "For installation instructions please read the wiki:",
+                    "https://github.com/keirf/greaseweazle/wiki/IPF-Images"
+                }
+                If Not String.IsNullOrEmpty(caps.X64Error) OrElse Not String.IsNullOrEmpty(caps.GenericError) Then
+                    lines.Add(String.Format("Probe errors: {0}; {1}", caps.X64Error, caps.GenericError))
+                End If
+                Return lines
+            End If
+
             Dim t0sm = TryCast(ex, Track0SeekMismatchException)
             If t0sm IsNot Nothing Then
                 Return New String() {

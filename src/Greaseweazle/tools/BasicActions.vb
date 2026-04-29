@@ -152,7 +152,7 @@ Namespace Greaseweazle.Tools
             Dim writeImd = String.Equals(outExt, ".imd", StringComparison.OrdinalIgnoreCase)
             Dim writeHfe = String.Equals(outExt, ".hfe", StringComparison.OrdinalIgnoreCase)
             If Not (writeScp OrElse writeSector OrElse writeRaw OrElse writeD88 OrElse writeNsi OrElse writeImd OrElse writeHfe OrElse Not String.IsNullOrEmpty(readOnlyType)) Then
-                Throw New UnrecognisedSuffixException(outPath, Path.GetExtension(outPath))
+                Throw New UnrecognisedSuffixException(outPath, Path.GetExtension(outPath), New ImageTypeRegistry().GetKnownSuffixes().ToList())
             End If
             If Not String.IsNullOrEmpty(readOnlyType) Then
                 Throw New FatalException(String.Format("{0}: Cannot create {1} image files", outPath, readOnlyType))
@@ -177,9 +177,15 @@ Namespace Greaseweazle.Tools
                 imdImage.FileName = outPath
                 imdImage.ApplyWOpts(outOpts)
             ElseIf writeHfe Then
-                Dim effectiveFormat = preview.Format
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "HFE output requires a disk format")
-                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                ' HFE accepts raw flux when no --format is supplied — the
+                ' file-options `::bitrate=N` (or, when present, a master
+                ' track's auto-computed bitrate) tells the codec how to
+                ' bin flux into bitcells. So unlike IMG/IMD/NSI/D88, we
+                ' don't require a disk format up front; we only resolve
+                ' one if the user actually passed --format. The shared
+                ' "imgDisk Is Nothing AndAlso preview.Format" block below
+                ' covers that case so format-driven decode + summary
+                ' still fire when --format is supplied alongside HFE.
                 hfeImage = New Hfe()
                 hfeImage.FileName = outPath
                 hfeImage.ApplyWOpts(outOpts)
@@ -382,6 +388,10 @@ Namespace Greaseweazle.Tools
                                     imdImage.EmitTrack(track.Cyl, track.Head, dat)
                                 End If
                             ElseIf writeHfe Then
+                                ' Python read.py:204 emits `dat` only when not None; when
+                                ' --format is unset, `dat` is the raw flux (read_with_retry
+                                ' returns (flux, flux)) and HFE.emit_track handles the raw
+                                ' bitstream via the configured/auto-derived bitrate.
                                 If dat IsNot Nothing Then
                                     hfeImage.EmitTrack(track.Cyl, track.Head, dat)
                                 End If
@@ -861,8 +871,24 @@ Namespace Greaseweazle.Tools
                 ElseIf useRawInput Then
                     rawInput = New KryoFlux(inPath)
                 Else
-                    Throw New UnrecognisedSuffixException(inPath, Path.GetExtension(inPath))
+                    Throw New UnrecognisedSuffixException(inPath, Path.GetExtension(inPath), New ImageTypeRegistry().GetKnownSuffixes().ToList())
                 End If
+                ' Polymorphic reference to whichever input was selected above.
+                ' Used by the per-track loop to look up the source track via
+                ' the abstract Image.GetTrack(cyl, side) BEFORE the drive
+                ' seek so missing-track passes (e.g. a sparse KryoFlux file
+                ' set) don't bang the head past the end of the data.
+                Dim activeInput As Image = Nothing
+                For Each candidate As Image In New Image() { _
+                    scpInput, imgInput, d64Input, rawInput, d88Input, _
+                    edskInput, apridiskInput, dmkInput, td0Input, fdiInput, _
+                    nfdInput, dcpInput, ctrInput, ipfInput, a2rInput, _
+                    msaInput, nsiInput, imdInput, hfeInput}
+                    If candidate IsNot Nothing Then
+                        activeInput = candidate
+                        Exit For
+                    End If
+                Next
                 Dim usbClient As Unit = Nothing
                 Dim prevPin2 As Nullable(Of Boolean) = Nothing
                 Dim runVerifiedCount As Integer = 0
@@ -923,9 +949,6 @@ Namespace Greaseweazle.Tools
                             Dim safeTracks = preview.TrackSet.IteratePhysical().ToList()
                             For Each track In safeTracks
                                 ct.ThrowIfCancellationRequested()
-                                If preview.GenTg43 Then
-                                    usbClient.SetPin(2, track.Cyl < 43)
-                                End If
                                 Dim trackInfo = New Greaseweazle.Actions.WriteTrackInfo(track.Cyl, track.Head, track.PhysicalCyl, track.PhysicalHead)
                                 Dim PrepareSourceTrack As Func(Of HasFlux, HasFlux) =
                                     Function(source As HasFlux) As HasFlux
@@ -1056,524 +1079,51 @@ Namespace Greaseweazle.Tools
                                                                          track.Cyl,
                                                                          track.Head))
                                     End Sub
+                                ' Python write.py:62-72: get_track once, skip when
+                                ' the input has no flux for this (cyl, head) and
+                                ' --erase-empty is off. Then seek + (--gen-tg43)
+                                ' set_pin(2, cyl<43) BEFORE deciding to erase or
+                                ' write, so a sparse KryoFlux file set doesn't
+                                ' bang the head past the end of the data and so
+                                ' Pin 2 only toggles for tracks we actually act
+                                ' on. activeInput is the polymorphic Image
+                                ' reference resolved from the input format above
+                                ' so this single block subsumes what used to be
+                                ' 19 near-identical per-format branches.
+                                Dim inputTrack = activeInput.GetTrack(track.Cyl, track.Head)
+                                If inputTrack Is Nothing AndAlso Not preview.EraseEmpty Then
+                                    Continue For
+                                End If
                                 usbClient.Seek(track.PhysicalCyl, track.PhysicalHead)
-                                If useScpInput Then
-                                    Dim inputTrack = scpInput.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useD88Input Then
-                                    Dim inputTrack = d88Input.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useDmkInput Then
-                                    Dim inputTrack = dmkInput.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useEdskInput Then
-                                    Dim inputTrack = edskInput.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useApridiskInput Then
-                                    Dim inputTrack = apridiskInput.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useTd0Input Then
-                                    Dim inputTrack = td0Input.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useFdiInput Then
-                                    Dim inputTrack = fdiInput.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useNfdInput Then
-                                    Dim inputTrack = nfdInput.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useDcpInput Then
-                                    Dim inputTrack = dcpInput.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useCtrInput Then
-                                    Dim inputTrack = ctrInput.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useIpfInput Then
-                                    Dim inputTrack = ipfInput.GetTrack(track.Cyl, track.Head)
-                                    If inputTrack Is Nothing Then
-                                        If preview.EraseEmpty Then
-                                            If cmd IsNot Nothing Then
-                                                cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                            End If
-                                            usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                        End If
-                                        Continue For
-                                    End If
-                                    Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                                    If source Is Nothing Then
-                                        Continue For
-                                    End If
-                                    Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                                    Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                                    ' Python write.py:103-109 feeds wflux.list (float) directly
-                                    ' into the residual-carrying scale loop; pre-rounding the
-                                    ' floats to ints would discard the fractional input that
-                                    ' the Bresenham residual depends on, so pass wflux.List
-                                    ' (List(Of Double)) through unchanged.
-                                    Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                                    WriteScaledTrack(scaled,
-                                                         terminateAtIndex:=wflux.TerminateAtIndex,
-                                                         cueAtIndex:=wflux.IndexCued,
-                                                         writeSummary:=wflux.SummaryString(),
-                                                         sourceTrack:=source)
-                                ElseIf useA2rInput Then
-                            Dim inputTrack = a2rInput.GetTrack(track.Cyl, track.Head)
-                            If inputTrack Is Nothing Then
-                                If preview.EraseEmpty Then
+                                If preview.GenTg43 Then
+                                    usbClient.SetPin(2, track.Cyl < 43)
+                                End If
+                                If inputTrack Is Nothing Then
+                                    ' Reached only when EraseEmpty is set (we
+                                    ' continued above otherwise).
                                     If cmd IsNot Nothing Then
                                         cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
                                     End If
                                     usbClient.EraseTrack(driveTicksPerRev * 1.1)
+                                    Continue For
                                 End If
-                                Continue For
-                            End If
-                            Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                            If source Is Nothing Then
-                                Continue For
-                            End If
-                            Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                            Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                            ' See note above: feed wflux.List (List(Of Double)) directly so
-                            ' the per-element residual loop in ScaleWriteFlux sees the
-                            ' fractional inputs Python does at write.py:103-109.
-                            Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                            WriteScaledTrack(scaled,
-                                                 terminateAtIndex:=wflux.TerminateAtIndex,
-                                                 cueAtIndex:=wflux.IndexCued,
-                                                 writeSummary:=wflux.SummaryString(),
-                                                 sourceTrack:=source)
-                        ElseIf useMsaInput Then
-                            Dim inputTrack = msaInput.GetTrack(track.Cyl, track.Head)
-                            If inputTrack Is Nothing Then
-                                If preview.EraseEmpty Then
-                                    If cmd IsNot Nothing Then
-                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                    End If
-                                    usbClient.EraseTrack(driveTicksPerRev * 1.1)
+                                Dim preparedSource = PrepareSourceTrack(CType(inputTrack, HasFlux))
+                                If preparedSource Is Nothing Then
+                                    Continue For
                                 End If
-                                Continue For
-                            End If
-                            Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                            If source Is Nothing Then
-                                Continue For
-                            End If
-                            Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                            Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                            ' See note above: feed wflux.List (List(Of Double)) directly so
-                            ' the per-element residual loop in ScaleWriteFlux sees the
-                            ' fractional inputs Python does at write.py:103-109.
-                            Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                            WriteScaledTrack(scaled,
-                                                 terminateAtIndex:=wflux.TerminateAtIndex,
-                                                 cueAtIndex:=wflux.IndexCued,
-                                                 writeSummary:=wflux.SummaryString(),
-                                                 sourceTrack:=source)
-                        ElseIf useNsiInput Then
-                            Dim inputTrack = nsiInput.GetTrack(track.Cyl, track.Head)
-                            If inputTrack Is Nothing Then
-                                If preview.EraseEmpty Then
-                                    If cmd IsNot Nothing Then
-                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                    End If
-                                    usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                End If
-                                Continue For
-                            End If
-                            Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                            If source Is Nothing Then
-                                Continue For
-                            End If
-                            Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                            Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                            ' See note above: feed wflux.List (List(Of Double)) directly so
-                            ' the per-element residual loop in ScaleWriteFlux sees the
-                            ' fractional inputs Python does at write.py:103-109.
-                            Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                            WriteScaledTrack(scaled,
-                                                 terminateAtIndex:=wflux.TerminateAtIndex,
-                                                 cueAtIndex:=wflux.IndexCued,
-                                                 writeSummary:=wflux.SummaryString(),
-                                                 sourceTrack:=source)
-                        ElseIf useD64Input OrElse useD71Input Then
-                            Dim inputTrack = d64Input.GetTrack(track.Cyl, track.Head)
-                            If inputTrack Is Nothing Then
-                                If preview.EraseEmpty Then
-                                    If cmd IsNot Nothing Then
-                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                    End If
-                                    usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                End If
-                                Continue For
-                            End If
-                            Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                            If source Is Nothing Then
-                                Continue For
-                            End If
-                            Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                            Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                            ' See note above: feed wflux.List (List(Of Double)) directly so
-                            ' the per-element residual loop in ScaleWriteFlux sees the
-                            ' fractional inputs Python does at write.py:103-109.
-                            Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                            WriteScaledTrack(scaled,
-                                                 terminateAtIndex:=wflux.TerminateAtIndex,
-                                                 cueAtIndex:=wflux.IndexCued,
-                                                 writeSummary:=wflux.SummaryString(),
-                                                 sourceTrack:=source)
-                        ElseIf useImdInput Then
-                            Dim inputTrack = imdInput.GetTrack(track.Cyl, track.Head)
-                            If inputTrack Is Nothing Then
-                                If preview.EraseEmpty Then
-                                    If cmd IsNot Nothing Then
-                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                    End If
-                                    usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                End If
-                                Continue For
-                            End If
-                            Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                            If source Is Nothing Then
-                                Continue For
-                            End If
-                            Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                            Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                            ' See note above: feed wflux.List (List(Of Double)) directly so
-                            ' the per-element residual loop in ScaleWriteFlux sees the
-                            ' fractional inputs Python does at write.py:103-109.
-                            Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                            WriteScaledTrack(scaled,
-                                                 terminateAtIndex:=wflux.TerminateAtIndex,
-                                                 cueAtIndex:=wflux.IndexCued,
-                                                 writeSummary:=wflux.SummaryString(),
-                                                 sourceTrack:=source)
-                        ElseIf useHfeInput Then
-                            Dim inputTrack = hfeInput.GetTrack(track.Cyl, track.Head)
-                            If inputTrack Is Nothing Then
-                                If preview.EraseEmpty Then
-                                    If cmd IsNot Nothing Then
-                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                    End If
-                                    usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                End If
-                                Continue For
-                            End If
-                            Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                            If source Is Nothing Then
-                                Continue For
-                            End If
-                            Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                            Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                            ' See note above: feed wflux.List (List(Of Double)) directly so
-                            ' the per-element residual loop in ScaleWriteFlux sees the
-                            ' fractional inputs Python does at write.py:103-109.
-                            Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                            WriteScaledTrack(scaled,
-                                                 terminateAtIndex:=wflux.TerminateAtIndex,
-                                                 cueAtIndex:=wflux.IndexCued,
-                                                 writeSummary:=wflux.SummaryString(),
-                                                 sourceTrack:=source)
-                        ElseIf useSectorInput OrElse useDimInput Then
-                            Dim inputTrack = imgInput.GetTrack(track.Cyl, track.Head)
-                            If inputTrack Is Nothing Then
-                                If preview.EraseEmpty Then
-                                    If cmd IsNot Nothing Then
-                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                    End If
-                                    usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                End If
-                                Continue For
-                            End If
-                            Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                            If source Is Nothing Then
-                                Continue For
-                            End If
-                            Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                            Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                            ' See note above: feed wflux.List (List(Of Double)) directly so
-                            ' the per-element residual loop in ScaleWriteFlux sees the
-                            ' fractional inputs Python does at write.py:103-109.
-                            Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                            WriteScaledTrack(scaled,
-                                                 terminateAtIndex:=wflux.TerminateAtIndex,
-                                                 cueAtIndex:=wflux.IndexCued,
-                                                 writeSummary:=wflux.SummaryString(),
-                                                 sourceTrack:=source)
-                        ElseIf useRawInput Then
-                            Dim inputTrack = rawInput.GetTrack(track.Cyl, track.Head)
-                            If inputTrack Is Nothing Then
-                                If preview.EraseEmpty Then
-                                    If cmd IsNot Nothing Then
-                                        cmd.OnTrackErasing(New Greaseweazle.Actions.WriteTrackErasingEventArgs(trackInfo, Greaseweazle.Actions.WriteEraseReason.EmptyTrack))
-                                    End If
-                                    usbClient.EraseTrack(driveTicksPerRev * 1.1)
-                                End If
-                                Continue For
-                            End If
-                            Dim source = PrepareSourceTrack(CType(inputTrack, HasFlux))
-                            If source Is Nothing Then
-                                Continue For
-                            End If
-                            Dim wflux = source.FluxForWriteout(cueAtIndex:=Not noIndex)
-                            Dim factor = driveTicksPerRev / wflux.TicksToIndex
-                            ' See note above: feed wflux.List (List(Of Double)) directly so
-                            ' the per-element residual loop in ScaleWriteFlux sees the
-                            ' fractional inputs Python does at write.py:103-109.
-                            Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
-                            WriteScaledTrack(scaled,
-                                                 terminateAtIndex:=wflux.TerminateAtIndex,
-                                                 cueAtIndex:=wflux.IndexCued,
-                                                 writeSummary:=wflux.SummaryString(),
-                                                 sourceTrack:=source)
-                        End If
+                                Dim wflux = preparedSource.FluxForWriteout(cueAtIndex:=Not noIndex)
+                                Dim factor = driveTicksPerRev / wflux.TicksToIndex
+                                ' Python write.py:103-109 feeds wflux.list (float) directly
+                                ' into the residual-carrying scale loop; pre-rounding the
+                                ' floats to ints would discard the fractional input that
+                                ' the Bresenham residual depends on, so pass wflux.List
+                                ' (List(Of Double)) through unchanged.
+                                Dim scaled = ReadWrite.ScaleWriteFlux(wflux.List, factor).ScaledFlux
+                                WriteScaledTrack(scaled,
+                                                     terminateAtIndex:=wflux.TerminateAtIndex,
+                                                     cueAtIndex:=wflux.IndexCued,
+                                                     writeSummary:=wflux.SummaryString(),
+                                                     sourceTrack:=preparedSource)
                             Next
                             ' Python write.py:158-167 footer: pick the verdict
                             ' based on the verified vs not-verified tallies and
@@ -1825,6 +1375,15 @@ Namespace Greaseweazle.Tools
                 Throw New FatalException(String.Format("{0}: File exists", outputPath))
             End If
 
+            ' Suffix-only validation BEFORE the input/output opens so an unknown
+            ' suffix surfaces as "Unrecognised file suffix" instead of being
+            ' masked by an "IMG input/output requires a disk format" thrown
+            ' from inside OpenImageForRead/Write. Python's convert.py runs
+            ' get_image_class() for both paths up front and reports the output
+            ' path first, so we mirror that ordering here.
+            ValidateConvertSuffix(outputPath)
+            ValidateConvertSuffix(inputPath)
+
             ' Python convert.py opens the input image FIRST so the IMG.fmt fallback
             ' (lines 176-177) can populate args.fmt_cls before open_output_image is
             ' called with the now-resolved DiskDef. Mirror that ordering: input
@@ -1901,6 +1460,18 @@ Namespace Greaseweazle.Tools
 
             Return New Greaseweazle.Actions.ConvertSummary(inSpec, outSpec, processedCount, effectiveFormat, grid)
         End Function
+
+        ' Suffix-only check used by ConvertAction so an unknown suffix takes
+        ' precedence over format-related errors. Mirrors Python's behaviour
+        ' where image_class lookup fails before format validation runs.
+        Private Shared Sub ValidateConvertSuffix(filePath As String)
+            Dim ext = Path.GetExtension(filePath)
+            Dim registry As New ImageTypeRegistry()
+            Dim known = registry.GetKnownSuffixes().ToList()
+            If Not known.Contains(ext, StringComparer.OrdinalIgnoreCase) Then
+                Throw New UnrecognisedSuffixException(filePath, ext, known)
+            End If
+        End Sub
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration OpenImageForRead)
         Private Shared Function OpenImageForRead(fileName As String, formatName As String, diskDefsPath As String) As Image
@@ -2085,7 +1656,7 @@ Namespace Greaseweazle.Tools
                 image.FromBytes(File.ReadAllBytes(resolvedName))
                 Return image
             End If
-            Throw New UnrecognisedSuffixException(resolvedName, ext)
+            Throw New UnrecognisedSuffixException(resolvedName, ext, New ImageTypeRegistry().GetKnownSuffixes().ToList())
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration OpenImageForWrite)
@@ -2168,7 +1739,7 @@ Namespace Greaseweazle.Tools
                 image.ApplyWOpts(opts)
                 Return image
             End If
-            Throw New UnrecognisedSuffixException(resolvedName, ext)
+            Throw New UnrecognisedSuffixException(resolvedName, ext, New ImageTypeRegistry().GetKnownSuffixes().ToList())
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration SplitImageFileOptions)

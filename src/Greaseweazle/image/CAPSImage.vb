@@ -263,10 +263,7 @@ Namespace Greaseweazle.Images
                 _backend = probe
                 Return _backend
             Catch ex As Exception
-                Throw New FatalException("Could not find SPS/CAPS library" & vbLf &
-                                         "For installation instructions please read the wiki:" & vbLf &
-                                         "https://github.com/keirf/greaseweazle/wiki/IPF-Images" & vbLf &
-                                         String.Format("Probe errors: {0}; {1}", x64Error.Message, ex.Message))
+                Throw New CapsLibraryNotFoundException(x64Error.Message, ex.Message)
             End Try
         End Function
 

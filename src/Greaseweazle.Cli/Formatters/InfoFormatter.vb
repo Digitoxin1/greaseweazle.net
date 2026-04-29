@@ -1,5 +1,6 @@
 Imports System.Globalization
 Imports System.IO
+Imports System.Reflection
 Imports Greaseweazle.Actions
 Imports Greaseweazle.Tools
 
@@ -15,6 +16,7 @@ Namespace Greaseweazle.Cli.Formatters
 
         Public Shared Sub Render(result As DeviceInfoResult, output As TextWriter)
             output.WriteLine(Info.PrintInfoLine("Host Tools", result.HostToolsVersion))
+            output.WriteLine(Info.PrintInfoLine("CLI", GetCliVersion()))
             output.WriteLine("Device:")
             Select Case result.ConnectionState
                 Case DeviceConnectionState.TestMode
@@ -79,6 +81,23 @@ Namespace Greaseweazle.Cli.Formatters
             End If
             lines.Add(" - Run ""gw update"" to download and install latest firmware")
             Return lines
+        End Function
+
+        ' Returns the CLI assembly's version. Mirrors the library-side
+        ' `Host Tools` resolution in InfoAction: prefer
+        ' AssemblyInformationalVersionAttribute (set when the build embeds a
+        ' git-describe / pre-release tag), fall back to AssemblyName.Version.
+        ' Reflects this assembly (Greaseweazle.Cli) rather than the entry
+        ' assembly so library hosts that wrap the CLI still report the
+        ' formatter's own build.
+        Private Shared Function GetCliVersion() As String
+            Dim asm = Assembly.GetExecutingAssembly()
+            Dim infoAttr = TryCast(CustomAttributeExtensions.GetCustomAttribute(Of AssemblyInformationalVersionAttribute)(asm),
+                                   AssemblyInformationalVersionAttribute)
+            If infoAttr IsNot Nothing AndAlso Not String.IsNullOrEmpty(infoAttr.InformationalVersion) Then
+                Return infoAttr.InformationalVersion
+            End If
+            Return asm.GetName().Version.ToString()
         End Function
 
     End Class

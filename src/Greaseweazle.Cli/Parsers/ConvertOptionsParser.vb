@@ -87,9 +87,17 @@ Namespace Greaseweazle.Cli.Parsers
 
             ErrorHandling.Check(positionals.Count = 2, "convert requires input and output files")
 
-            Dim inFile = ParserHelpers.SplitOpts(positionals(0)).Item1
-            Dim outFile = ParserHelpers.SplitOpts(positionals(1)).Item1
-            If String.IsNullOrEmpty(inFile) OrElse String.IsNullOrEmpty(outFile) Then
+            ' Pass the raw `path::opt1=val1:opt2=val2` strings through to the
+            ' action layer untouched — ConvertAction.OpenImageForRead/Write
+            ' splits them itself and applies the parsed options via
+            ' Image.ApplyROpts/ApplyWOpts. (Earlier we extracted .Item1 here
+            ' which silently dropped per-image options like
+            ' `out.hfe::bitrate=500`.) Use SplitOpts only to validate that
+            ' each positional has a non-empty path component.
+            Dim inFile = positionals(0)
+            Dim outFile = positionals(1)
+            If String.IsNullOrEmpty(ParserHelpers.SplitOpts(inFile).Item1) OrElse
+               String.IsNullOrEmpty(ParserHelpers.SplitOpts(outFile).Item1) Then
                 Throw New FatalException("convert requires input and output files")
             End If
 

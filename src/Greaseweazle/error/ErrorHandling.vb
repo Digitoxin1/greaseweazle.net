@@ -151,6 +151,23 @@ Namespace Greaseweazle.Core
         End Sub
     End Class
 
+    ' Raised by the CAPS/IPF backend probe when neither the x64 nor the
+    ' generic loader can find the SPS/CAPSImg shared library on this
+    ' platform. Carries the two probe error texts so the CLI can render
+    ' the wiki-link install hint plus the underlying loader diagnostics.
+    Public Class CapsLibraryNotFoundException
+        Inherits FatalException
+
+        Public ReadOnly Property X64Error As String
+        Public ReadOnly Property GenericError As String
+
+        Public Sub New(x64Error As String, genericError As String)
+            MyBase.New("Could not find SPS/CAPS library")
+            Me.X64Error = x64Error
+            Me.GenericError = genericError
+        End Sub
+    End Class
+
     ' Raised by Seek when the drive's TRK0 signal disagrees with the
     ' commanded cylinder (the drive head didn't end up where the host
     ' asked it to). Carries enough state for the CLI to render the

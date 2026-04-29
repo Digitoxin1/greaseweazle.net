@@ -695,6 +695,10 @@ Namespace Greaseweazle.Codecs
             Return VerifyTrack(flux)
         End Function
 
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::bad_sector_data
+        ' (16-byte ASCII marker tiled into each missing sector by GetImgTrack).
+        Private Shared ReadOnly BadSectorMarker As Byte() = System.Text.Encoding.ASCII.GetBytes("-=[BAD SECTOR]=-")
+
         Private ReadOnly _formatName As String
         Private ReadOnly _sectorSizes As List(Of Integer)
         Private ReadOnly _sectorNs As List(Of Integer)
@@ -852,15 +856,37 @@ Namespace Greaseweazle.Codecs
         Public Overrides Function GetImgTrack() As Byte()
             Dim bytes As New List(Of Byte)()
             For Each i In _logicalOrder
-                bytes.AddRange(_sectorData(i))
+                Dim size = _sectorData(i).Length
+                If _sectorValid(i) Then
+                    bytes.AddRange(_sectorData(i))
+                Else
+                    bytes.AddRange(MakeBadSectorBytes(size))
+                End If
                 If _imgBytesPerSector.HasValue Then
-                    Dim pad = _imgBytesPerSector.Value - _sectorData(i).Length
+                    Dim pad = _imgBytesPerSector.Value - size
                     If pad > 0 Then
                         bytes.AddRange(Enumerable.Repeat(CByte(0), pad))
                     End If
                 End If
             Next
             Return bytes.ToArray()
+        End Function
+
+        ' Tile the 16-byte BadSectorMarker into a buffer of the requested size.
+        ' Standard IBM sector sizes (128/256/512/1024/...) are all multiples of
+        ' 16, so the tail-truncation branch is defensive only.
+        Private Shared Function MakeBadSectorBytes(size As Integer) As Byte()
+            If size <= 0 Then
+                Return Array.Empty(Of Byte)()
+            End If
+            Dim buf(size - 1) As Byte
+            Dim pos = 0
+            While pos < size
+                Dim copyLen = Math.Min(BadSectorMarker.Length, size - pos)
+                Array.Copy(BadSectorMarker, 0, buf, pos, copyLen)
+                pos += copyLen
+            End While
+            Return buf
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration SetImageTrack)

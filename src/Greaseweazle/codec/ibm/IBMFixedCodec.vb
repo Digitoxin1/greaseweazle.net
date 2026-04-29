@@ -1641,34 +1641,14 @@ Namespace Greaseweazle.Codecs
             Return n
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration FindPatternOffsets)
-        Private Shared Iterator Function FindPatternOffsets(bits As List(Of Boolean), pattern As Boolean()) As IEnumerable(Of Integer)
-            If pattern.Length = 0 OrElse bits.Count < pattern.Length Then
-                Return
-            End If
-            For i = 0 To bits.Count - pattern.Length
-                Dim matched = True
-                For j = 0 To pattern.Length - 1
-                    If bits(i + j) <> pattern(j) Then
-                        matched = False
-                        Exit For
-                    End If
-                Next
-                If matched Then
-                    Yield i
-                End If
-            Next
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
+        Private Shared Function FindPatternOffsets(bits As List(Of Boolean), pattern As Boolean()) As IEnumerable(Of Integer)
+            Return BitHelpers.FindPatternOffsets(bits, pattern)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BytesToBits)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function BytesToBits(bytes As Byte()) As Boolean()
-            Dim output As New List(Of Boolean)(bytes.Length * 8)
-            For Each b In bytes
-                For i = 7 To 0 Step -1
-                    output.Add(((b >> i) And 1) = 1)
-                Next
-            Next
-            Return output.ToArray()
+            Return BitHelpers.BytesToBits(bytes)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildFmSyncPrefixPattern)
@@ -1847,22 +1827,14 @@ Namespace Greaseweazle.Codecs
             Return BitsToBytes(postBits)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BitsToBytes)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
+        ' IBMFixed.DecMmfmEncode is the only caller that needs the
+        ' pad-to-byte-boundary behavior (it can produce a residual fragment
+        ' after pattern replacement), so this calls BitsToBytesPadded.
         Private Shared Function BitsToBytes(bits As IEnumerable(Of Boolean)) As Byte()
-            Dim list = bits.ToList()
-            Dim pad = (8 - (list.Count Mod 8)) Mod 8
-            For i = 1 To pad
-                list.Add(False)
-            Next
-            Dim output As New List(Of Byte)(list.Count \ 8)
-            For i = 0 To list.Count - 1 Step 8
-                Dim b As Integer = 0
-                For j = 0 To 7
-                    b = (b << 1) Or If(list(i + j), 1, 0)
-                Next
-                output.Add(CByte(b))
-            Next
-            Return output.ToArray()
+            Dim asList = TryCast(bits, IList(Of Boolean))
+            If asList Is Nothing Then asList = bits.ToList()
+            Return BitHelpers.BitsToBytesPadded(asList)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration DecodeMfmWord)
@@ -1874,20 +1846,11 @@ Namespace Greaseweazle.Codecs
             Return CByte(y)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ComputeCrcCcittFalse)
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py uses
+        ' crcmod.predefined 'crc-ccitt-false'. Implementation lives in
+        ' Greaseweazle.Codecs.Crc16Ccitt and uses a 256-entry lookup table.
         Private Shared Function ComputeCrcCcittFalse(data As Byte()) As UShort
-            Dim crc As UInteger = &HFFFFUI
-            For Each b In data
-                crc = crc Xor CUInt(b) << 8
-                For i = 0 To 7
-                    If (crc And &H8000UI) <> 0UI Then
-                        crc = ((crc << 1) Xor &H1021UI) And &HFFFFUI
-                    Else
-                        crc = (crc << 1) And &HFFFFUI
-                    End If
-                Next
-            Next
-            Return CUShort(crc And &HFFFFUI)
+            Return Crc16Ccitt.Compute(data)
         End Function
 
         Private Function CloneForVerify() As IbmTrackFixed

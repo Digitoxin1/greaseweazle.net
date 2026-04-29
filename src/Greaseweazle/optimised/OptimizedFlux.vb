@@ -84,15 +84,9 @@ Namespace Greaseweazle.Optimised
             Dim ticks As Integer = 0
             Dim ticksSinceIndex As Integer = 0
 
-            Dim read28Bit As Func(Of Integer) =
-                Function()
-                    Dim value = ((data(pos) And &HFE) >> 1)
-                    value += ((data(pos + 1) And &HFE) << 6)
-                    value += ((data(pos + 2) And &HFE) << 13)
-                    value += ((data(pos + 3) And &HFE) << 20)
-                    pos += 4
-                    Return value
-                End Function
+            ' read28Bit was a Func(Of Integer) closure capturing pos+data; the
+            ' delegate Invoke + closure access showed up in profiles. Inlined
+            ' as a Sub call below; pos is updated via ByRef.
 
             While l <> 0
                 Dim current = CInt(data(pos))
@@ -111,7 +105,7 @@ Namespace Greaseweazle.Optimised
                             If l < 0 Then
                                 Throw New FatalException("Unexpected end of flux")
                             End If
-                            Dim value = read28Bit.Invoke()
+                            Dim value = Read28Bit(data, pos)
                             index.Add(ticksSinceIndex + ticks + value)
                             ticksSinceIndex = -(ticks + value)
                         Case 2 ' FluxOp.Space
@@ -119,7 +113,7 @@ Namespace Greaseweazle.Optimised
                             If l < 0 Then
                                 Throw New FatalException("Unexpected end of flux")
                             End If
-                            ticks += read28Bit.Invoke()
+                            ticks += Read28Bit(data, pos)
                         Case Else
                             Throw New FatalException(String.Format("Bad opcode in flux stream ({0})", opcode))
                     End Select
@@ -146,6 +140,17 @@ Namespace Greaseweazle.Optimised
             End While
 
             Return Tuple.Create(flux, index)
+        End Function
+
+        ' Reads 4 bytes at `pos`, packs them as a 28-bit integer (low 7 bits of
+        ' each byte are payload, MSB is a stuffing flag), and advances `pos`.
+        Private Shared Function Read28Bit(data As Byte(), ByRef pos As Integer) As Integer
+            Dim value = ((data(pos) And &HFE) >> 1)
+            value += ((data(pos + 1) And &HFE) << 6)
+            value += ((data(pos + 2) And &HFE) << 13)
+            value += ((data(pos + 3) And &HFE) << 20)
+            pos += 4
+            Return value
         End Function
     End Class
 End Namespace

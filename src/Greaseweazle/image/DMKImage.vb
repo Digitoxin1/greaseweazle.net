@@ -1,3 +1,4 @@
+Imports Greaseweazle.Codecs
 Imports Greaseweazle.Core
 
 Namespace Greaseweazle.Images
@@ -194,13 +195,9 @@ Namespace Greaseweazle.Images
             Return bits
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BytesToBits)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function BytesToBits(data As Byte()) As IEnumerable(Of Boolean)
-            Dim bits As New List(Of Boolean)(data.Length * 8)
-            For Each b In data
-                bits.AddRange(ByteToBits(b))
-            Next
-            Return bits
+            Return BitHelpers.BytesToBits(data)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildEncodeList)

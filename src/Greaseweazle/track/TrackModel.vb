@@ -607,8 +607,20 @@ Namespace Greaseweazle.Core
             PllPhaseAdj = activePll.PhaseAdjPct / 100.0
             Me.LowpassThresh = If(activePll.LowpassThresh.HasValue, activePll.LowpassThresh, lowpassThresh)
 
-            BitArray = New List(Of Boolean)()
-            TimeArray = New List(Of Double)()
+            ' Pre-size BitArray / TimeArray so OptimizedFlux.FluxToBitcells
+            ' doesn't trigger ~17 doublings per track. Estimate from
+            ' time_per_rev / clock when both are known; fall back to a single
+            ' ATA-style 1.44 MB DD track (~100K bits) otherwise. The capacity
+            ' is just a hint - exceeding it costs at most one realloc.
+            Dim cap As Integer = 100000
+            If timePerRev.HasValue AndAlso clock > 0.0 Then
+                Dim revs = If(data IsNot Nothing AndAlso data.Flux() IsNot Nothing AndAlso
+                              data.Flux().IndexList IsNot Nothing AndAlso data.Flux().IndexList.Count > 0,
+                              data.Flux().IndexList.Count, 2)
+                cap = CInt(Math.Min(Integer.MaxValue, Math.Max(1024.0, (timePerRev.Value / clock) * revs * 1.1)))
+            End If
+            BitArray = New List(Of Boolean)(cap)
+            TimeArray = New List(Of Double)(cap)
             Revolutions = New List(Of PllRevolution)()
             ImportFluxData(data)
         End Sub

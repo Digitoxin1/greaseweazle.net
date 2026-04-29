@@ -405,13 +405,9 @@ Namespace Greaseweazle.Images
             Return bits
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BytesToBits)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function BytesToBits(data As Byte()) As IEnumerable(Of Boolean)
-            Dim bits As New List(Of Boolean)(data.Length * 8)
-            For Each b In data
-                bits.AddRange(ByteToBits(b))
-            Next
-            Return bits
+            Return BitHelpers.BytesToBits(data)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BuildEncodeList)
@@ -454,20 +450,11 @@ Namespace Greaseweazle.Images
             Return out.ToArray()
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ComputeCrcCcittFalse)
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py uses
+        ' crcmod.predefined 'crc-ccitt-false'. Implementation lives in
+        ' Greaseweazle.Codecs.Crc16Ccitt and uses a 256-entry lookup table.
         Private Shared Function ComputeCrcCcittFalse(data As Byte()) As UShort
-            Dim crc As UInteger = &HFFFFUI
-            For Each b In data
-                crc = crc Xor (CUInt(b) << 8)
-                For i = 0 To 7
-                    If (crc And &H8000UI) <> 0UI Then
-                        crc = ((crc << 1) Xor &H1021UI) And &HFFFFUI
-                    Else
-                        crc = (crc << 1) And &HFFFFUI
-                    End If
-                Next
-            Next
-            Return CUShort(crc And &HFFFFUI)
+            Return Crc16Ccitt.Compute(data)
         End Function
 
         ' Python map: src/greaseweazle/image/edsk.py::EDSK.find_weak_ranges

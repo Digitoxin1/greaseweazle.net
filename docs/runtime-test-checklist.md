@@ -314,6 +314,45 @@ during normal use.
     sizes are byte-identical between binaries. `convert` parity matrix
     + malformed sweep both unchanged from prior pass.
 
+- [x] **Post-LINQ audit — beyond LINQ.** Subsequent sweep targeted hot
+  paths flagged by the audit that weren't LINQ chains:
+  - **CRC-CCITT-FALSE table.** Four near-identical bit-by-bit
+    implementations of `crc-ccitt-false` (`IBMFixedCodec`, `IBMScanCodec`,
+    `EDSKImage`, `HpMmfmCodec`) consolidated into one
+    `Greaseweazle.Codecs.Crc16Ccitt` with a 256-entry `UShort` lookup
+    table. Per-byte cost drops from 8 inner iterations + branching to
+    a single index + xor; ~4–8× faster on the per-sector verify path.
+  - **`PllTrack` pre-sized bit / time arrays.** `BitArray` and `TimeArray`
+    used to grow from default capacity, taking ~17 doublings per
+    standard-density track during `OptimizedFlux.FluxToBitcells`. Now
+    pre-sized from `time_per_rev / clock × revolutions × 1.1` (or 100K
+    fallback). Avoids the entire reallocation chain on the inner decode
+    loop.
+  - **`OptimizedFlux.Read28Bit` inlined.** The 28-bit-payload decoder
+    was a `Func(Of Integer)` closure capturing `pos` and `data`; the
+    delegate `Invoke` + closure access was a non-trivial percentage
+    of `DecodeFlux`. Now a `Private Shared Sub` taking `pos ByRef`.
+  - **`BitsToBytes` / `BytesToBits` consolidation.** Eleven copies of
+    near-identical MSB-first bit/byte unpackers (one per codec + EDSK,
+    DMK) replaced with a single `Greaseweazle.Codecs.BitHelpers` module.
+    The inner per-byte loop is unrolled (no `For j = 0 To 7` shifts, no
+    `If(…, 1, 0)`); IBMFixed retains its pad-to-byte semantics via a
+    dedicated `BitsToBytesPadded` overload.
+  - **`FindPatternOffsets` word-level scan.** Eight identical iterator
+    copies of "compare M bits at every offset, exit at first mismatch"
+    replaced by one `BitHelpers.FindPatternOffsets` that packs the
+    haystack into 64-bit words once per call and slides a single-XOR
+    window. Patterns ≤ 64 bits (every codec's IDAM/DAM/sync) collapse
+    from O(N·M) bit comparisons to O(N) word ops; ~10× faster on the
+    typical 16-50 bit sync scans across ~100K bits per track. Patterns
+    longer than 64 bits (DecMmfm only) fall back to a tight bit-level
+    scan.
+  - **Verified**: byte-equality regression
+    (`H:\gw\malformed\regression-perf.ps1`) and full malformed sweep
+    (`H:\gw\malformed\run.ps1`) re-run; SHA-256 still identical to
+    `gw.exe` 1.23 across IMA / HFE / TD0 / ADF / IPF conversions, and
+    21 OK / 7 expected / 0 diverged on the malformed contract suite.
+
 ## 6. CLI rendering parity
 
 - [x] `info` output layout (`Host Tools` line, new `CLI` line, `Device:` block).

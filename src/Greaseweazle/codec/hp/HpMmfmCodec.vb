@@ -333,20 +333,11 @@ Namespace Greaseweazle.Codecs
             Return out.ToArray()
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ComputeCrcCcittFalse)
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py uses
+        ' crcmod.predefined 'crc-ccitt-false'. Implementation lives in
+        ' Greaseweazle.Codecs.Crc16Ccitt and uses a 256-entry lookup table.
         Private Shared Function ComputeCrcCcittFalse(data As Byte()) As Integer
-            Dim crc As UShort = &HFFFFUS
-            For Each b In data
-                crc = CUShort(crc Xor CUShort(CUShort(b) << 8))
-                For i = 0 To 7
-                    If (crc And &H8000US) <> 0US Then
-                        crc = CUShort(((crc << 1) Xor &H1021US) And &HFFFFUS)
-                    Else
-                        crc = CUShort((crc << 1) And &HFFFFUS)
-                    End If
-                Next
-            Next
-            Return CInt(crc)
+            Return CInt(Crc16Ccitt.Compute(data))
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration SwapWordEndian)
@@ -359,44 +350,19 @@ Namespace Greaseweazle.Codecs
             Return out
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration FindPatternOffsets)
-        Private Shared Iterator Function FindPatternOffsets(bits As List(Of Boolean), pattern As Boolean()) As IEnumerable(Of Integer)
-            If bits.Count < pattern.Length Then Return
-            For i = 0 To bits.Count - pattern.Length
-                Dim ok = True
-                For j = 0 To pattern.Length - 1
-                    If bits(i + j) <> pattern(j) Then
-                        ok = False
-                        Exit For
-                    End If
-                Next
-                If ok Then Yield i
-            Next
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
+        Private Shared Function FindPatternOffsets(bits As List(Of Boolean), pattern As Boolean()) As IEnumerable(Of Integer)
+            Return BitHelpers.FindPatternOffsets(bits, pattern)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BytesToBits)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function BytesToBits(data As Byte()) As Boolean()
-            Dim bits As New List(Of Boolean)(data.Length * 8)
-            For Each b In data
-                For i = 7 To 0 Step -1
-                    bits.Add(((b >> i) And 1) = 1)
-                Next
-            Next
-            Return bits.ToArray()
+            Return BitHelpers.BytesToBits(data)
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BitsToBytes)
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
         Private Shared Function BitsToBytes(bits As List(Of Boolean)) As Byte()
-            Dim out As New List(Of Byte)(bits.Count \ 8)
-            Dim n = bits.Count - (bits.Count Mod 8)
-            For i = 0 To n - 1 Step 8
-                Dim b As Integer = 0
-                For j = 0 To 7
-                    b = (b << 1) Or If(bits(i + j), 1, 0)
-                Next
-                out.Add(CByte(b))
-            Next
-            Return out.ToArray()
+            Return BitHelpers.BitsToBytes(bits)
         End Function
     End Class
 

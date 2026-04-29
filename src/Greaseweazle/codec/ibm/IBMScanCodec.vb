@@ -471,19 +471,9 @@ Namespace Greaseweazle.Codecs
             Return -1
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration FindPatternOffsets)
-        Private Shared Iterator Function FindPatternOffsets(bits As List(Of Boolean), pattern As Boolean()) As IEnumerable(Of Integer)
-            If pattern.Length = 0 OrElse bits.Count < pattern.Length Then Return
-            For i = 0 To bits.Count - pattern.Length
-                Dim matched = True
-                For j = 0 To pattern.Length - 1
-                    If bits(i + j) <> pattern(j) Then
-                        matched = False
-                        Exit For
-                    End If
-                Next
-                If matched Then Yield i
-            Next
+        ' Python map: shared helper. See Greaseweazle.Codecs.BitHelpers.
+        Private Shared Function FindPatternOffsets(bits As List(Of Boolean), pattern As Boolean()) As IEnumerable(Of Integer)
+            Return BitHelpers.FindPatternOffsets(bits, pattern)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration DecodeWord)
@@ -508,20 +498,11 @@ Namespace Greaseweazle.Codecs
             Return output
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ComputeCrcCcittFalse)
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py uses
+        ' crcmod.predefined 'crc-ccitt-false'. Implementation lives in
+        ' Greaseweazle.Codecs.Crc16Ccitt and uses a 256-entry lookup table.
         Private Shared Function ComputeCrcCcittFalse(data As Byte()) As UShort
-            Dim crc As UInteger = &HFFFFUI
-            For Each b In data
-                crc = crc Xor (CUInt(b) << 8)
-                For i = 0 To 7
-                    If (crc And &H8000UI) <> 0UI Then
-                        crc = ((crc << 1) Xor &H1021UI) And &HFFFFUI
-                    Else
-                        crc = (crc << 1) And &HFFFFUI
-                    End If
-                Next
-            Next
-            Return CUShort(crc And &HFFFFUI)
+            Return Crc16Ccitt.Compute(data)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BitsFrom01)

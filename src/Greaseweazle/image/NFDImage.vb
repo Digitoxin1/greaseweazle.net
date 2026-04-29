@@ -95,7 +95,9 @@ Namespace Greaseweazle.Images
                 For Each sec In td.Sectors
                     Dim size = SectorSizeFromN(sec.N)
                     ErrorHandling.Check(dataPos + size <= data.Length, "NFD: not a NFD image")
-                    payload.AddRange(data.Skip(dataPos).Take(size))
+                    Dim slice(size - 1) As Byte
+                    If size > 0 Then Array.Copy(data, dataPos, slice, 0, size)
+                    payload.AddRange(slice)
                     dataPos += size
                     sectorNs.Add(sec.N)
                     sectorSizes.Add(size)

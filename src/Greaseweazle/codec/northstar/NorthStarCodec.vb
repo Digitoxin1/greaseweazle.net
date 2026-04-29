@@ -201,14 +201,18 @@ Namespace Greaseweazle.Codecs
                     Dim s = hardsectorBits(secId)
                     Dim e = hardsectorBits(secId + 1)
                     If e <= s OrElse s < 0 OrElse e > bits.Count Then Continue For
-                    Dim window = bits.Skip(s).Take(e - s).ToList()
+                    ' bits is List(Of Boolean); GetRange is O(n) Array.Copy.
+                    Dim window = bits.GetRange(s, e - s)
                     Dim firstSync = FindPatternOffset(window, _syncPattern)
                     If firstSync < 0 Then Continue For
                     Dim off = firstSync + (1 + _syncBytes) * 16
-                    Dim encodedBytes = BitsToBytes(bits.Skip(s + off).Take((_bps + 1) * 16).ToList())
+                    Dim encLen = (_bps + 1) * 16
+                    If bits.Count - (s + off) < encLen Then Continue For
+                    Dim encodedBytes = BitsToBytes(bits.GetRange(s + off, encLen))
                     Dim decoded = DecodeBits(encodedBytes)
                     If decoded.Length < _bps + 1 Then Continue For
-                    Dim data = decoded.Take(_bps).ToArray()
+                    Dim data(_bps - 1) As Byte
+                    Array.Copy(decoded, 0, data, 0, _bps)
                     Dim check = decoded(_bps)
                     If Csum(data) = check Then
                         [Add](secId, data)

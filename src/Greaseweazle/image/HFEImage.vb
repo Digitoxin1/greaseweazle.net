@@ -230,6 +230,27 @@ Namespace Greaseweazle.Images
                 Return GetImageV3(bitrate, interfaceMode, encodingType, doubleStepByte)
             End If
 
+            ' Python wraps `hfev1_get_image()` in `try / except struct.error` and
+            ' raises a friendly error if any 2*nr_bytes exceeds the CUShort TLUT
+            ' field. We mirror that for OverflowException so genuinely long
+            ' tracks (e.g. ED-rate disks) produce the same actionable message
+            ' as gw.exe instead of a raw stack trace.
+            Try
+                Return BuildHfev1Image(bitrate, interfaceMode, encodingType, doubleStepByte)
+            Catch ex As OverflowException
+                Throw New FatalException(
+                    "HFE: Track too long to fit in image!" & vbLf &
+                    "Are you trying to create an ED-rate image?" & vbLf &
+                    "If so: You can't. Use another image format.")
+            End Try
+        End Function
+
+        ' Python map: src/greaseweazle/image/hfe.py::HFE.hfev1_get_image
+        Private Function BuildHfev1Image(bitrate As Integer,
+                                         interfaceMode As Integer,
+                                         encodingType As Integer,
+                                         doubleStepByte As Byte) As Byte()
+
             Dim nSide = 1
             Dim nCyl = If(_tracks.Count = 0, 1, _tracks.Keys.Max(Function(k) k.Item1) + 1)
             Dim tlut As New List(Of Byte)()
@@ -258,15 +279,23 @@ Namespace Greaseweazle.Images
                 tlut.AddRange(BitConverter.GetBytes(CUShort((tdat.Count \ 512) + 2)))
                 tlut.AddRange(BitConverter.GetBytes(CUShort(2 * nrBytes)))
 
+                ' Per-block (256-byte) writers. Was Skip(N).Take(256).ToArray()
+                ' which is O(N+256) per call; for a 166-cyl, 2-sided HFE that's
+                ' ~4300 calls scaling with N. Indexed Array.Copy is O(256).
+                Dim s0Slice(255) As Byte
+                Dim s1Slice(255) As Byte
                 For b = 0 To nrBlocks - 1
-                    Dim s0Slice = b0.Skip(b * 256).Take(256).ToArray()
-                    Dim s1Slice = b1.Skip(b * 256).Take(256).ToArray()
-                    If s0Slice.Length < 256 Then
-                        s0Slice = s0Slice.Concat(Enumerable.Repeat(CByte(&H88), 256 - s0Slice.Length)).ToArray()
-                    End If
-                    If s1Slice.Length < 256 Then
-                        s1Slice = s1Slice.Concat(Enumerable.Repeat(CByte(&H88), 256 - s1Slice.Length)).ToArray()
-                    End If
+                    Dim base0 = b * 256
+                    Dim n0 = If(base0 < b0.Length, Math.Min(256, b0.Length - base0), 0)
+                    Dim n1 = If(base0 < b1.Length, Math.Min(256, b1.Length - base0), 0)
+                    If n0 > 0 Then Array.Copy(b0, base0, s0Slice, 0, n0)
+                    If n1 > 0 Then Array.Copy(b1, base0, s1Slice, 0, n1)
+                    For i = n0 To 255
+                        s0Slice(i) = &H88
+                    Next
+                    For i = n1 To 255
+                        s1Slice(i) = &H88
+                    Next
                     tdat.AddRange(s0Slice)
                     tdat.AddRange(s1Slice)
                 Next
@@ -414,9 +443,16 @@ Namespace Greaseweazle.Images
 
                 Dim raw0 = s(0).RawHfeBytes()
                 Dim raw1 = s(1).RawHfeBytes()
+                ' Per-block (256-byte) HFEv3 writer. Indexed Array.Copy into
+                ' a reusable scratch buffer beats Skip(N).Take(256) which walks
+                ' the source iterator N times for each of the ~hundreds of blocks.
+                Dim scratch(255) As Byte
                 For b = 0 To nrBlocks - 1
-                    tdat.AddRange(raw0.Skip(b * 256).Take(256))
-                    tdat.AddRange(raw1.Skip(b * 256).Take(256))
+                    Dim base0 = b * 256
+                    Array.Copy(raw0, base0, scratch, 0, 256)
+                    tdat.AddRange(scratch)
+                    Array.Copy(raw1, base0, scratch, 0, 256)
+                    tdat.AddRange(scratch)
                 Next
             Next
 
@@ -567,7 +603,18 @@ Namespace Greaseweazle.Images
             Dim hardsectorBits = If(source.HardsectorBits Is Nothing, Nothing, source.HardsectorBits.ToList())
 
             If useDoubleRate Then
-                rotatedBits = rotatedBits.SelectMany(Function(b) New Boolean() {b, b}).ToList()
+                ' Python: hfe.emit_track double-rate path uses ibm.doubler
+                ' (= ibm.encode), which interleaves a zero CLOCK cell before
+                ' each DATA bit:
+                '   for each input bit b -> output pair (0, b)
+                ' i.e. byte 0xFF -> 0x5555 (binary 0101010101010101).
+                ' Earlier VB code emitted (b, b) -- same bit count but a
+                ' different pattern. Apple2 GCR readback still worked because
+                ' the GCR sync bytes (D5 AA 96 / D5 AA AD) appear in the data
+                ' cells either way, but the resulting HFE bytes diverged from
+                ' gw.exe. Restore Python's (0, b) ordering so .po -> .hfe and
+                ' any genuine IBM FM -> .hfe path are byte-equal.
+                rotatedBits = rotatedBits.SelectMany(Function(b) New Boolean() {False, b}).ToList()
                 If rotatedTicks IsNot Nothing Then
                     rotatedTicks = rotatedTicks.SelectMany(Function(t) New Double() {t, t}).ToList()
                 End If
@@ -593,23 +640,38 @@ Namespace Greaseweazle.Images
             If values Is Nothing OrElse values.Count = 0 Then
                 Return New List(Of T)()
             End If
-            Dim wrapped = ((index Mod values.Count) + values.Count) Mod values.Count
-            Return values.Skip(wrapped).Concat(values.Take(wrapped)).ToList()
+            Dim n = values.Count
+            Dim wrapped = ((index Mod n) + n) Mod n
+            ' Was Skip(wrapped).Concat(Take(wrapped)).ToList() — two LINQ
+            ' iterators plus a final ToList copy. Indexed pre-sized List build
+            ' is one allocation + two tight loops.
+            Dim result As New List(Of T)(n)
+            For i = wrapped To n - 1
+                result.Add(values(i))
+            Next
+            For i = 0 To wrapped - 1
+                result.Add(values(i))
+            Next
+            Return result
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ShouldUseDoubleRate)
+        ' Python map: src/greaseweazle/image/hfe.py::HFE.emit_track (double_rate predicate)
+        ' Python: `(isinstance(track, ibm.IBMTrack) and track.mode is ibm.Mode.FM)
+        '          or isinstance(track, apple2_gcr.Apple2GCR)`
+        ' The previous VB version mis-translated this as
+        '   summary.StartsWith("ibm.fm")  --or--  master.Bitrate < 400000
+        ' The startswith check never matched (summary is "IBM FM (...)") and the
+        ' bitrate fallback caught every DD MFM disk (250 kbit/s), producing 2x
+        ' bitcells per track which then overflowed `2 * nrBytes` (CUShort) in
+        ' the HFEv1 TLUT for any track over ~32K bytes. Reproduces with
+        ' td0 -> hfe; broke generic .ima/.po -> .hfe byte-equality too.
         Private Shared Function ShouldUseDoubleRate(track As HasFlux, codec As Codec, master As MasterTrack) As Boolean
             If TypeOf track Is Apple2Gcr OrElse TypeOf codec Is Apple2Gcr Then
                 Return True
             End If
-            If TypeOf codec Is IbmTrackFixed Then
-                Dim summary = codec.SummaryString()
-                If summary.StartsWith("ibm.fm", StringComparison.OrdinalIgnoreCase) Then
-                    Return True
-                End If
-                If master IsNot Nothing AndAlso master.Bitrate < 400000.0 Then
-                    Return True
-                End If
+            Dim ibm = TryCast(codec, IbmTrackFixed)
+            If ibm IsNot Nothing AndAlso ibm.Mode = IbmMode.Fm Then
+                Return True
             End If
             Return False
         End Function
@@ -921,7 +983,15 @@ Namespace Greaseweazle.Images
 
             Dim bitTicks = track.BitTicks
             If bitTicks IsNot Nothing Then
-                TicksPerRev = bitTicks.Sum()
+                ' Manual sum — Enumerable.Sum on a ~100K-element List(Of Double)
+                ' invokes a delegate per element. This runs once per HFEv3
+                ' generator (per track), so the savings are modest but the
+                ' hotter callsite has the same shape and benefits more.
+                Dim total As Double = 0.0
+                For i = 0 To bitTicks.Count - 1
+                    total += bitTicks(i)
+                Next
+                TicksPerRev = total
             Else
                 TicksPerRev = track.Bits.Count
             End If

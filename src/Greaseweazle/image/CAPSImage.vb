@@ -63,7 +63,46 @@ Namespace Greaseweazle.Images
             ErrorHandling.Check(infoRc = 0,
                                 String.Format("CAPS: {0}: Could not get info for image '{1}'", ImageTypeName, path))
             _piValid = True
+
+            ' Python: print(caps) inside CAPS.from_file (caps.py::from_file).
+            ' Subclasses override __str__ to format the image-info banner; we do
+            ' the same with ToString() and route the multi-line text through
+            ' LibraryDiagnostics so the CLI surfaces it on stderr/stdout to
+            ' match gw.exe's output. Library hosts that don't subscribe simply
+            ' don't see the banner.
+            Dim banner = Me.ToString()
+            If Not String.IsNullOrEmpty(banner) Then
+                LibraryDiagnostics.EmitInfo(banner)
+            End If
         End Sub
+
+        ' Python map: src/greaseweazle/image/caps.py::CapsImageInfo.platform_name
+        Private Shared ReadOnly PlatformNames As String() = New String() {
+            "N/A", "Amiga", "Atari ST", "IBM PC", "Amstrad CPC",
+            "Spectrum", "Sam Coupe", "Archimedes", "C64", "Atari (8-bit)"
+        }
+
+        ' Python map: src/greaseweazle/image/caps.py::IPF.__str__ (Platform field)
+        ' / CTRaw.__str__ helpers. Subclasses call this when assembling the
+        ' image-info banner so the platform-list rendering stays in one place.
+        Protected Function FormatPlatformList() As String
+            If _pi.Platform Is Nothing OrElse _pi.Platform.Length = 0 Then
+                Return PlatformNames(0)
+            End If
+            Dim parts As New List(Of String)()
+            For i = 0 To _pi.Platform.Length - 1
+                Dim p = CInt(_pi.Platform(i))
+                If p = 0 AndAlso parts.Count > 0 Then Exit For
+                Dim name As String
+                If p >= 0 AndAlso p < PlatformNames.Length Then
+                    name = PlatformNames(p)
+                Else
+                    name = PlatformNames(0)
+                End If
+                parts.Add(name)
+            Next
+            Return String.Join(", ", parts)
+        End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB sub declaration EmitTrack)
         Public Overrides Sub EmitTrack(cyl As Integer, side As Integer, track As HasFlux)
@@ -195,8 +234,18 @@ Namespace Greaseweazle.Images
             If values Is Nothing OrElse values.Count = 0 Then
                 Return values
             End If
-            Dim i = ((index Mod values.Count) + values.Count) Mod values.Count
-            Return values.Skip(i).Concat(values.Take(i)).ToList()
+            Dim n = values.Count
+            Dim wrapped = ((index Mod n) + n) Mod n
+            ' Was Skip(i).Concat(Take(i)).ToList() — replace with indexed
+            ' pre-sized List build to avoid two LINQ iterators per call.
+            Dim result As New List(Of T)(n)
+            For j = wrapped To n - 1
+                result.Add(values(j))
+            Next
+            For j = 0 To wrapped - 1
+                result.Add(values(j))
+            Next
+            Return result
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ClipAndSortRanges)
@@ -316,7 +365,16 @@ Namespace Greaseweazle.Images
 
         ' Python map: src/greaseweazle/image/caps.py::CTRaw.__str__
         Public Overrides Function ToString() As String
-            Return "CTRaw"
+            If Not HasPi Then
+                Return "CTRaw Image File:"
+            End If
+            Dim ci = Globalization.CultureInfo.InvariantCulture
+            Dim sb As New System.Text.StringBuilder()
+            sb.Append("CTRaw Image File:")
+            sb.Append(vbLf)
+            sb.AppendFormat(ci, " Cyls: {0}-{1}  Heads: {2}-{3}",
+                            Pi.MinCylinder, Pi.MaxCylinder, Pi.MinHead, Pi.MaxHead)
+            Return sb.ToString()
         End Function
     End Class
 
@@ -329,6 +387,35 @@ Namespace Greaseweazle.Images
                 Return "IPF"
             End Get
         End Property
+
+        ' Python map: src/greaseweazle/image/caps.py::IPF.__str__
+        ' release == 0x843265bb is disk-utilities' IPF_ID marker; otherwise the
+        ' release/revision pair is the SPS catalogue ID used to identify
+        ' commercial Amiga / Atari ST releases.
+        Public Overrides Function ToString() As String
+            If Not HasPi Then
+                Return "IPF Image File:"
+            End If
+            Dim ci = Globalization.CultureInfo.InvariantCulture
+            Dim sb As New System.Text.StringBuilder()
+            sb.Append("IPF Image File:")
+            sb.Append(vbLf)
+            If Pi.Release = &H843265BBUI Then
+                sb.Append(" SPS ID: None (https://github.com/keirf/disk-utilities)")
+            Else
+                sb.AppendFormat(ci, " SPS ID: {0:D4} (rev {1})", Pi.Release, Pi.Revision)
+            End If
+            sb.Append(vbLf)
+            sb.AppendFormat(ci, " Platform: {0}", FormatPlatformList())
+            sb.Append(vbLf)
+            sb.AppendFormat(ci, " Created: {0}/{1}/{2} {3:D2}:{4:D2}:{5:D2}",
+                            Pi.Created.Year, Pi.Created.Month, Pi.Created.Day,
+                            Pi.Created.Hour, Pi.Created.Min, Pi.Created.Sec)
+            sb.Append(vbLf)
+            sb.AppendFormat(ci, " Cyls: {0}-{1}  Heads: {2}-{3}",
+                            Pi.MinCylinder, Pi.MaxCylinder, Pi.MinHead, Pi.MaxHead)
+            Return sb.ToString()
+        End Function
 
         ' Python map: src/greaseweazle/image/caps.py::IPF.get_track
         Public Overrides Function GetTrack(cyl As Integer, side As Integer) As HasFlux
@@ -410,11 +497,6 @@ Namespace Greaseweazle.Images
             track.Sectors = dataRanges
             track.Verify = track
             Return track
-        End Function
-
-        ' Python map: src/greaseweazle/image/caps.py::IPF.__str__
-        Public Overrides Function ToString() As String
-            Return "IPF"
         End Function
     End Class
 
@@ -530,48 +612,49 @@ Namespace Greaseweazle.Images
     Friend Class CapsBackendX64
         Implements CapsBackend
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSInitNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        ' CAPSImg's exports are unsuffixed: `CAPSInit`, `CAPSAddImage`, etc.
+        ' The VB methods carry `Native` suffix purely to disambiguate them
+        ' from the public CapsBackend wrappers below, so every DllImport
+        ' needs an explicit `EntryPoint` to bind to the real export name.
+        ' Without it, .NET probes the DLL for `CAPSInitNative` and fails
+        ' with an entry-point-not-found error even when the DLL itself
+        ' loaded successfully.
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSInit", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSInitNative() As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSAddImageNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSAddImage", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSAddImageNative() As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSLockImageNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl, CharSet:=CharSet.Ansi)>
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSLockImage", CallingConvention:=CallingConvention.Cdecl, CharSet:=CharSet.Ansi)>
         Private Shared Function CAPSLockImageNative(iid As Integer, path As String) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSLoadImageNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSLoadImage", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSLoadImageNative(iid As Integer, flags As UInteger) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSGetImageInfoNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSGetImageInfo", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSGetImageInfoNative(ByRef info As CapsImageInfo, iid As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSLockTrackNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSLockTrack", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSLockTrackNative(ByRef track As CapsTrackInfoT2, iid As Integer, cyl As Integer, head As Integer, flags As UInteger) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSGetInfoNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        ' Two overloads bind to the same `CAPSGetInfo` export with
+        ' different output-struct types (CapsSectorInfo for infoType=1,
+        ' CapsDataInfo for infoType=2). The native side uses a tagged
+        ' union; the layout is sized correctly for the selected branch
+        ' so the marshaller copies the right number of bytes either way.
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSGetInfo", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSGetInfoNative(ByRef info As CapsSectorInfo, iid As Integer, cyl As Integer, head As Integer, infoType As Integer, idx As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSGetInfoNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSGetInfo", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSGetInfoNative(ByRef info As CapsDataInfo, iid As Integer, cyl As Integer, head As Integer, infoType As Integer, idx As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSUnlockAllTracksNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSUnlockAllTracks", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSUnlockAllTracksNative(iid As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSUnlockImageNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSUnlockImage", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSUnlockImageNative(iid As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSRemImageNative)
-        <DllImport("CAPSImg_x64.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg_x64.dll", EntryPoint:="CAPSRemImage", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSRemImageNative(iid As Integer) As Integer
         End Function
 
@@ -626,48 +709,41 @@ Namespace Greaseweazle.Images
     Friend Class CapsBackendGeneric
         Implements CapsBackend
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSInitNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        ' Same `EntryPoint` plumbing as CapsBackendX64 above; see that
+        ' class for the rationale. This generic backend simply targets
+        ' `CAPSImg.dll` (no `_x64` suffix) for hosts that ship the
+        ' classic / 32-bit-named build.
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSInit", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSInitNative() As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSAddImageNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSAddImage", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSAddImageNative() As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSLockImageNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl, CharSet:=CharSet.Ansi)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSLockImage", CallingConvention:=CallingConvention.Cdecl, CharSet:=CharSet.Ansi)>
         Private Shared Function CAPSLockImageNative(iid As Integer, path As String) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSLoadImageNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSLoadImage", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSLoadImageNative(iid As Integer, flags As UInteger) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSGetImageInfoNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSGetImageInfo", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSGetImageInfoNative(ByRef info As CapsImageInfo, iid As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSLockTrackNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSLockTrack", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSLockTrackNative(ByRef track As CapsTrackInfoT2, iid As Integer, cyl As Integer, head As Integer, flags As UInteger) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSGetInfoNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSGetInfo", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSGetInfoNative(ByRef info As CapsSectorInfo, iid As Integer, cyl As Integer, head As Integer, infoType As Integer, idx As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSGetInfoNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSGetInfo", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSGetInfoNative(ByRef info As CapsDataInfo, iid As Integer, cyl As Integer, head As Integer, infoType As Integer, idx As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSUnlockAllTracksNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSUnlockAllTracks", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSUnlockAllTracksNative(iid As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSUnlockImageNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSUnlockImage", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSUnlockImageNative(iid As Integer) As Integer
         End Function
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration CAPSRemImageNative)
-        <DllImport("CAPSImg.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport("CAPSImg.dll", EntryPoint:="CAPSRemImage", CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CAPSRemImageNative(iid As Integer) As Integer
         End Function
 

@@ -93,7 +93,8 @@ Namespace Greaseweazle.Images
                         off += 3
                         dlen -= 1
                         ErrorHandling.Check(dlen >= 0 AndAlso off + dlen <= data.Length, "TD0: bad sector data crc")
-                        Dim packed = data.Skip(off).Take(dlen).ToArray()
+                        Dim packed(dlen - 1) As Byte
+                        If dlen > 0 Then Array.Copy(data, off, packed, 0, dlen)
                         off += dlen
                         blk = DecodeSectorPayload(packed, enc)
                         ' Python: assert len(blk) == ibm.sec_sz(id_n);
@@ -119,9 +120,67 @@ Namespace Greaseweazle.Images
                     sectorDdamFlags.Add((flags And 4) <> 0)
                 Next
 
+                ' Mirror Python's `IBMTrack_Fixed.from_config` oversize handling so
+                ' tracks with non-standard / oversized sectors (e.g. copy-protected
+                ' TD0s with a single n=6 8K sector) get a reduced gap3 and an
+                ' extended track-length in bitcells. Without this, fixed-clock
+                ' encoding overflows HFEv1's 16-bit per-track length field on
+                ' tracks larger than ~32K encoded bytes per side.
                 Dim timePerRev = 0.2
-                Dim trackLenBc = CInt(Math.Max(1, Math.Floor(rate * 400.0)))
+                Dim rpm = 300
+                Const defaultGap1 As Integer = 50
+                Const defaultGap2 As Integer = 22
+                Const defaultGap4a As Integer = 80
+                Const gapPresync As Integer = 12
+                Dim mfmGap3Table = New Integer() {32, 54, 84, 116, 255, 255, 255, 255}
+                Dim fmGap3Table = New Integer() {27, 42, 58, 138, 255, 255, 255, 255}
+                Dim gap3Table = If(trackIsFm, fmGap3Table, mfmGap3Table)
+                Dim baseGap1 = If(trackIsFm, 26, defaultGap1)
+                Dim baseGap2 = If(trackIsFm, 11, defaultGap2)
+                Dim baseGap4a = If(trackIsFm, 40, defaultGap4a)
+                Dim basePresync = If(trackIsFm, 6, gapPresync)
+                Dim synclen = If(trackIsFm, 1, 4)
+
+                Dim gap1 = baseGap1
+                Dim gap2 = baseGap2
+                Dim gap4a = baseGap4a
+                Dim idxSz = gap4a + basePresync + synclen + gap1
+                Dim idamSz = basePresync + synclen + 4 + 2 + gap2
+                Dim damSzPre = basePresync + synclen
+                Dim damSzPostNoGap3 = 2
+
+                Dim trackLenDecoded = idxSz + (idamSz + damSzPre + damSzPostNoGap3) * sectorIds.Count
+                For Each n In sectorNs
+                    trackLenDecoded += 128 << n
+                Next
+                Dim trackLenBitcells = trackLenDecoded * 16
+                Dim trackLenBc = rate * 400 * 300 \ rpm
+
+                Dim resolvedGap3 As Integer = 0
+                If sectorIds.Count > 0 Then
+                    Dim space = Math.Max(0, trackLenBc - trackLenBitcells)
+                    Dim n0 = sectorNs(0)
+                    Dim cap = If(n0 >= 0 AndAlso n0 < gap3Table.Length, gap3Table(n0), 255)
+                    resolvedGap3 = Math.Min(space \ (16 * sectorIds.Count), cap)
+                    trackLenBitcells += 16 * sectorIds.Count * resolvedGap3
+                End If
+
+                Dim preIndexSz = trackLenBc \ 100
+                If sectorIds.Count > 0 Then
+                    preIndexSz = Math.Max(0, preIndexSz - resolvedGap3 * 16)
+                End If
+                trackLenBitcells += preIndexSz
+
+                If trackLenBitcells > trackLenBc Then
+                    Dim newGap4a = gap4a \ 2
+                    idxSz -= gap4a - newGap4a
+                    trackLenBitcells -= gap4a - newGap4a
+                    gap4a = newGap4a
+                End If
+
+                trackLenBc = Math.Max(trackLenBc, trackLenBitcells)
                 Dim clock = timePerRev / trackLenBc
+
                 Dim codec As New IbmTrackFixed(formatName,
                                                cyl,
                                                head,
@@ -133,10 +192,10 @@ Namespace Greaseweazle.Images
                                                timePerRev:=timePerRev,
                                                clock:=clock,
                                                emitIam:=True,
-                                               gap1Override:=Nothing,
-                                               gap2Override:=Nothing,
-                                               gap3Override:=Nothing,
-                                               gap4aOverride:=Nothing,
+                                               gap1Override:=gap1,
+                                               gap2Override:=gap2,
+                                               gap3Override:=resolvedGap3,
+                                               gap4aOverride:=gap4a,
                                                gapByteOverride:=Nothing)
 
                 Dim logicalOrder = Enumerable.Range(0, sectorIds.Count).OrderBy(Function(x) sectorIds(x)).ToList()
@@ -208,12 +267,16 @@ Namespace Greaseweazle.Images
                     o += 2
                     If c = 0 Then
                         ErrorHandling.Check(o + n <= packed.Length, "TD0: bad sector data crc")
-                        out.AddRange(packed.Skip(o).Take(n))
+                        For i = 0 To n - 1
+                            out.Add(packed(o + i))
+                        Next
                         o += n
                     Else
                         ErrorHandling.Check(o + c * 2 <= packed.Length, "TD0: bad sector data crc")
-                        Dim pattern = packed.Skip(o).Take(c * 2).ToArray()
-                        o += c * 2
+                        Dim patternLen = c * 2
+                        Dim pattern(patternLen - 1) As Byte
+                        Array.Copy(packed, o, pattern, 0, patternLen)
+                        o += patternLen
                         For i = 1 To n
                             out.AddRange(pattern)
                         Next

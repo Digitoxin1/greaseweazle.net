@@ -151,7 +151,8 @@ Namespace Greaseweazle.Codecs
                 ' Python decodes directly with no slip search; CRC must be valid as-read.
                 Dim idamOffs = offs + 2 * 16
                 If idamOffs + 4 * 16 > bits.Count Then Continue For
-                Dim idam = DecodeDoubled(BitsToBytes(bits.Skip(idamOffs).Take(4 * 16).ToList()))
+                ' bits is List(Of Boolean); GetRange is O(n) Array.Copy.
+                Dim idam = DecodeDoubled(BitsToBytes(bits.GetRange(idamOffs, 4 * 16)))
                 If idam.Length <> 4 Then Continue For
                 If ComputeCrcCcittFalse(idam) <> 0 Then Continue For
                 Dim cyl = BitRev(idam(0))
@@ -162,15 +163,20 @@ Namespace Greaseweazle.Codecs
                 If secId < 0 OrElse secId >= _nsec OrElse HasSec(secId) Then Continue For
 
                 Dim dataSearchOffs = idamOffs + 8 * 16
-                Dim dataHits = FindPatternOffsets(bits.Skip(dataSearchOffs).Take(50 * 16).ToList(), DataSyncPattern).ToList()
+                Dim searchLen = Math.Min(50 * 16, bits.Count - dataSearchOffs)
+                If searchLen <= 0 Then Continue For
+                Dim dataHits = FindPatternOffsets(bits.GetRange(dataSearchOffs, searchLen), DataSyncPattern).ToList()
                 If dataHits.Count <> 1 Then Continue For
                 Dim secOffs = dataSearchOffs + dataHits(0) + 2 * 16
                 If secOffs + 258 * 16 > bits.Count Then Continue For
-                Dim sec = DecodeDoubled(BitsToBytes(bits.Skip(secOffs).Take(258 * 16).ToList()))
+                Dim sec = DecodeDoubled(BitsToBytes(bits.GetRange(secOffs, 258 * 16)))
                 If sec.Length <> 258 Then Continue For
                 If ComputeCrcCcittFalse(sec) <> 0 Then Continue For
 
-                Dim payload = sec.Take(256).Select(Function(x) BitRev(x)).ToArray()
+                Dim payload(255) As Byte
+                For pi = 0 To 255
+                    payload(pi) = BitRev(sec(pi))
+                Next
                 payload = SwapWordEndian(payload)
                 [Add](secId, payload)
             Next

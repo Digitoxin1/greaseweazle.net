@@ -344,8 +344,22 @@ Namespace Greaseweazle.Core
                          "MasterTrack.BuildFlux requires for_writeout when not cue_at_index")
             Dim bits = New List(Of Boolean)(Me.Bits)
             Dim bitLength = bits.Count
-            Dim bitTicks = If(Me.BitTicks Is Nothing, Enumerable.Repeat(1.0, bitLength).ToList(), New List(Of Double)(Me.BitTicks))
-            Dim ticksToIndex = bitTicks.Sum()
+            Dim bitTicks As List(Of Double)
+            If Me.BitTicks Is Nothing Then
+                bitTicks = New List(Of Double)(bitLength)
+                For i = 0 To bitLength - 1
+                    bitTicks.Add(1.0)
+                Next
+            Else
+                bitTicks = New List(Of Double)(Me.BitTicks)
+            End If
+            ' Manual sum loop — Enumerable.Sum on List(Of Double) of ~100K bits
+            ' per track invokes a delegate per element. Direct indexed loop is
+            ' a measurable win in the per-track BuildFlux path.
+            Dim ticksToIndex As Double = 0.0
+            For i = 0 To bitTicks.Count - 1
+                ticksToIndex += bitTicks(i)
+            Next
 
             For Each range In WeakRanges
                 Dim s = range.Item1
@@ -399,13 +413,60 @@ Namespace Greaseweazle.Core
             ElseIf Not cueAtIndex Then
                 Dim pos = 4
                 Dim rep = bitLength \ (10 * 32)
-                bitTicks = bitTicks.Skip(pos).Take(32).SelectMany(Function(x) Enumerable.Repeat(x, rep)).Concat(bitTicks.Skip(pos)).ToList()
-                bits = bits.Skip(pos).Take(32).SelectMany(Function(x) Enumerable.Repeat(x, rep)).Concat(bits.Skip(pos)).ToList()
+                ' Was Skip(pos).Take(32).SelectMany(...).Concat(Skip(pos)).ToList(),
+                ' which walks the source iterator twice (each Skip is O(N)) and
+                ' allocates several intermediate enumerators. Indexed pre-sized
+                ' List build is O(rep*32 + (N-pos)) with a single allocation.
+                Dim newBitTicks As New List(Of Double)(32 * rep + bitLength - pos)
+                For i = 0 To 31
+                    Dim x = bitTicks(pos + i)
+                    For r = 0 To rep - 1
+                        newBitTicks.Add(x)
+                    Next
+                Next
+                For i = pos To bitLength - 1
+                    newBitTicks.Add(bitTicks(i))
+                Next
+                bitTicks = newBitTicks
+                Dim newBits As New List(Of Boolean)(32 * rep + bitLength - pos)
+                For i = 0 To 31
+                    Dim x = bits(pos + i)
+                    For r = 0 To rep - 1
+                        newBits.Add(x)
+                    Next
+                Next
+                For i = pos To bitLength - 1
+                    newBits.Add(bits(i))
+                Next
+                bits = newBits
             ElseIf spliceAtIndex Then
                 Dim pos = ((Splice - 4) Mod bitLength + bitLength) Mod bitLength
                 Dim rep = bitLength \ (10 * 32)
-                bitTicks = bitTicks.Take(pos).Concat(bitTicks.Skip(Math.Max(pos - 32, 0)).Take(32).SelectMany(Function(x) Enumerable.Repeat(x, rep))).ToList()
-                bits = bits.Take(pos).Concat(bits.Skip(Math.Max(pos - 32, 0)).Take(32).SelectMany(Function(x) Enumerable.Repeat(x, rep))).ToList()
+                Dim startSrc = Math.Max(pos - 32, 0)
+                Dim countSrc = Math.Min(32, bitTicks.Count - startSrc)
+                Dim newBitTicks As New List(Of Double)(pos + countSrc * rep)
+                For i = 0 To pos - 1
+                    newBitTicks.Add(bitTicks(i))
+                Next
+                For i = 0 To countSrc - 1
+                    Dim x = bitTicks(startSrc + i)
+                    For r = 0 To rep - 1
+                        newBitTicks.Add(x)
+                    Next
+                Next
+                bitTicks = newBitTicks
+                Dim countSrcB = Math.Min(32, bits.Count - startSrc)
+                Dim newBits As New List(Of Boolean)(pos + countSrcB * rep)
+                For i = 0 To pos - 1
+                    newBits.Add(bits(i))
+                Next
+                For i = 0 To countSrcB - 1
+                    Dim x = bits(startSrc + i)
+                    For r = 0 To rep - 1
+                        newBits.Add(x)
+                    Next
+                Next
+                bits = newBits
             Else
                 ' Python: bits += bits[:self.splice-4]
                 ' When splice<4, splice-4 is negative and Python's slice [:k] with k<0
@@ -421,7 +482,8 @@ Namespace Greaseweazle.Core
                 bitTicks = bitTicks.Concat(bitTicks.Take(Math.Min(takeAmount, bitTicksLen))).ToList()
                 bits = bits.Concat(bits.Take(takeAmount)).ToList()
                 Dim pos = Splice + 4
-                Dim fillPattern = bits.Skip(pos).Take(32).ToList()
+                Dim fillLen = Math.Max(0, Math.Min(32, bits.Count - pos))
+                Dim fillPattern = If(fillLen > 0, bits.GetRange(pos, fillLen), New List(Of Boolean)())
                 While pos >= 32
                     pos -= 32
                     For i = 0 To Math.Min(31, fillPattern.Count - 1)
@@ -587,8 +649,10 @@ Namespace Greaseweazle.Core
         Public Function GetRevolution(index As Integer) As Tuple(Of List(Of Boolean), List(Of Double))
             Dim start = Revolutions.Take(index).Sum(Function(x) x.NrBits)
             Dim count = Revolutions(index).NrBits
-            Return Tuple.Create(BitArray.Skip(start).Take(count).ToList(),
-                                TimeArray.Skip(start).Take(count).ToList())
+            ' GetRange is O(count) (Array.Copy); previously was Skip(start).Take(count).ToList()
+            ' which walks the source iterator from index 0.
+            Return Tuple.Create(BitArray.GetRange(start, count),
+                                TimeArray.GetRange(start, count))
         End Function
 
         ' Python map: src/greaseweazle/track.py::PLLTrack.get_all_data
@@ -652,7 +716,7 @@ Namespace Greaseweazle.Core
                 Dim hardsector As List(Of Integer) = Nothing
                 If flux.SectorList IsNot Nothing AndAlso i < flux.SectorList.Count Then
                     Dim start = revolutionsRaw.Take(i).Sum()
-                    Dim revCells = TimeArray.Skip(start).Take(revolutionsRaw(i)).ToList()
+                    Dim revCells = TimeArray.GetRange(start, revolutionsRaw(i))
                     hardsector = New List(Of Integer)()
                     Dim sectorEnds = Accumulate(flux.SectorList(i).Select(Function(x) x / freq))
                     For Each sectorEnd In sectorEnds

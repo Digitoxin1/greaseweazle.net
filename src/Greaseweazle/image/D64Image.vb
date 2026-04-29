@@ -150,7 +150,13 @@ Namespace Greaseweazle.Images
             If data.Length < 164 Then
                 Return Nothing
             End If
-            Return CUShort(data(162) Or (data(163) << 8))
+            ' Python: `disk_id, = struct.unpack('<H', dat[162:164])`.
+            ' VB caveat: `Byte << 8` masks the shift amount modulo 8 (VB
+            ' Language Spec, "Shift Operators"), so the high-byte shift
+            ' silently collapses to zero unless we widen first. Promote
+            ' to UShort before shifting to match Python's two-byte
+            ' little-endian read.
+            Return CUShort(data(162)) Or (CUShort(data(163)) << 8)
         End Function
 
         ' Python map: src/greaseweazle/image/d64.py::D64.get_disk_id

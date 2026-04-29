@@ -364,10 +364,19 @@ Namespace Greaseweazle.Images
 
             Dim footerOffset = 16 + &H2A0 + wrspLen + trackData.Count
             Dim footer As New List(Of Byte)()
-            Dim appName = Encoding.ASCII.GetBytes("Greaseweazle 0.0")
+            ' Python: app_name = f'Greaseweazle {__version__}'.encode().
+            ' Pull the version from AssemblyInformationalVersionAttribute so
+            ' the app_name length and contents track Python's `__version__`
+            ' verbatim instead of being hard-coded to a stale "0.0".
+            Dim appName = Encoding.ASCII.GetBytes("Greaseweazle " & Greaseweazle.Core.HostVersion.Value)
             footer.AddRange(BitConverter.GetBytes(CUShort(appName.Length)))
             footer.AddRange(appName)
             footer.Add(0)
+
+            ' Python: creation_time = round(time.time()); same value used for
+            ' both creation and modification timestamps. Mirror that here so
+            ' the SCP footer carries a real timestamp instead of zeros.
+            Dim creationTime As ULong = CULng(Math.Round((DateTime.UtcNow - New DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds))
 
             footer.AddRange(BitConverter.GetBytes(CUInt(0))) ' drive manufacturer
             footer.AddRange(BitConverter.GetBytes(CUInt(0))) ' drive model
@@ -375,8 +384,8 @@ Namespace Greaseweazle.Images
             footer.AddRange(BitConverter.GetBytes(CUInt(0))) ' creator name
             footer.AddRange(BitConverter.GetBytes(CUInt(footerOffset))) ' application name offset
             footer.AddRange(BitConverter.GetBytes(CUInt(0))) ' comments
-            footer.AddRange(BitConverter.GetBytes(CULng(0))) ' creation time
-            footer.AddRange(BitConverter.GetBytes(CULng(0))) ' modification time
+            footer.AddRange(BitConverter.GetBytes(creationTime)) ' creation time
+            footer.AddRange(BitConverter.GetBytes(creationTime)) ' modification time
             footer.Add(0) ' application version
             footer.Add(0) ' hardware version
             footer.Add(0) ' firmware version

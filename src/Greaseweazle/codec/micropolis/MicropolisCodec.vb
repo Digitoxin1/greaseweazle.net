@@ -163,18 +163,26 @@ Namespace Greaseweazle.Codecs
                     Dim s = hardsectorBits(hsecId) + 50
                     Dim e = hardsectorBits(hsecId + 1)
                     If e <= s OrElse s < 0 OrElse e > bits.Count Then Continue For
-                    Dim window = bits.Skip(s).Take(e - s).ToList()
+                    ' bits is List(Of Boolean); GetRange is O(n) Array.Copy.
+                    Dim window = bits.GetRange(s, e - s)
                     For Each syncOff In FindPatternOffsets(window, SyncPattern)
                         Dim off = syncOff + 3 * 16
-                        Dim dat = DecodeBits(BitsToBytes(bits.Skip(s + off).Take(275 * 16).ToList()))
+                        Dim segLen = 275 * 16
+                        If bits.Count - (s + off) < segLen Then Continue For
+                        Dim dat = DecodeBits(BitsToBytes(bits.GetRange(s + off, segLen)))
                         If dat.Length <> 275 Then Continue For
                         Dim cyl = dat(1)
                         Dim secId = dat(2)
                         If cyl <> _cyl OrElse secId > _nsec Then Continue For
                         If secId < 0 OrElse secId >= _nsec OrElse HasSec(secId) Then Continue For
-                        If MicropolisCsum(dat.Skip(1).Take(dat.Length - 7).ToArray()) = dat(dat.Length - 6) Then
+                        Dim csumLen = dat.Length - 7
+                        Dim csumBuf(csumLen - 1) As Byte
+                        Array.Copy(dat, 1, csumBuf, 0, csumLen)
+                        If MicropolisCsum(csumBuf) = dat(dat.Length - 6) Then
                             If _imgBps = 256 Then
-                                [Add](secId, dat.Skip(13).Take(256).ToArray())
+                                Dim payload(255) As Byte
+                                Array.Copy(dat, 13, payload, 0, 256)
+                                [Add](secId, payload)
                             Else
                                 [Add](secId, dat)
                             End If

@@ -149,11 +149,14 @@ Namespace Greaseweazle.Codecs
                     Dim s = hardsectorBits(hsecId) + 352
                     Dim e = hardsectorBits(hsecId + 1)
                     If e <= s OrElse s < 0 OrElse e > bits.Count Then Continue For
-                    Dim firstSync = FindPatternOffset(bits.Skip(s).Take(e - s).ToList(), SyncPattern)
+                    ' bits is List(Of Boolean); GetRange is O(n) (Array.Copy)
+                    ' vs Enumerable.Skip(N).Take(M).ToList() which is O(N+M).
+                    Dim firstSync = FindPatternOffset(bits.GetRange(s, e - s), SyncPattern)
                     If firstSync < 0 Then Continue For
                     Dim off = firstSync + 2 * 16
 
-                    Dim preamble = DecodeDoubled(BitsToBytes(bits.Skip(s + off).Take(2 * 16).ToList()))
+                    If bits.Count - (s + off) < 2 * 16 Then Continue For
+                    Dim preamble = DecodeDoubled(BitsToBytes(bits.GetRange(s + off, 2 * 16)))
                     If preamble.Length <> 2 Then Continue For
                     Dim cyl = preamble(0) And &H7F
                     Dim secId = preamble(1) >> 2
@@ -162,14 +165,18 @@ Namespace Greaseweazle.Codecs
                     If HasSec(secId) Then Exit For
 
                     Dim dataSearchOff = off + 2 * 16 + 40
-                    Dim dataSyncRel = FindPatternOffset(bits.Skip(s + dataSearchOff).Take(e - (s + dataSearchOff)).ToList(), SyncPattern)
+                    Dim dataSearchStart = s + dataSearchOff
+                    If e <= dataSearchStart Then Continue For
+                    Dim dataSyncRel = FindPatternOffset(bits.GetRange(dataSearchStart, e - dataSearchStart), SyncPattern)
                     If dataSyncRel < 0 Then Continue For
                     Dim dataOff = dataSearchOff + dataSyncRel + 2 * 16
 
-                    Dim data = DecodeDoubled(BitsToBytes(bits.Skip(s + dataOff).Take(514 * 16).ToList()))
+                    If bits.Count - (s + dataOff) < 514 * 16 Then Continue For
+                    Dim data = DecodeDoubled(BitsToBytes(bits.GetRange(s + dataOff, 514 * 16)))
                     If data.Length <> 514 Then Continue For
                     Dim readCsum = (CInt(data(512)) << 8) Or data(513)
-                    Dim payload = data.Take(512).ToArray()
+                    Dim payload(511) As Byte
+                    Array.Copy(data, 0, payload, 0, 512)
                     If DataGeneralChecksum(payload) = readCsum Then
                         [Add](secId, payload)
                     End If

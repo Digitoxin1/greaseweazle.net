@@ -34,7 +34,8 @@ Namespace Greaseweazle.Images
                     idx += 2
                     ErrorHandling.Check(nbytes <= spt * 512, "MSA: Track data too long")
                     ErrorHandling.Check(idx + nbytes <= data.Length, "MSA: Truncated track data")
-                    Dim td = data.Skip(idx).Take(nbytes).ToArray()
+                    Dim td(nbytes - 1) As Byte
+                    If nbytes > 0 Then Array.Copy(data, idx, td, 0, nbytes)
                     idx += nbytes
 
                     Dim trackData As Byte()

@@ -156,7 +156,8 @@ Namespace Greaseweazle.Images
                 Dim dataSize = expectedSizes(i)
                 Dim srcPos = If(variableLayout, dataPos, i * fixedStride)
                 ErrorHandling.Check(srcPos + dataSize <= raw.Length, "D88: Sector data too short")
-                Dim sec = raw.Skip(srcPos).Take(dataSize).ToArray()
+                Dim sec(dataSize - 1) As Byte
+                If dataSize > 0 Then Array.Copy(raw, srcPos, sec, 0, dataSize)
                 If variableLayout Then
                     dataPos += dataSize
                 End If

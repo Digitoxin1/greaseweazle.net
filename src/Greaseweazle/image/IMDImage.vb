@@ -19,7 +19,10 @@ Namespace Greaseweazle.Images
 
         Private ReadOnly _tracks As New Dictionary(Of Tuple(Of Integer, Integer), IbmTrackFixed)()
         ' Python: IMD writer comment carries 'IMD 1.17: dd/mm/YYYY HH:MM:SS\r\nGreaseweazle <ver>\r\n\x1a'.
-        Private Shared ReadOnly ImdHostVersion As String = If(Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(), "0.0")
+        ' Pulled from the shared HostVersion helper so the IMD comment header
+        ' tracks Python's `__version__` (e.g. "1.23") instead of the
+        ' four-part AssemblyName.Version ("1.23.0.0").
+        Private Shared ReadOnly ImdHostVersion As String = Greaseweazle.Core.HostVersion.Value
 
         ' Python map: src/greaseweazle/image/imd.py::IMD.__init__
         Public Sub New()
@@ -87,19 +90,28 @@ Namespace Greaseweazle.Images
                 End Select
 
                 ErrorHandling.Check(pos + nsec <= data.Length, "IMD: Truncated rmap")
-                Dim rmap = data.Skip(pos).Take(nsec).Select(Function(x) CInt(x)).ToArray()
+                Dim rmap(nsec - 1) As Integer
+                For i = 0 To nsec - 1
+                    rmap(i) = CInt(data(pos + i))
+                Next
                 pos += nsec
 
                 Dim cmap As Integer() = Nothing
                 If hasCylMap Then
                     ErrorHandling.Check(pos + nsec <= data.Length, "IMD: Truncated cmap")
-                    cmap = data.Skip(pos).Take(nsec).Select(Function(x) CInt(x)).ToArray()
+                    cmap = New Integer(nsec - 1) {}
+                    For i = 0 To nsec - 1
+                        cmap(i) = CInt(data(pos + i))
+                    Next
                     pos += nsec
                 End If
                 Dim hmap As Integer() = Nothing
                 If hasHeadMap Then
                     ErrorHandling.Check(pos + nsec <= data.Length, "IMD: Truncated hmap")
-                    hmap = data.Skip(pos).Take(nsec).Select(Function(x) CInt(x)).ToArray()
+                    hmap = New Integer(nsec - 1) {}
+                    For i = 0 To nsec - 1
+                        hmap(i) = CInt(data(pos + i))
+                    Next
                     pos += nsec
                 End If
 
@@ -215,10 +227,9 @@ Namespace Greaseweazle.Images
                 Dim sectorBytes As New List(Of Byte())()
                 Dim pos = 0
                 For Each unused In sortedIds
-                    Dim sector = trackData.Skip(pos).Take(secSize).ToArray()
-                    If sector.Length < secSize Then
-                        sector = sector.Concat(Enumerable.Repeat(CByte(0), secSize - sector.Length)).ToArray()
-                    End If
+                    Dim sector(secSize - 1) As Byte
+                    Dim copyLen = Math.Min(secSize, Math.Max(0, trackData.Length - pos))
+                    If copyLen > 0 Then Array.Copy(trackData, pos, sector, 0, copyLen)
                     sectorBytes.Add(sector)
                     pos += secSize
                 Next

@@ -136,7 +136,8 @@ Namespace Greaseweazle.Images
                     End If
                     Dim dataOffset = offset + headerSize
                     Dim dataLen = Math.Max(0, recordSize - headerSize)
-                    Dim payload = src.Skip(dataOffset).Take(dataLen).ToArray()
+                    Dim payload(dataLen - 1) As Byte
+                    If dataLen > 0 Then Array.Copy(src, dataOffset, payload, 0, dataLen)
                     records.Add(New ApridiskRecord(typeValue, compression, payload, recordSize, records.Count))
                     offset += recordSize
                 End While

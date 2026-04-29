@@ -41,7 +41,8 @@ Namespace Greaseweazle.Images
                 For head = 0 To sides - 1
                     Dim trackBytesLen = sectorsPerTrack * sectorSize
                     ErrorHandling.Check(pos + trackBytesLen <= data.Length, "FDI: Truncated image data.")
-                    Dim payload = data.Skip(pos).Take(trackBytesLen).ToArray()
+                    Dim payload(trackBytesLen - 1) As Byte
+                    If trackBytesLen > 0 Then Array.Copy(data, pos, payload, 0, trackBytesLen)
                     pos += trackBytesLen
                     _tracks(Tuple.Create(cyl, head)) = BuildTrackCodec(cyl, head, payload)
                 Next

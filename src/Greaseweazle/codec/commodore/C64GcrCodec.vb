@@ -138,8 +138,9 @@ Namespace Greaseweazle.Codecs
                 If NrMissing() = 0 Then Exit For
 
                 Dim hdrOffs = offs + 10
-                Dim hdrBits = bits.Skip(hdrOffs).Take(10 * 8).ToList()
-                If hdrBits.Count <> 80 Then Continue For
+                ' bits is List(Of Boolean); GetRange is O(n) Array.Copy.
+                If bits.Count - hdrOffs < 10 * 8 Then Continue For
+                Dim hdrBits = bits.GetRange(hdrOffs, 10 * 8)
                 Dim hdr = DecodeC64Gcr(BitsToBytes(hdrBits), 8)
                 If hdr.Length <> 8 Then Continue For
                 Dim csum = 0
@@ -159,12 +160,14 @@ Namespace Greaseweazle.Codecs
                 If HasSec(secId) Then Continue For
 
                 Dim dataSearchOffs = hdrOffs + 8 * 8
-                Dim dataSearchBits = bits.Skip(dataSearchOffs).Take(100 * 8).ToList()
+                Dim dataSearchLen = Math.Min(100 * 8, bits.Count - dataSearchOffs)
+                If dataSearchLen <= 0 Then Continue For
+                Dim dataSearchBits = bits.GetRange(dataSearchOffs, dataSearchLen)
                 Dim dataHits = FindPatternOffsets(dataSearchBits, DataSyncPattern).ToList()
                 If dataHits.Count <> 1 Then Continue For
                 Dim dataOffs = dataSearchOffs + dataHits(0) + 10
-                Dim secBits = bits.Skip(dataOffs).Take(260 * 10).ToList()
-                If secBits.Count <> 2600 Then Continue For
+                If bits.Count - dataOffs < 260 * 10 Then Continue For
+                Dim secBits = bits.GetRange(dataOffs, 260 * 10)
                 Dim secDecoded = DecodeC64Gcr(BitsToBytes(secBits), 260)
                 If secDecoded.Length <> 260 Then Continue For
                 Dim dsum = 0
@@ -172,7 +175,9 @@ Namespace Greaseweazle.Codecs
                     dsum = dsum Xor secDecoded(i)
                 Next
                 If dsum <> 0 Then Continue For
-                [Add](secId, secDecoded.Skip(1).Take(256).ToArray())
+                Dim payload(255) As Byte
+                Array.Copy(secDecoded, 1, payload, 0, 256)
+                [Add](secId, payload)
             Next
         End Sub
 

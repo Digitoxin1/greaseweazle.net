@@ -165,8 +165,10 @@ Namespace Greaseweazle.Codecs
                 If NrMissing() = 0 Then Exit For
 
                 Dim hdrOffs = offs + 24
-                Dim hdrBits = bits.Skip(hdrOffs).Take(8 * 8).ToList()
-                If hdrBits.Count <> 64 Then Continue For
+                ' bits is List(Of Boolean); GetRange is O(n) (Array.Copy) vs
+                ' Enumerable.Skip(N).Take(M).ToList() which is O(N+M).
+                If bits.Count - hdrOffs < 8 * 8 Then Continue For
+                Dim hdrBits = bits.GetRange(hdrOffs, 8 * 8)
                 Dim hdrBytes = BitsToBytes(hdrBits)
                 Dim hdrVals As New List(Of Integer)
                 For i = 0 To 3
@@ -187,11 +189,15 @@ Namespace Greaseweazle.Codecs
                 If HasSec(secId) Then Continue For
 
                 Dim dataSearchStart = hdrOffs + 8 * 8
-                Dim dataWindow = bits.Skip(dataSearchStart).Take(100 * 8).ToList()
+                Dim dataSearchLen = Math.Min(100 * 8, bits.Count - dataSearchStart)
+                If dataSearchLen <= 0 Then Continue For
+                Dim dataWindow = bits.GetRange(dataSearchStart, dataSearchLen)
                 Dim dataHits = FindPatternOffsets(dataWindow, DataSyncPattern).ToList()
                 If dataHits.Count <> 1 Then Continue For
                 Dim encStart = dataSearchStart + dataHits(0) + 3 * 8
-                Dim encBits = bits.Skip(encStart).Take(400 * 8).ToList()
+                Dim encLen = Math.Min(400 * 8, bits.Count - encStart)
+                If encLen <= 0 Then Continue For
+                Dim encBits = bits.GetRange(encStart, encLen)
                 Dim decoded = DecodeApple2Sector(BitsToBytes(encBits))
                 If decoded.Item2 <> 0 Then Continue For
                 [Add](secId, decoded.Item1)
@@ -207,10 +213,11 @@ Namespace Greaseweazle.Codecs
             Dim trkId = TrackNr()
             For secId = 0 To _sectors.Count - 1
                 Dim data = If(_sectors(secId), BadSector)
-                If data.Length < SectorLength Then
-                    data = data.Concat(Enumerable.Repeat(CByte(0), SectorLength - data.Length)).ToArray()
+                If data.Length <> SectorLength Then
+                    Dim resized(SectorLength - 1) As Byte
+                    Array.Copy(data, 0, resized, 0, Math.Min(data.Length, SectorLength))
+                    data = resized
                 End If
-                data = data.Take(SectorLength).ToArray()
 
                 bits.AddRange(RepeatFf40(18))
                 bits.AddRange(Enumerable.Repeat(True, 8))

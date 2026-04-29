@@ -226,14 +226,21 @@ Namespace Greaseweazle.Images
 
             If indexList.Count > 1 Then
                 Dim shortIndex = indexList(0)
-                indexList = indexList.Skip(1).ToList()
+                ' List(Of T).RemoveAt(0) is O(n) but uses Array.Copy under the
+                ' hood; equivalent perf to Skip(1).ToList() but no extra LINQ
+                ' allocation.
+                indexList.RemoveAt(0)
                 Dim seen = 0.0
                 Dim startAt = 0
                 While startAt < fluxList.Count AndAlso seen < shortIndex
                     seen += fluxList(startAt)
                     startAt += 1
                 End While
-                fluxList = fluxList.Skip(startAt).ToList()
+                If startAt > 0 Then
+                    ' GetRange is O(n) Array.Copy; replaces Skip(startAt).ToList()
+                    ' which iterates from index 0.
+                    fluxList = fluxList.GetRange(startAt, fluxList.Count - startAt)
+                End If
             End If
 
             Return New Flux(indexList, fluxList, sck, indexCued:=True)

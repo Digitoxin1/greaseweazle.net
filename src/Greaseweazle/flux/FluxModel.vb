@@ -210,12 +210,16 @@ Namespace Greaseweazle.Core
                     List.Insert(0, -toIndex)
                     fluxSum += -toIndex
                 End If
-                IndexList = IndexList.Skip(1).ToList()
+                ' RemoveAt(0) shifts in-place via Array.Copy; cheaper than
+                ' Skip(1).ToList() which allocates a brand-new list.
+                If IndexList.Count > 0 Then IndexList.RemoveAt(0)
                 IndexCued = True
             Else
-                Dim newIndexes As New List(Of Double) From {toIndex}
+                Dim newIndexes As New List(Of Double)(IndexList.Count) From {toIndex}
                 If IndexList.Count > 1 Then
-                    newIndexes.AddRange(IndexList.Take(IndexList.Count - 1))
+                    For i = 0 To IndexList.Count - 2
+                        newIndexes.Add(IndexList(i))
+                    Next
                 End If
                 IndexList = newIndexes
             End If
@@ -231,39 +235,69 @@ Namespace Greaseweazle.Core
             ErrorHandling.Check(IndexList.Count > 0, "Need at least one revolution to adjust # revolutions")
 
             If IndexList.Count > revs Then
-                IndexList = IndexList.Take(revs).ToList()
-                If SectorList IsNot Nothing Then
-                    SectorList = SectorList.Take(revs).ToList()
+                ' Truncation path: keep the first `revs` revolutions and
+                ' clip the flux list at the wall-clock end of the last one.
+                If IndexList.Count > revs Then IndexList.RemoveRange(revs, IndexList.Count - revs)
+                If SectorList IsNot Nothing AndAlso SectorList.Count > revs Then
+                    SectorList.RemoveRange(revs, SectorList.Count - revs)
                 End If
 
-                Dim toIndex = IndexList.Sum()
+                Dim toIndex = 0.0
+                For k = 0 To IndexList.Count - 1
+                    toIndex += IndexList(k)
+                Next
                 For i = 0 To List.Count - 1
                     toIndex -= List(i)
                     If toIndex < 0 Then
-                        List = List.Take(i).ToList()
+                        ' List(Of T).RemoveRange uses Array.Copy internally and
+                        ' keeps the backing buffer; cheaper than allocating a
+                        ' fresh List via Take(i).ToList().
+                        List.RemoveRange(i, List.Count - i)
                         Exit For
                     End If
                 Next
             End If
 
+            ' Synthesis path: was `Dim l = List.ToList()` cloning the whole
+            ' flux list per iteration plus several Concat().ToList() rebuilds,
+            ' each O(N) on the (growing) List. The synthesised flux list grows
+            ' by ~N/revs per iteration so the doubling chain is bounded, but
+            ' the per-iteration constant was easily 5x what it needs to be.
+            ' Now we scan List by index, build the new flux list directly,
+            ' and prepend the duplicated index/sector entries via InsertRange
+            ' (single Array.Copy shift) instead of Concat+ToList.
             While IndexList.Count < revs
                 Dim nr = Math.Min(revs - IndexList.Count, IndexList.Count)
-                Dim toIndex = IndexList.Take(nr).Sum()
-                Dim l = List.ToList()
-                For i = 0 To l.Count - 1
-                    toIndex -= l(i)
+                Dim toIndex = 0.0
+                For k = 0 To nr - 1
+                    toIndex += IndexList(k)
+                Next
+                Dim truncIdx = List.Count
+                For i = 0 To List.Count - 1
+                    toIndex -= List(i)
                     If toIndex < 0 Then
-                        toIndex += l(i)
-                        l = l.Take(i).ToList()
+                        toIndex += List(i)
+                        truncIdx = i
                         Exit For
                     End If
                 Next
                 If List.Count > 0 Then
-                    List = l.Concat({toIndex + List(0)}).Concat(List.Skip(1)).ToList()
+                    ' Python: flux_list = l[:truncIdx] + [to_index + flux_list[0]] + flux_list[1:]
+                    Dim newCount = truncIdx + 1 + Math.Max(0, List.Count - 1)
+                    Dim newList As New List(Of Double)(newCount)
+                    For i = 0 To truncIdx - 1
+                        newList.Add(List(i))
+                    Next
+                    newList.Add(toIndex + List(0))
+                    For i = 1 To List.Count - 1
+                        newList.Add(List(i))
+                    Next
+                    List = newList
                 End If
-                IndexList = IndexList.Take(nr).Concat(IndexList).ToList()
+                ' Python: index_list = index_list[:nr] + index_list
+                IndexList.InsertRange(0, IndexList.GetRange(0, nr))
                 If SectorList IsNot Nothing Then
-                    SectorList = SectorList.Take(nr).Concat(SectorList).ToList()
+                    SectorList.InsertRange(0, SectorList.GetRange(0, nr))
                 End If
             End While
         End Sub

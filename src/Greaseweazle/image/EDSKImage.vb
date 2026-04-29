@@ -92,7 +92,8 @@ Namespace Greaseweazle.Images
                         dataSize = 128 << Math.Min(Math.Max(secSz, 0), 7)
                     End If
                     ErrorHandling.Check(dataPos + dataSize <= data.Length, "EDSK: Missing track header")
-                    Dim payload = data.Skip(dataPos).Take(dataSize).ToArray()
+                    Dim payload(dataSize - 1) As Byte
+                    If dataSize > 0 Then Array.Copy(data, dataPos, payload, 0, dataSize)
                     dataPos += dataSize
 
                     sectors.Add(New ParsedSector With {
@@ -264,6 +265,20 @@ Namespace Greaseweazle.Images
             Return output.ToArray()
         End Function
 
+        ' Allocates a fresh Byte() filled with `value`. Used as a drop-in for
+        ' Enumerable.Repeat(value, count).ToArray() in the gap-fill hot paths
+        ' (called per-sector × per-track ≈ 10K times per disk write).
+        Private Shared Function RepeatByte(value As Byte, count As Integer) As Byte()
+            If count <= 0 Then Return Array.Empty(Of Byte)()
+            Dim result(count - 1) As Byte
+            If value <> 0 Then
+                For i = 0 To count - 1
+                    result(i) = value
+                Next
+            End If
+            Return result
+        End Function
+
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::MFMGaps.gap3 (table lookup helper)
         Private Shared Function MfmGapsGap3ForN(n As Integer) As Integer
             ' Python MFMGaps.gap3 table = [0x36, 0x54, 0x74, 0xff]; default 0xff for n>=4.
@@ -293,11 +308,15 @@ Namespace Greaseweazle.Images
             Dim gap2 = 22
             Dim encoded As New List(Of Byte)()
 
-            encoded.AddRange(EncodeBytes(Enumerable.Repeat(gapByte, gap4a).Select(Function(x) CByte(x)).ToArray()))
-            encoded.AddRange(EncodeBytes(Enumerable.Repeat(CByte(0), gapPreSync).ToArray()))
+            ' Was Enumerable.Repeat(gapByte, N).Select(CByte).ToArray() everywhere
+            ' below — the .Select(CByte) was a redundant cast (gapByte is already
+            ' Byte) and the LINQ chain allocated an enumerator + a fresh Byte()
+            ' per call. RepeatByte uses a single Array allocation + indexed fill.
+            encoded.AddRange(EncodeBytes(RepeatByte(gapByte, gap4a)))
+            encoded.AddRange(EncodeBytes(New Byte(gapPreSync - 1) {}))
             encoded.AddRange(New Byte() {&H52, &H24, &H52, &H24, &H52, &H24})
             encoded.AddRange(EncodeBytes(New Byte() {MarkIam}))
-            encoded.AddRange(EncodeBytes(Enumerable.Repeat(gapByte, gap1).Select(Function(x) CByte(x)).ToArray()))
+            encoded.AddRange(EncodeBytes(RepeatByte(gapByte, gap1)))
 
             For i = 0 To sectors.Count - 1
                 Dim s = sectors(i)
@@ -306,7 +325,7 @@ Namespace Greaseweazle.Images
                 Dim dataCrcError = (s.St2 And &H20) <> 0
                 Dim deletedDam = (s.St2 And &H40) <> 0
 
-                encoded.AddRange(EncodeBytes(Enumerable.Repeat(CByte(0), gapPreSync).ToArray()))
+                encoded.AddRange(EncodeBytes(New Byte(gapPreSync - 1) {}))
                 encoded.AddRange(New Byte() {&H44, &H89, &H44, &H89, &H44, &H89})
                 Dim idam As New List(Of Byte) From {&HA1, &HA1, &HA1, MarkIdam, CByte(s.C And &HFF), CByte(s.H And &HFF), CByte(s.R And &HFF), CByte(s.N And &HFF)}
                 Dim idCrc = ComputeCrcCcittFalse(idam.ToArray())
@@ -315,22 +334,23 @@ Namespace Greaseweazle.Images
                 End If
                 idam.Add(CByte((idCrc >> 8) And &HFF))
                 idam.Add(CByte(idCrc And &HFF))
-                encoded.AddRange(EncodeBytes(idam.Skip(3).ToArray()))
-                encoded.AddRange(EncodeBytes(Enumerable.Repeat(gapByte, gap2).Select(Function(x) CByte(x)).ToArray()))
+                Dim idamRest(idam.Count - 4) As Byte
+                idam.CopyTo(3, idamRest, 0, idam.Count - 3)
+                encoded.AddRange(EncodeBytes(idamRest))
+                encoded.AddRange(EncodeBytes(RepeatByte(gapByte, gap2)))
 
                 If idCrcError OrElse dataNotFound Then
                     Continue For
                 End If
 
-                encoded.AddRange(EncodeBytes(Enumerable.Repeat(CByte(0), gapPreSync).ToArray()))
+                encoded.AddRange(EncodeBytes(New Byte(gapPreSync - 1) {}))
                 encoded.AddRange(New Byte() {&H44, &H89, &H44, &H89, &H44, &H89})
 
                 Dim body = s.Data
-                If body.Length < s.NativeSize Then
-                    body = body.Concat(Enumerable.Repeat(CByte(0), s.NativeSize - body.Length)).ToArray()
-                End If
-                If body.Length > s.NativeSize Then
-                    body = body.Take(s.NativeSize).ToArray()
+                If body.Length <> s.NativeSize Then
+                    Dim resized(s.NativeSize - 1) As Byte
+                    Array.Copy(body, 0, resized, 0, Math.Min(body.Length, s.NativeSize))
+                    body = resized
                 End If
 
                 Dim mark = If(deletedDam, MarkDdam, MarkDam)
@@ -342,10 +362,12 @@ Namespace Greaseweazle.Images
                 End If
                 dam.Add(CByte((dataCrc >> 8) And &HFF))
                 dam.Add(CByte(dataCrc And &HFF))
-                encoded.AddRange(EncodeBytes(dam.Skip(3).ToArray()))
+                Dim damRest(dam.Count - 4) As Byte
+                dam.CopyTo(3, damRest, 0, dam.Count - 3)
+                encoded.AddRange(EncodeBytes(damRest))
 
                 If i <> sectors.Count - 1 Then
-                    encoded.AddRange(EncodeBytes(Enumerable.Repeat(gapByte, Math.Max(0, gap3)).Select(Function(x) CByte(x)).ToArray()))
+                    encoded.AddRange(EncodeBytes(RepeatByte(gapByte, Math.Max(0, gap3))))
                 End If
             Next
 
@@ -356,7 +378,7 @@ Namespace Greaseweazle.Images
             ' 0.16666.../1e-6/16 = 10416.666 -> int=10416, CInt=10417).
             Dim tracklen = CInt(Math.Truncate((timePerRev / clock) / 16.0))
             Dim gap = Math.Max(40, tracklen - (encoded.Count \ 2))
-            encoded.AddRange(EncodeBytes(Enumerable.Repeat(gapByte, gap).Select(Function(x) CByte(x)).ToArray()))
+            encoded.AddRange(EncodeBytes(RepeatByte(gapByte, gap)))
 
             Dim bits = BytesToBits(MfmEncode(encoded.ToArray())).ToList()
             Return New MasterTrack(bits, timePerRev)

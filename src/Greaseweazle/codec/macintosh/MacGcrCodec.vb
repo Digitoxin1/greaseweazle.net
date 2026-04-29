@@ -188,8 +188,10 @@ Namespace Greaseweazle.Codecs
                 If NrMissing() = 0 Then Exit For
 
                 Dim headerOffs = offs + 24
-                Dim headerGcrBits = bits.Skip(headerOffs).Take(5 * 8).ToList()
-                If headerGcrBits.Count <> 40 Then Continue For
+                ' bits is List(Of Boolean); GetRange is O(n) (Array.Copy) vs
+                ' Enumerable.Skip(N).Take(M).ToList() which is O(N+M).
+                If bits.Count - headerOffs < 5 * 8 Then Continue For
+                Dim headerGcrBits = bits.GetRange(headerOffs, 5 * 8)
                 Dim headerDecoded = MacGcrDecode(BitsToBytes(headerGcrBits))
                 If headerDecoded.Length <> 5 Then Continue For
                 Dim sum = headerDecoded.Aggregate(0, Function(a, x) a Xor x)
@@ -205,13 +207,15 @@ Namespace Greaseweazle.Codecs
                 End If
 
                 Dim searchStart = headerOffs + 40
-                Dim searchBits = bits.Skip(searchStart).Take(100 * 8).ToList()
+                Dim searchLen = Math.Min(100 * 8, bits.Count - searchStart)
+                If searchLen <= 0 Then Continue For
+                Dim searchBits = bits.GetRange(searchStart, searchLen)
                 Dim dataSyncHits = FindPatternOffsets(searchBits, DataSyncPattern).ToList()
                 If dataSyncHits.Count <> 1 Then Continue For
 
                 Dim dataOffs = searchStart + dataSyncHits(0) + 32
-                Dim secBits = bits.Skip(dataOffs).Take(EncSectorLen * 8).ToList()
-                If secBits.Count <> EncSectorLen * 8 Then Continue For
+                If bits.Count - dataOffs < EncSectorLen * 8 Then Continue For
+                Dim secBits = bits.GetRange(dataOffs, EncSectorLen * 8)
                 Dim secDecodedGcr = MacGcrDecode(BitsToBytes(secBits))
                 If secDecodedGcr.Length <> EncSectorLen Then Continue For
                 Dim decoded = DecodeMacSector(secDecodedGcr)
@@ -231,10 +235,11 @@ Namespace Greaseweazle.Codecs
             For nr = 0 To _secs - 1
                 Dim secId = _secMap(nr)
                 Dim data = If(_sectors(secId), New Byte(11) {}.Concat(BadSector).ToArray())
-                If data.Length < SectorLen Then
-                    data = data.Concat(Enumerable.Repeat(CByte(0), SectorLen - data.Length)).ToArray()
+                If data.Length <> SectorLen Then
+                    Dim resized(SectorLen - 1) As Byte
+                    Array.Copy(data, 0, resized, 0, Math.Min(data.Length, SectorLen))
+                    data = resized
                 End If
-                data = data.Take(SectorLen).ToArray()
 
                 Dim cyl = _cyl
                 Dim side = _head

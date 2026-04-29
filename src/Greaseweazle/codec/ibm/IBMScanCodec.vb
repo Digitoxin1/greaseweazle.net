@@ -334,7 +334,9 @@ Namespace Greaseweazle.Codecs
                     pending = Nothing
                     Continue For
                 End If
-                sectors(pending.R) = payload.Skip(4).Take(size).ToArray()
+                Dim mfmData(size - 1) As Byte
+                Array.Copy(payload, 4, mfmData, 0, size)
+                sectors(pending.R) = mfmData
                 sectorNs(pending.R) = pending.N
                 pending = Nothing
             Next
@@ -384,7 +386,9 @@ Namespace Greaseweazle.Codecs
                     pending = Nothing
                     Continue For
                 End If
-                sectors(pending.R) = payload.Skip(1).Take(size).ToArray()
+                Dim fmData(size - 1) As Byte
+                Array.Copy(payload, 1, fmData, 0, size)
+                sectors(pending.R) = fmData
                 sectorNs(pending.R) = pending.N
                 pending = Nothing
             Next

@@ -134,6 +134,16 @@ Notes for embedders:
 - Wire `LibraryDiagnostics.MessageEmitted` if you want to mirror Python's informational/warning lines (printer, no-IPF-DLL hint, etc.) into your own logger.
 - All fatal errors surface as `FatalException` (or one of its subclasses); structured fields on each subclass (e.g. `UnrecognisedSuffixException.KnownSuffixes`) let you build your own UI without parsing strings.
 
+### CAPS / IPF support
+
+`.ipf` images are read through SPS's CAPSImg native library, which is not redistributed with this repo. To enable IPF reads:
+
+1. Obtain `CAPSImg.dll` (e.g. from the upstream Greaseweazle Windows release at <https://github.com/keirf/greaseweazle/releases>) and drop it next to `gw-vb.exe`, or somewhere on the loader path.
+2. Confirm that the DLL bitness matches the `gw-vb.exe` process (AnyCPU on a 64-bit OS resolves to a 64-bit process and needs the x64 build of `CAPSImg.dll`).
+3. The library probes `CAPSImg_x64.dll` first and falls back to `CAPSImg.dll`; either filename works.
+
+If the library is missing, the Greaseweazle DLL throws `CapsLibraryNotFoundException` (the CLI renders the wiki link plus a probe-error trace).
+
 ## Parity Tooling
 
 The `tools/` Python scripts and `docs/` artifacts support ongoing parity auditing against `python_source/`. They read `python_source/src/greaseweazle/...` and the VB sources under `src/Greaseweazle/` and regenerate the manifests:
@@ -143,6 +153,8 @@ The `tools/` Python scripts and `docs/` artifacts support ongoing parity auditin
 - `python tools/refine_parity_checklist.py` — post-processes `docs/parity-checklist.json` with inferred mappings.
 - `python tools/generate_diskdefs_xml.py` — converts upstream `python_source/src/greaseweazle/data/*.cfg` files into the embedded XML resources under `src/Greaseweazle/data/`.
 - `python tools/generate_parity_fixtures.py` — produces fixtures for ad-hoc comparison runs.
+
+For a behavioural / runtime-output parity status (what's been exercised against `gw.exe` v1.23 at runtime), see [`docs/runtime-test-checklist.md`](docs/runtime-test-checklist.md). The static `docs/parity-checklist.md` covers Python→VB symbol coverage; the runtime checklist tracks live-hardware tests, malformed-input sweeps, argparse-contract spot-checks, and remaining gaps.
 
 ## Versioning
 

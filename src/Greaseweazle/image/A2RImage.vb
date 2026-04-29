@@ -38,7 +38,9 @@ Namespace Greaseweazle.Images
                 pos += 8
                 ErrorHandling.Check(pos + size <= data.Length, "A2R: Corrupt chunk size")
                 If chunkId = "RWCP" Then
-                    ProcessRwcp(data.Skip(pos).Take(size).ToArray())
+                    Dim rwcp(size - 1) As Byte
+                    If size > 0 Then Array.Copy(data, pos, rwcp, 0, size)
+                    ProcessRwcp(rwcp)
                 End If
                 pos += size
             End While
@@ -99,7 +101,10 @@ Namespace Greaseweazle.Images
                     track = New A2RTrack(cyl, head, psPerTick)
                     _tracks(key) = track
                 End If
-                track.AddCap(chunk.Skip(start).Take(i - start).ToArray())
+                Dim capLen = i - start
+                Dim cap(capLen - 1) As Byte
+                If capLen > 0 Then Array.Copy(chunk, start, cap, 0, capLen)
+                track.AddCap(cap)
             End While
         End Sub
 

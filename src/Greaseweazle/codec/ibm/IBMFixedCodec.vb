@@ -733,6 +733,22 @@ Namespace Greaseweazle.Codecs
         Private Const MarkDdam As Byte = &HF8
         Private Const MarkDamTrs80Dir As Byte = &HFA
 
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.mode
+        ' The HFE writer needs to know whether a fixed IBM track is FM or MFM
+        ' (HFE encodes FM at double rate). Python exposes `track.mode`; we
+        ' derive it from the format name we were constructed with.
+        Public ReadOnly Property Mode As IbmMode
+            Get
+                If String.Equals(_formatName, "ibm.fm", StringComparison.OrdinalIgnoreCase) Then
+                    Return IbmMode.Fm
+                End If
+                If String.Equals(_formatName, "dec.rx02", StringComparison.OrdinalIgnoreCase) Then
+                    Return IbmMode.DecRx02
+                End If
+                Return IbmMode.Mfm
+            End Get
+        End Property
+
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.__init__
         Public Sub New(formatName As String,
                        cyl As Integer,
@@ -1040,7 +1056,8 @@ Namespace Greaseweazle.Codecs
                     Continue For
                 End If
 
-                Dim data = sectorBytes.Skip(4).Take(size).ToArray()
+                Dim data(size - 1) As Byte
+                Array.Copy(sectorBytes, 4, data, 0, size)
                 _sectorData(idx) = data
                 _sectorValid(idx) = True
                 pending = Nothing
@@ -1128,7 +1145,9 @@ Namespace Greaseweazle.Codecs
                     pending = Nothing
                     Continue For
                 End If
-                _sectorData(idx) = sectorBytes.Skip(1).Take(size).ToArray()
+                Dim secData(size - 1) As Byte
+                Array.Copy(sectorBytes, 1, secData, 0, size)
+                _sectorData(idx) = secData
                 _sectorValid(idx) = True
                 pending = Nothing
             Next
@@ -1247,7 +1266,9 @@ Namespace Greaseweazle.Codecs
                         pending = Nothing
                         Continue For
                     End If
-                    Dim mmSeg = mmBits.Skip(ds).Take(de - ds).ToList()
+                    ' mmBits is List(Of Boolean); GetRange is O(n) (Array.Copy)
+                    ' vs Enumerable.Skip(ds).Take(de-ds).ToList() which is O(de).
+                    Dim mmSeg = mmBits.GetRange(ds, de - ds)
                     Dim dec = DecMmfmDecode(mmSeg)
                     payload = New Byte() {mark}.Concat(dec).ToArray()
                 Else
@@ -1264,7 +1285,10 @@ Namespace Greaseweazle.Codecs
                     pending = Nothing
                     Continue For
                 End If
-                _sectorData(idx) = payload.Skip(1).Take(payload.Length - 3).ToArray()
+                Dim mmLen = payload.Length - 3
+                Dim mmSecData(mmLen - 1) As Byte
+                Array.Copy(payload, 1, mmSecData, 0, mmLen)
+                _sectorData(idx) = mmSecData
                 _sectorValid(idx) = True
                 pending = Nothing
             Next
@@ -1379,6 +1403,13 @@ Namespace Greaseweazle.Codecs
             Dim encoded As New List(Of Byte)()
             AppendEncodedRepeated(encoded, gapByte, gap4a)
             If _emitIam Then
+                ' Python's mfm_master_track emits gap_presync (12 zero bytes)
+                ' before EVERY area sync (IAM as well as IDAM/DAM). The earlier
+                ' VB version omitted the IAM presync, producing a 24-encoded-
+                ' byte shift across the rest of the track that left .ima/.po
+                ' -> .hfe byte-different from gw.exe even though the sector
+                ' content matched.
+                AppendEncodedRepeated(encoded, 0, gapPresync)
                 AppendRawMfmIamSync(encoded)
                 AppendEncodedByte(encoded, &HFC)
                 AppendEncodedRepeated(encoded, gapByte, gap1)

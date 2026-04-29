@@ -131,12 +131,14 @@ Namespace Greaseweazle.Codecs
             Dim bits = raw.GetAllData().Item1
             For Each offs In FindPatternOffsets(bits, SyncPattern)
                 If NrMissing() = 0 Then Exit For
-                Dim segBits = bits.Skip(offs).Take(544 * 16).ToList()
-                If segBits.Count <> 544 * 16 Then Continue For
+                ' bits is List(Of Boolean); GetRange is O(n) (Array.Copy) vs
+                ' Enumerable.Skip(offs).Take(n).ToList() which is O(offs+n).
+                If bits.Count - offs < 544 * 16 Then Continue For
+                Dim segBits = bits.GetRange(offs, 544 * 16)
                 Dim sec = BitsToBytes(segBits)
                 If sec.Length <> 1088 Then Continue For
 
-                Dim header = Decode(sec.Skip(4).Take(8).ToArray())
+                Dim header = Decode(SubArray(sec, 4, 8))
                 If header.Length <> 4 Then Continue For
                 Dim fmt = header(0)
                 Dim trk = header(1)
@@ -146,16 +148,16 @@ Namespace Greaseweazle.Codecs
                     Continue For
                 End If
 
-                Dim label = Decode(sec.Skip(12).Take(32).ToArray())
-                Dim hsumBytes = Decode(sec.Skip(44).Take(8).ToArray())
+                Dim label = Decode(SubArray(sec, 12, 32))
+                Dim hsumBytes = Decode(SubArray(sec, 44, 8))
                 If hsumBytes.Length <> 4 Then Continue For
                 Dim hsum = BytesToUInt32BE(hsumBytes)
                 If hsum <> Checksum(header.Concat(label).ToArray()) Then Continue For
 
-                Dim dsumBytes = Decode(sec.Skip(52).Take(8).ToArray())
+                Dim dsumBytes = Decode(SubArray(sec, 52, 8))
                 If dsumBytes.Length <> 4 Then Continue For
                 Dim dsum = BytesToUInt32BE(dsumBytes)
-                Dim data = Decode(sec.Skip(60).Take(1024).ToArray())
+                Dim data = Decode(SubArray(sec, 60, 1024))
                 If data.Length <> 512 Then Continue For
                 If dsum <> Checksum(data) Then Continue For
 
@@ -267,16 +269,37 @@ Namespace Greaseweazle.Codecs
 
         ' Python map: src/greaseweazle/codec/amiga/amigados.py::checksum
         Public Shared Function Checksum(data As Byte()) As UInteger
+            ' Was: data.Skip(i).Take(4).ToArray() inside this Step-4 loop, which
+            ' made each iteration O(i) (Enumerable.Skip walks the iterator i
+            ' times) and the whole function O(N^2/8). For a 512-byte sector
+            ' that's ~32K LINQ ops per call, repeated ~3500 times per Amiga
+            ' disk write. Indexed reads make it O(N).
             Dim csum As UInteger = 0UI
             For i = 0 To data.Length - 1 Step 4
-                csum = csum Xor BytesToUInt32BE(data.Skip(i).Take(4).ToArray())
+                csum = csum Xor BytesToUInt32BE(data, i)
             Next
             Return (csum Xor (csum >> 1)) And &H55555555UI
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration BytesToUInt32BE)
         Private Shared Function BytesToUInt32BE(data As Byte()) As UInteger
-            Return (CUInt(data(0)) << 24) Or (CUInt(data(1)) << 16) Or (CUInt(data(2)) << 8) Or CUInt(data(3))
+            Return BytesToUInt32BE(data, 0)
+        End Function
+
+        Private Shared Function BytesToUInt32BE(data As Byte(), offset As Integer) As UInteger
+            Return (CUInt(data(offset)) << 24) _
+                Or (CUInt(data(offset + 1)) << 16) _
+                Or (CUInt(data(offset + 2)) << 8) _
+                Or CUInt(data(offset + 3))
+        End Function
+
+        ' Allocate a fresh Byte() containing source[offset..offset+length).
+        ' Equivalent to source.Skip(offset).Take(length).ToArray() but
+        ' uses Array.Copy (O(length)) instead of Enumerable.Skip (O(offset+length)).
+        Private Shared Function SubArray(source As Byte(), offset As Integer, length As Integer) As Byte()
+            Dim result(length - 1) As Byte
+            Array.Copy(source, offset, result, 0, length)
+            Return result
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration UInt32ToBytesBE)

@@ -102,8 +102,16 @@ Namespace Greaseweazle.Codecs
                                 ErrorHandling.Check(disk.Cyls.HasValue, "missing cyls")
                                 ErrorHandling.Check(disk.Heads.HasValue, "missing heads")
                                 track = CodecRegistry.MkTrackdef(tracksMatch.Groups(2).Value)
+                                ' `*` is "fill the remaining tracks": it must NOT overwrite
+                                ' explicit specs that came earlier in the same `disk` block.
+                                ' Explicit ranges (e.g. `0-16`) overwrite as before.
+                                ' Mirrors Python: codec.py::_get_diskdef -> `if (c,hd) not in track_map`.
                                 For Each entry In ExpandTrackSpec(tracksMatch.Groups(1).Value, disk.Cyls.Value, disk.Heads.Value)
-                                    disk.TrackMap(Tuple.Create(entry.Item1, entry.Item2)) = track
+                                    Dim key = Tuple.Create(entry.Item1, entry.Item2)
+                                    If entry.Item3 AndAlso disk.TrackMap.ContainsKey(key) Then
+                                        Continue For
+                                    End If
+                                    disk.TrackMap(key) = track
                                 Next
                                 Continue For
                             End If
@@ -179,15 +187,18 @@ Namespace Greaseweazle.Codecs
         End Function
 
         ' Python map: src/greaseweazle/codec/codec.py::(no direct 1:1 symbol; VB helper extracted from inline track-spec expansion logic in _get_diskdef)
+        ' Returns (cyl, head, fromWildcard) triples. The wildcard flag lets the
+        ' caller mirror Python's "fill remaining" semantics for `*` specs:
+        ' wildcard entries must not overwrite earlier explicit assignments.
         Private Shared Function ExpandTrackSpec(spec As String,
                                                 cyls As Integer,
-                                                heads As Integer) As IEnumerable(Of Tuple(Of Integer, Integer))
-            Dim output As New List(Of Tuple(Of Integer, Integer))()
+                                                heads As Integer) As IEnumerable(Of Tuple(Of Integer, Integer, Boolean))
+            Dim output As New List(Of Tuple(Of Integer, Integer, Boolean))()
             For Each entry In spec.Split(","c)
                 If entry = "*" Then
                     For c = 0 To cyls - 1
                         For h = 0 To heads - 1
-                            output.Add(Tuple.Create(c, h))
+                            output.Add(Tuple.Create(c, h, True))
                         Next
                     Next
                     Continue For
@@ -210,7 +221,7 @@ Namespace Greaseweazle.Codecs
                 ErrorHandling.Check(s >= 0 AndAlso e >= 0 AndAlso s <= e AndAlso s < cyls AndAlso e < cyls, "cylinder out of range")
                 For c = s To e
                     For Each h In headList
-                        output.Add(Tuple.Create(c, h))
+                        output.Add(Tuple.Create(c, h, False))
                     Next
                 Next
             Next

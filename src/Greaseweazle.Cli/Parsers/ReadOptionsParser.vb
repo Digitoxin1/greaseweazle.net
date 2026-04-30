@@ -182,10 +182,21 @@ Namespace Greaseweazle.Cli.Parsers
                 revsDisplay = resolvedRevs.ToString(Globalization.CultureInfo.InvariantCulture)
             End If
 
-            ' Python read.py:275-281: shared resolution of --tracks against
-            ' the format's default range. See ParserHelpers.ResolveTracksOption.
-            Dim tracks As TrackSet = ParserHelpers.ResolveTracksOption(
-                "read", "--tracks", tracksSpec, format, diskDefsPath, "c=0-81:h=0-1")
+            ' --tracks is captured as user intent (TrackSetSpec); the engine
+            ' folds it against format defaults inside RunFromOptions. The
+            ' partial constructor still throws ArgumentException for malformed
+            ' input, so parse-time error reporting is unchanged.
+            Dim tracks As TrackSetSpec = Nothing
+            If tracksSpec IsNot Nothing AndAlso tracksSpec.Length = 0 Then
+                Argparse("argument --tracks: invalid TrackSet value: ''")
+            End If
+            If tracksSpec IsNot Nothing Then
+                Try
+                    tracks = New TrackSetSpec(tracksSpec)
+                Catch ex As ArgumentException
+                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
+                End Try
+            End If
             Dim drive As DriveSpec = Nothing
             Try
                 drive = ParserHelpers.Drive(driveToken)
@@ -201,7 +212,6 @@ Namespace Greaseweazle.Cli.Parsers
                 .FileName = positionals(0),
                 .Format = format,
                 .DiskDefsPath = diskDefsPath,
-                .Tracks = tracks.ToString(),
                 .TrackSet = tracks,
                 .Revs = resolvedRevs,
                 .FractionalRevs = fractionalRevs,

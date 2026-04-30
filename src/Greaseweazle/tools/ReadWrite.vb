@@ -8,12 +8,17 @@ Imports System.IO
 Namespace Greaseweazle.Tools
 
     ' Strongly-typed options for the `read` action.
+    '
+    ' TrackSet is a TrackSetSpec (partial / user intent): the parser captures
+    ' only the keys the user named in --tracks, and the engine folds them
+    ' against the format defaults inside RunFromOptions via
+    ' TrackResolution.ResolveSpec. Hosts can leave it Nothing to accept
+    ' format defaults verbatim, or build one with `New TrackSetSpec("c=0-1")`.
     Public Class ReadOptions
         Public Property FileName As String
         Public Property Format As String
         Public Property DiskDefsPath As String
-        Public Property Tracks As String
-        Public Property TrackSet As TrackSet
+        Public Property TrackSet As TrackSetSpec
         Public Property Revs As Integer
         ' Python read.py:174-184 keeps a fractional default_revs as a float and converts
         ' it to a tick budget at runtime (after measuring drive ticks-per-rev). When the
@@ -42,14 +47,17 @@ Namespace Greaseweazle.Tools
     End Class
 
     ' Strongly-typed options for the `write` action.
+    '
+    ' TrackSet is a TrackSetSpec (partial / user intent) — see ReadOptions
+    ' for the rationale. The engine resolves it against format defaults
+    ' inside RunFromOptions.
     Public Class WriteOptions
         Public Property FileName As String
         Public Property Format As String
         Public Property DiskDefsPath As String
-        Public Property Tracks As String
         Public Property Precomp As String
         Public Property PrecompSpec As String
-        Public Property TrackSet As TrackSet
+        Public Property TrackSet As TrackSetSpec
         Public Property PreErase As Boolean
         Public Property EraseEmpty As Boolean
         Public Property HardSectors As Boolean
@@ -112,6 +120,11 @@ Namespace Greaseweazle.Tools
         '                      once per retry attempt
         '   onTrackGaveUp    - fires only when the retry budget is
         '                      exhausted with sectors still missing
+        '   onUnexpectedSector - fires once per unique (C,H,R,N) tuple
+        '                      drained from a HasDecodeDiagnostics codec
+        '                      after each DecodeFlux pass; mirrors the
+        '                      Python "Ignoring unexpected sector ..."
+        '                      print but as structured data.
         ' Returns (flux, decoded-or-Nothing) so the caller can decide
         ' which artefact to emit to its output image.
         Public Shared Function ReadWithRetry(usbClient As Unit,
@@ -131,7 +144,8 @@ Namespace Greaseweazle.Tools
                                              Optional retries As Integer = 3,
                                              Optional seekRetries As Integer = 0,
                                              Optional genTg43 As Boolean = False,
-                                             Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing) As Tuple(Of Flux, HasFlux)
+                                             Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing,
+                                             Optional onUnexpectedSector As Action(Of Greaseweazle.Actions.ReadUnexpectedSectorEventArgs) = Nothing) As Tuple(Of Flux, HasFlux)
             Dim trackInfo = Greaseweazle.Actions.ReadTrackInfo.FromTrackIter(t)
             usbClient.Seek(t.PhysicalCyl, t.PhysicalHead)
             If genTg43 Then
@@ -151,7 +165,9 @@ Namespace Greaseweazle.Tools
                     onTrackProcessed(New Greaseweazle.Actions.ReadTrackProcessedEventArgs(
                         trackInfo,
                         Greaseweazle.Actions.ReadTrackOutcome.NoFormat,
-                        flux.SummaryString(), Nothing, Nothing, 0, 0))
+                        flux.SummaryString(), Nothing, Nothing, 0, 0, 0, 0,
+                        flux.List.Count,
+                        flux.List.Sum() * 1000.0 / flux.SampleFreq))
                 End If
                 Return Tuple.Create(flux, CType(flux, HasFlux))
             End If
@@ -167,15 +183,19 @@ Namespace Greaseweazle.Tools
                     onTrackProcessed(New Greaseweazle.Actions.ReadTrackProcessedEventArgs(
                         trackInfo,
                         Greaseweazle.Actions.ReadTrackOutcome.OutOfRange,
-                        flux.SummaryString(), Nothing, If(formatName, String.Empty), 0, 0))
+                        flux.SummaryString(), Nothing, If(formatName, String.Empty), 0, 0, 0, 0,
+                        flux.List.Count,
+                        flux.List.Sum() * 1000.0 / flux.SampleFreq))
                 End If
                 Return Tuple.Create(flux, CType(Nothing, HasFlux))
             End If
+            DrainUnexpectedSectorsForRead(dat, trackInfo, onUnexpectedSector)
             For i = 1 To profiles.Count - 1
                 If dat.NrMissing() = 0 Then
                     Exit For
                 End If
                 dat.DecodeFlux(flux, profiles(i))
+                DrainUnexpectedSectorsForRead(dat, trackInfo, onUnexpectedSector)
             Next
 
             Dim seekRetry = 0
@@ -187,7 +207,11 @@ Namespace Greaseweazle.Tools
                         Greaseweazle.Actions.ReadTrackOutcome.Decoded,
                         flux.SummaryString(),
                         dat.SummaryString(),
-                        Nothing, seekRetry, retry))
+                        Nothing, seekRetry, retry,
+                        dat.Nsec - dat.NrMissing(),
+                        dat.Nsec,
+                        flux.List.Count,
+                        flux.List.Sum() * 1000.0 / flux.SampleFreq))
                 End If
                 If dat.NrMissing() = 0 Then
                     Exit While
@@ -225,6 +249,7 @@ Namespace Greaseweazle.Tools
                         Exit For
                     End If
                     dat.DecodeFlux(retryFlux, pll)
+                    DrainUnexpectedSectorsForRead(dat, trackInfo, onUnexpectedSector)
                 Next
                 If raw Then
                     flux.Append(retryFlux)
@@ -234,6 +259,62 @@ Namespace Greaseweazle.Tools
             End While
             Return Tuple.Create(flux, CType(dat, HasFlux))
         End Function
+
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
+        '   (the inline `for m in mismatches: print(...)` loop). VB lifts
+        '   that print into a structured drain: codecs that implement
+        '   HasDecodeDiagnostics buffer per-pass findings, and we call
+        '   this helper after each DecodeFlux invocation to translate
+        '   them into typed Read events. No-op when the codec doesn't
+        '   implement HasDecodeDiagnostics or when no callback is wired.
+        Private Shared Sub DrainUnexpectedSectorsForRead(dat As Object,
+                                                         trackInfo As Greaseweazle.Actions.ReadTrackInfo,
+                                                         onUnexpectedSector As Action(Of Greaseweazle.Actions.ReadUnexpectedSectorEventArgs))
+            If onUnexpectedSector Is Nothing Then Return
+            Dim hd = TryCast(dat, HasDecodeDiagnostics)
+            If hd Is Nothing Then Return
+            For Each d In hd.DrainDecodeDiagnostics()
+                Dim us = TryCast(d, UnexpectedSectorDiagnostic)
+                If us IsNot Nothing Then
+                    onUnexpectedSector(New Greaseweazle.Actions.ReadUnexpectedSectorEventArgs(
+                        trackInfo, us.C, us.H, us.R, us.N))
+                End If
+            Next
+        End Sub
+
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
+        '   (drain helper; Write twin of DrainUnexpectedSectorsForRead).
+        Public Shared Sub DrainUnexpectedSectorsForWrite(dat As Object,
+                                                         trackInfo As Greaseweazle.Actions.WriteTrackInfo,
+                                                         onUnexpectedSector As Action(Of Greaseweazle.Actions.WriteUnexpectedSectorEventArgs))
+            If onUnexpectedSector Is Nothing Then Return
+            Dim hd = TryCast(dat, HasDecodeDiagnostics)
+            If hd Is Nothing Then Return
+            For Each d In hd.DrainDecodeDiagnostics()
+                Dim us = TryCast(d, UnexpectedSectorDiagnostic)
+                If us IsNot Nothing Then
+                    onUnexpectedSector(New Greaseweazle.Actions.WriteUnexpectedSectorEventArgs(
+                        trackInfo, us.C, us.H, us.R, us.N))
+                End If
+            Next
+        End Sub
+
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
+        '   (drain helper; Convert twin of DrainUnexpectedSectorsForRead).
+        Public Shared Sub DrainUnexpectedSectorsForConvert(dat As Object,
+                                                           trackInfo As Greaseweazle.Actions.ConvertTrackInfo,
+                                                           onUnexpectedSector As Action(Of Greaseweazle.Actions.ConvertUnexpectedSectorEventArgs))
+            If onUnexpectedSector Is Nothing Then Return
+            Dim hd = TryCast(dat, HasDecodeDiagnostics)
+            If hd Is Nothing Then Return
+            For Each d In hd.DrainDecodeDiagnostics()
+                Dim us = TryCast(d, UnexpectedSectorDiagnostic)
+                If us IsNot Nothing Then
+                    onUnexpectedSector(New Greaseweazle.Actions.ConvertUnexpectedSectorEventArgs(
+                        trackInfo, us.C, us.H, us.R, us.N))
+                End If
+            Next
+        End Sub
 
         ' Python map: src/greaseweazle/tools/read.py::print_summary
         ' Builds a typed sector grid from the (cyls × heads) decode dict.

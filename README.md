@@ -100,8 +100,8 @@ The DLL targets .NET Framework 4.7.1, so any net471+ host (WinForms, WPF, consol
 
 ```vbnet
 Imports Greaseweazle.Actions
-Imports Greaseweazle.Tools
 Imports Greaseweazle.Infrastructure
+Imports Greaseweazle.Tools
 
 Module Example
     Sub Main()
@@ -120,7 +120,10 @@ Module Example
         engine.Read.Run(New ReadOptions With {
             .FileName = "disk.img",
             .Format = "ibm.1440",
-            .Tracks = "c=0-82",
+            ' TrackSet is a TrackSetSpec carrying *user intent*; the engine
+            ' folds it onto the format's default range at runtime.
+            ' Pass Nothing to accept format defaults verbatim.
+            .TrackSet = New TrackSetSpec("c=0-82"),
             .Drive = New DriveSpec With {.Bus = UsbProtocol.BusType.IBMPC, .UnitId = 1}
         })
     End Sub

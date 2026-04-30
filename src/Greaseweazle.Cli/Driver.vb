@@ -499,10 +499,13 @@ Namespace Greaseweazle.Cli
         '
         ' Python's tools call `print(...)` for the same messages this hook
         ' surfaces (e.g. "SCP: Imported legacy single-sided image",
-        ' "T{c}.{h}: Ignoring unexpected sector ...") so emitting through
+        ' "SCP: WARNING: Bad image checksum") so emitting through
         ' Console.Out preserves byte-for-byte parity (Console.Out has been
         ' redirected to Console.Error in Main, matching cli.py's
-        ' `sys.stdout = sys.stderr` redirect).
+        ' `sys.stdout = sys.stderr` redirect). Note: per-track codec-level
+        ' diagnostics (e.g. "Ignoring unexpected sector ...") flow via
+        ' typed Read/Write/Convert events instead of LibraryDiagnostics
+        ' so non-CLI hosts can consume the structured fields directly.
         Private Sub OnLibraryDiagnostic(sender As Object, e As LibraryDiagnosticEventArgs)
             Console.Out.WriteLine(e.Message)
         End Sub

@@ -5,9 +5,12 @@ Imports Greaseweazle.Shared
 Namespace Greaseweazle.Tools
 
     ' Strongly-typed options for the `erase` action.
+    '
+    ' TrackSet is a TrackSetSpec (partial / user intent). Erase has no
+    ' format concept, so the engine resolves it against the canonical
+    ' "c=0-81:h=0-1" defaults inside RunFromOptions.
     Public Class EraseOptions
-        Public Property Tracks As String
-        Public Property TrackSet As TrackSet
+        Public Property TrackSet As TrackSetSpec
         Public Property Revs As Integer
         Public Property Hfreq As Boolean
         Public Property FakeIndex As Double?

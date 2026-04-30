@@ -9,6 +9,7 @@ Namespace Greaseweazle.Cli.Formatters
     '   "Format <name>"                                        (Started, optional)
     '   "Converting {tracks} -> {outTracks}"                   (Started)
     '   "{tspec}: Converted to {N} hard sectors"               (HardSectorsApplied)
+    '   "{tspec}: Ignoring unexpected sector C:.. H:.. R:.. N:.." (UnexpectedSectorIgnored)
     '   "{tspec}: {flux}"                                      (TrackProcessed, NoFormat)
     '   "{tspec}: {decoded} from {flux}"                       (TrackProcessed, Decoded)
     '   "{tspec}: WARNING: Out of range for format '{f}': …"   (TrackProcessed, OutOfRange)
@@ -22,6 +23,7 @@ Namespace Greaseweazle.Cli.Formatters
         Private ReadOnly _hardSectorsHandler As EventHandler(Of ConvertHardSectorsEventArgs)
         Private ReadOnly _trackHandler As EventHandler(Of ConvertTrackProcessedEventArgs)
         Private ReadOnly _summaryHandler As EventHandler(Of ConvertSummaryReadyEventArgs)
+        Private ReadOnly _unexpectedSectorHandler As EventHandler(Of ConvertUnexpectedSectorEventArgs)
         Private _disposed As Boolean
 
         Public Sub New(command As ConvertCommand, output As TextWriter)
@@ -31,10 +33,12 @@ Namespace Greaseweazle.Cli.Formatters
             _hardSectorsHandler = AddressOf OnHardSectorsApplied
             _trackHandler = AddressOf OnTrackProcessed
             _summaryHandler = AddressOf OnSummaryReady
+            _unexpectedSectorHandler = AddressOf OnUnexpectedSectorIgnored
             AddHandler _command.Started, _startedHandler
             AddHandler _command.HardSectorsApplied, _hardSectorsHandler
             AddHandler _command.TrackProcessed, _trackHandler
             AddHandler _command.SummaryReady, _summaryHandler
+            AddHandler _command.UnexpectedSectorIgnored, _unexpectedSectorHandler
         End Sub
 
         Private Sub OnStarted(sender As Object, e As ConvertStartedEventArgs)
@@ -68,6 +72,14 @@ Namespace Greaseweazle.Cli.Formatters
             SectorSummaryFormatter.Render(e.Grid, _output)
         End Sub
 
+        ' Mirrors Python's ibm.py "Ignoring unexpected sector ..." print
+        ' (one line per unique (C, H, R, N) tuple per DecodeFlux pass).
+        Private Sub OnUnexpectedSectorIgnored(sender As Object, e As ConvertUnexpectedSectorEventArgs)
+            _output.WriteLine(String.Format(CultureInfo.InvariantCulture,
+                                            "{0}: Ignoring unexpected sector C:{1} H:{2} R:{3} N:{4}",
+                                            BuildTrackSpec(e.Track), e.C, e.H, e.R, e.N))
+        End Sub
+
         ' "T{c}.{h}[ <- Image {pc}.{ph}]"
         Private Shared Function BuildTrackSpec(t As ConvertTrackInfo) As String
             Dim spec = String.Format(CultureInfo.InvariantCulture, "T{0}.{1}", t.Cyl, t.Head)
@@ -84,6 +96,7 @@ Namespace Greaseweazle.Cli.Formatters
             RemoveHandler _command.HardSectorsApplied, _hardSectorsHandler
             RemoveHandler _command.TrackProcessed, _trackHandler
             RemoveHandler _command.SummaryReady, _summaryHandler
+            RemoveHandler _command.UnexpectedSectorIgnored, _unexpectedSectorHandler
         End Sub
 
     End Class

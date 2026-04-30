@@ -209,4 +209,54 @@ Namespace Greaseweazle.Core
         End Sub
     End Class
 
+    ' Raised by the Write action when verify cannot be driven to success
+    ' for a track within the configured retry budget. .Message preserves
+    ' the legacy "Failed to verify Track c.h" line so the CLI's
+    ' "Command Failed: ..." render is byte-identical to before; non-CLI
+    ' hosts can catch this subclass to surface .Cyl/.Head structurally
+    ' (UI marker, retry prompt, structured log).
+    '
+    ' Python map: src/greaseweazle/tools/write.py::(Fatal raise after the
+    ' write/verify retry loop with the same "Failed to verify Track c.h"
+    ' message; VB lifts the formatted text onto a typed subclass).
+    Public Class WriteVerifyFailedException
+        Inherits FatalException
+
+        Public ReadOnly Property Cyl As Integer
+        Public ReadOnly Property Head As Integer
+
+        Public Sub New(cyl As Integer, head As Integer)
+            MyBase.New(String.Format(Globalization.CultureInfo.InvariantCulture,
+                                     "Failed to verify Track {0}.{1}", cyl, head))
+            Me.Cyl = cyl
+            Me.Head = head
+        End Sub
+    End Class
+
+    ' Raised by the Write action's PrepareSourceTrack when the input
+    ' image's decoded track is missing one or more sectors and would
+    ' otherwise be written to disk in that incomplete state. .Message
+    ' preserves the legacy "Tc.h: N missing sectors in input image"
+    ' line; non-CLI hosts can catch this subclass to surface the
+    ' affected (Cyl, Head, MissingCount) structurally.
+    '
+    ' Python map: src/greaseweazle/tools/write.py::(Fatal raise inside
+    ' the per-track prepare path with the same legacy text).
+    Public Class WriteMissingSectorsException
+        Inherits FatalException
+
+        Public ReadOnly Property Cyl As Integer
+        Public ReadOnly Property Head As Integer
+        Public ReadOnly Property MissingCount As Integer
+
+        Public Sub New(cyl As Integer, head As Integer, missingCount As Integer)
+            MyBase.New(String.Format(Globalization.CultureInfo.InvariantCulture,
+                                     "T{0}.{1}: {2} missing sectors in input image",
+                                     cyl, head, missingCount))
+            Me.Cyl = cyl
+            Me.Head = head
+            Me.MissingCount = missingCount
+        End Sub
+    End Class
+
 End Namespace

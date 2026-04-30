@@ -28,6 +28,27 @@ Namespace Greaseweazle.Tools
             Return baseTracks
         End Function
 
+        ' Engine-time resolution helper used by every action's RunFromOptions.
+        ' Folds `spec` (user intent — may be Nothing or a partial TrackSetSpec)
+        ' against `formatDefaults` (codec defaults — may be Nothing if no
+        ' format applies or hasn't been resolved yet) and falls back to
+        ' `fallbackBaseSpec` when neither side supplies cyls/heads.
+        '
+        ' Mirrors Python's `def_tracks = copy.copy(args.fmt_cls.tracks);
+        ' def_tracks.update_from_trackspec(args.tracks.trackspec)` runtime
+        ' fold, just expressed against typed objects rather than a spec
+        ' string round-trip.
+        Public Shared Function ResolveSpec(spec As TrackSetSpec,
+                                           formatDefaults As TrackSet,
+                                           fallbackBaseSpec As String) As TrackSet
+            Dim defaults As TrackSet =
+                If(formatDefaults IsNot Nothing, formatDefaults, New TrackSet(fallbackBaseSpec))
+            If spec Is Nothing Then
+                Return New TrackSet(defaults.ToString())
+            End If
+            Return spec.Resolve(defaults)
+        End Function
+
     End Class
 
 End Namespace

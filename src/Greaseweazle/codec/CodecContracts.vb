@@ -67,4 +67,64 @@ Namespace Greaseweazle.Codecs
         Function MkTrack(cyl As Integer, head As Integer) As Codec
     End Interface
 
+    ' Optional add-on contract a Codec can implement when its DecodeFlux
+    ' pass produces structured per-track diagnostics that the action
+    ' layer should surface as typed events (Read/Write/Convert
+    ' UnexpectedSectorIgnored, etc.). Codecs that don't implement this
+    ' simply emit no diagnostics. Action layer is expected to call Drain
+    ' immediately after each DecodeFlux invocation so the buffer
+    ' represents only that pass's findings (Python's diagnostics print
+    ' inside decode_flux per-call; mirror semantics).
+    '
+    ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
+    '   (the per-call print loop for "Ignoring unexpected sector ..." is
+    '   the canonical example -- in Python it's a fire-and-forget print;
+    '   in VB the codec buffers and the action layer drains+dispatches.)
+    Public Interface HasDecodeDiagnostics
+        Function DrainDecodeDiagnostics() As IReadOnlyList(Of CodecDecodeDiagnostic)
+    End Interface
+
+    ' Base class for any structured diagnostic a codec produces during a
+    ' single DecodeFlux pass. Subclasses are pure data carriers; the
+    ' library never formats them. The CLI's per-command formatter
+    ' (ReadFormatter / WriteFormatter / ConvertFormatter) is the only
+    ' producer of human-readable text.
+    '
+    ' Python map: src/greaseweazle/codec/ibm/ibm.py::(no direct 1:1 symbol;
+    '   Python uses ad-hoc print(...) calls inside decode_flux. VB lifts
+    '   those into typed objects so non-CLI hosts can consume them.)
+    Public MustInherit Class CodecDecodeDiagnostic
+    End Class
+
+    ' Emitted (one entry per unique (C,H,R,N) tuple, per DecodeFlux
+    ' pass) when an IBM-fixed codec sees a sector header whose IDAM CRC
+    ' is good but whose (cyl, head, sector_id, size_code) doesn't match
+    ' any predeclared layout entry for the track. Mirrors Python's
+    ' IBMTrack_Fixed.decode_flux "Ignoring unexpected sector ..." print
+    ' but as structured data; the CLI formatter renders it with
+    ' track-spec context.
+    '
+    ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
+    Public NotInheritable Class UnexpectedSectorDiagnostic
+        Inherits CodecDecodeDiagnostic
+
+        Public Sub New(c As Integer, h As Integer, r As Integer, n As Integer)
+            Me.C = c
+            Me.H = h
+            Me.R = r
+            Me.N = n
+        End Sub
+
+        ' Cylinder reported in the unexpected IDAM (the C field).
+        Public ReadOnly Property C As Integer
+        ' Head reported in the unexpected IDAM (the H field).
+        Public ReadOnly Property H As Integer
+        ' Sector-id (R) reported in the unexpected IDAM.
+        Public ReadOnly Property R As Integer
+        ' Size code (N) reported in the unexpected IDAM
+        ' (sector size in bytes = 128 << N for valid IBM tracks).
+        Public ReadOnly Property N As Integer
+
+    End Class
+
 End Namespace

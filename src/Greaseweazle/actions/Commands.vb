@@ -79,6 +79,15 @@ Namespace Greaseweazle.Actions
         ' a non-empty grid. Carries the typed SectorSummaryGrid.
         Public Event SummaryReady As EventHandler(Of ReadSummaryReadyEventArgs)
 
+        ' Raised once per (C, H, R, N) tuple whose IDAM CRC was good
+        ' but the tuple does not match any predeclared sector entry
+        ' for the track's format layout. May fire multiple times for
+        ' the same anomaly when retry attempts re-decode the flux.
+        ' Mirrors Python read.py's "Ignoring unexpected sector ..."
+        ' print, but the CLI formatter renders the line so the
+        ' library produces no console output.
+        Public Event UnexpectedSectorIgnored As EventHandler(Of ReadUnexpectedSectorEventArgs)
+
         Public Function Run(options As ReadOptions,
                             Optional cancellationToken As CancellationToken = Nothing) As ReadSummary
             ThrowIfCancellationRequested(cancellationToken)
@@ -103,6 +112,10 @@ Namespace Greaseweazle.Actions
 
         Friend Sub OnSummaryReady(args As ReadSummaryReadyEventArgs)
             RaiseEvent SummaryReady(Me, args)
+        End Sub
+
+        Friend Sub OnUnexpectedSectorIgnored(args As ReadUnexpectedSectorEventArgs)
+            RaiseEvent UnexpectedSectorIgnored(Me, args)
         End Sub
 
     End Class
@@ -141,6 +154,14 @@ Namespace Greaseweazle.Actions
         ' Raised once at the end of the run with the verify tally.
         Public Event VerifyCompleted As EventHandler(Of WriteVerifyOutcomeEventArgs)
 
+        ' Raised once per (C, H, R, N) tuple whose IDAM CRC was good
+        ' but the tuple does not match any predeclared sector entry
+        ' for the track's format layout, encountered while decoding
+        ' the input image (PrepareSourceTrack). The CLI formatter
+        ' renders the per-track line; the library produces no
+        ' console output.
+        Public Event UnexpectedSectorIgnored As EventHandler(Of WriteUnexpectedSectorEventArgs)
+
         Public Function Run(options As WriteOptions,
                             Optional cancellationToken As CancellationToken = Nothing) As WriteSummary
             ThrowIfCancellationRequested(cancellationToken)
@@ -171,6 +192,10 @@ Namespace Greaseweazle.Actions
             RaiseEvent VerifyCompleted(Me, args)
         End Sub
 
+        Friend Sub OnUnexpectedSectorIgnored(args As WriteUnexpectedSectorEventArgs)
+            RaiseEvent UnexpectedSectorIgnored(Me, args)
+        End Sub
+
     End Class
 
     ' Streaming command. Walks the resolved output trackset, decoding
@@ -199,6 +224,13 @@ Namespace Greaseweazle.Actions
         ' grid. Subscribers render the "Cyl-> / H. S: / .X" table.
         Public Event SummaryReady As EventHandler(Of ConvertSummaryReadyEventArgs)
 
+        ' Raised once per (C, H, R, N) tuple whose IDAM CRC was good
+        ' but the tuple does not match any predeclared sector entry
+        ' for the track's format layout, encountered while decoding
+        ' the input image. The CLI formatter renders the per-track
+        ' line; the library produces no console output.
+        Public Event UnexpectedSectorIgnored As EventHandler(Of ConvertUnexpectedSectorEventArgs)
+
         Public Function Run(options As ConvertOptions,
                             Optional cancellationToken As CancellationToken = Nothing) As ConvertSummary
             ThrowIfCancellationRequested(cancellationToken)
@@ -219,6 +251,10 @@ Namespace Greaseweazle.Actions
 
         Friend Sub OnSummaryReady(args As ConvertSummaryReadyEventArgs)
             RaiseEvent SummaryReady(Me, args)
+        End Sub
+
+        Friend Sub OnUnexpectedSectorIgnored(args As ConvertUnexpectedSectorEventArgs)
+            RaiseEvent UnexpectedSectorIgnored(Me, args)
         End Sub
 
     End Class

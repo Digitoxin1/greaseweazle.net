@@ -228,58 +228,6 @@ Namespace Greaseweazle.Cli.Parsers
             Throw New UnknownFormatException(format, formats)
         End Sub
 
-        ' Resolve a `--tracks` (or `--out-tracks`) option into a TrackSet.
-        '
-        ' Mirrors Python's `read.py` / `write.py` / `convert.py` plumbing:
-        '   1. `--tracks=''` is an argparse error (matches Python which
-        '      forwards the empty string to `TrackSet.__init__`, which
-        '      raises ValueError).
-        '   2. If `format` resolves to a DiskDef with a `tracks` attribute,
-        '      that becomes the default trackset (overlaid by `--tracks`).
-        '   3. Otherwise fall back to `defaultRange` (typically
-        '      "c=0-81:h=0-1"), again overlaid by `--tracks` if supplied.
-        '   4. ArgumentException from TrackSet parsing is converted to
-        '      `Argparse(... invalid TrackSet value: 'spec' ...)` so the
-        '      Driver never surfaces a .NET stack trace for malformed
-        '      cylinder / head segments.
-        '
-        ' Replaces the duplicated 25-line block in ReadOptionsParser,
-        ' WriteOptionsParser, EraseOptionsParser, and AlignOptionsParser.
-        ' ConvertOptionsParser uses a slightly different shape (out-tracks)
-        ' and is handled in-line.
-        Public Shared Function ResolveTracksOption(action As String,
-                                                    optionName As String,
-                                                    tracksSpec As String,
-                                                    format As String,
-                                                    diskDefsPath As String,
-                                                    defaultRange As String) As TrackSet
-            If tracksSpec IsNot Nothing AndAlso tracksSpec.Length = 0 Then
-                Argparse(action, String.Format("argument {0}: invalid TrackSet value: ''", optionName))
-            End If
-
-            Dim tracks As TrackSet = Nothing
-            If Not String.IsNullOrEmpty(format) Then
-                Try
-                    Dim fmtCls = DiskDefParser.GetDiskdef(format, diskDefsPath)
-                    If fmtCls IsNot Nothing AndAlso fmtCls.Tracks IsNot Nothing Then
-                        tracks = TrackResolution.ResolveDefaultTracksFromFormat(fmtCls.Tracks, tracksSpec)
-                    End If
-                Catch ex As ArgumentException When tracksSpec IsNot Nothing
-                    Argparse(action, String.Format("argument {0}: invalid TrackSet value: '{1}'", optionName, tracksSpec))
-                Catch
-                    ' Format resolution failure (other than tracks parse) - fall through.
-                End Try
-            End If
-            If tracks Is Nothing Then
-                Try
-                    tracks = TrackResolution.ResolveDefaultTracks(defaultRange, tracksSpec)
-                Catch ex As ArgumentException When tracksSpec IsNot Nothing
-                    Argparse(action, String.Format("argument {0}: invalid TrackSet value: '{1}'", optionName, tracksSpec))
-                End Try
-            End If
-            Return tracks
-        End Function
-
     End Class
 
 End Namespace

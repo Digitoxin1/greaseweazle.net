@@ -5,11 +5,11 @@ Imports Greaseweazle.Tools
 
 Namespace Greaseweazle.Cli.Parsers
 
-    ' Argv parser for `gw-vb convert`. Migrated from
-    ' Convert.BuildRuntimePreview; preserves the format -> formatTracks
-    ' resolution and the input/output trackset clone-and-merge logic so
-    ' the resulting ConvertOptions DTO is byte-for-byte equivalent to
-    ' what Greaseweazle.Tools.Convert used to produce.
+    ' Argv parser for `gw-vb convert`. Builds ConvertOptions, including
+    ' TrackSetSpec partials for --tracks / --out-tracks. Format-default
+    ' folding is deferred to BasicActions.RunFromOptions (after the input
+    ' image has been opened and its format resolved), mirroring Python
+    ' convert.py's late-binding of args.fmt_cls.tracks.
     Public NotInheritable Class ConvertOptionsParser
 
         Private Const ActionName As String = "convert"
@@ -134,30 +134,29 @@ Namespace Greaseweazle.Cli.Parsers
                 Argparse("argument --out-tracks: invalid TrackSet value: ''")
             End If
 
-            Dim formatTracks As TrackSet = Nothing
-            If Not String.IsNullOrEmpty(format) Then
-                Dim resolvedDiskDefsPath = ParserHelpers.ResolveDiskDefsPath(diskDefsPath)
-                Dim disk = DiskDefParser.GetDiskdef(format, resolvedDiskDefsPath)
-                If disk IsNot Nothing Then
-                    formatTracks = disk.Tracks
-                End If
+            ' Build TrackSetSpec partials directly from the user's --tracks /
+            ' --out-tracks strings. The actual format-default fold happens
+            ' later in BasicActions.RunFromOptions (after open_input_image
+            ' has determined the format), mirroring Python convert.py. The
+            ' partial constructors throw ArgumentException for malformed
+            ' input, which we convert to argparse-style errors so the Driver
+            ' never surfaces a .NET stack trace.
+            Dim trackSetSpec As TrackSetSpec = Nothing
+            If tracksSpec IsNot Nothing Then
+                Try
+                    trackSetSpec = New TrackSetSpec(tracksSpec)
+                Catch ex As ArgumentException
+                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
+                End Try
             End If
-
-            Dim resolved As Tuple(Of TrackSet, TrackSet) = Nothing
-            Try
-                resolved = Greaseweazle.Tools.Convert.ResolveTrackSets(formatTracks, tracksSpec, outTracksSpec)
-            Catch ex As ArgumentException
-                ' TrackSet.UpdateFromTrackspec throws ArgumentException for malformed
-                ' segments and unknown keys (e.g. `cyl=abc`). Convert to an
-                ' argparse-style error so the Driver doesn't surface the .NET
-                ' stack trace; mirrors Python argparse's `invalid TrackSet
-                ' value:` line. (The compiler can't tell that Argparse always
-                ' throws — initialising `resolved` to Nothing above silences
-                ' the use-before-assignment warning that follows.)
-                Dim badArg As String = If(tracksSpec IsNot Nothing, tracksSpec, outTracksSpec)
-                Dim badName As String = If(tracksSpec IsNot Nothing, "--tracks", "--out-tracks")
-                Argparse(String.Format("argument {0}: invalid TrackSet value: '{1}'", badName, badArg))
-            End Try
+            Dim outTrackSetSpec As TrackSetSpec = Nothing
+            If outTracksSpec IsNot Nothing Then
+                Try
+                    outTrackSetSpec = New TrackSetSpec(outTracksSpec)
+                Catch ex As ArgumentException
+                    Argparse(String.Format("argument --out-tracks: invalid TrackSet value: '{0}'", outTracksSpec))
+                End Try
+            End If
             Dim pllProfiles As New List(Of Pll)()
             If pllOverride IsNot Nothing Then
                 pllProfiles.Add(pllOverride)
@@ -168,12 +167,8 @@ Namespace Greaseweazle.Cli.Parsers
                 .OutputFile = outFile,
                 .Format = format,
                 .DiskDefsPath = diskDefsPath,
-                .TracksSpec = tracksSpec,
-                .OutTracksSpec = outTracksSpec,
-                .Tracks = resolved.Item1.ToString(),
-                .OutTracks = resolved.Item2.ToString(),
-                .TrackSet = resolved.Item1,
-                .OutTrackSet = resolved.Item2,
+                .TrackSet = trackSetSpec,
+                .OutTrackSet = outTrackSetSpec,
                 .NoClobber = noClobber,
                 .HardSectors = hardSectors,
                 .Reverse = reverse,

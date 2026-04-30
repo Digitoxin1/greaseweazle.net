@@ -76,12 +76,20 @@ Namespace Greaseweazle.Actions
                        outcome As AlignReadOutcome,
                        fluxSummary As String,
                        decodedSummary As String,
-                       formatName As String)
+                       formatName As String,
+                       decodedSectorsFound As Integer,
+                       decodedSectorsTotal As Integer,
+                       fluxSampleCount As Nullable(Of Integer),
+                       fluxDurationMs As Nullable(Of Double))
             Me.Track = track
             Me.Outcome = outcome
             Me.FluxSummary = fluxSummary
             Me.DecodedSummary = decodedSummary
             Me.FormatName = formatName
+            Me.DecodedSectorsFound = decodedSectorsFound
+            Me.DecodedSectorsTotal = decodedSectorsTotal
+            Me.FluxSampleCount = fluxSampleCount
+            Me.FluxDurationMs = fluxDurationMs
         End Sub
 
         Public ReadOnly Property Track As TrackIter
@@ -97,6 +105,31 @@ Namespace Greaseweazle.Actions
 
         ' Populated only when Outcome = OutOfRange.
         Public ReadOnly Property FormatName As String
+
+        ' Number of sectors successfully decoded for the track
+        ' (Codec.Nsec - Codec.NrMissing). 0 when Outcome != Decoded
+        ' or when the codec has no sector concept (raw Bitcell etc.).
+        ' Hosts that need the count without parsing DecodedSummary
+        ' read this directly.
+        Public ReadOnly Property DecodedSectorsFound As Integer
+
+        ' Total sectors the codec's layout expects for the track
+        ' (Codec.Nsec). 0 when Outcome != Decoded or when the codec
+        ' has no sector concept.
+        Public ReadOnly Property DecodedSectorsTotal As Integer
+
+        ' Raw sample count of the captured flux (Flux.List.Count).
+        ' Mirrors the "(N flux ...)" prefix in FluxSummary; populated
+        ' whenever the underlying source is a raw Flux. Nothing
+        ' otherwise.
+        Public ReadOnly Property FluxSampleCount As Nullable(Of Integer)
+
+        ' Total wall-clock duration of the captured flux in
+        ' milliseconds (List.Sum() * 1000.0 / SampleFreq). Mirrors
+        ' the "... in M.MMms)" suffix in FluxSummary; populated
+        ' whenever the underlying source is a raw Flux. Nothing
+        ' otherwise.
+        Public ReadOnly Property FluxDurationMs As Nullable(Of Double)
 
     End Class
 

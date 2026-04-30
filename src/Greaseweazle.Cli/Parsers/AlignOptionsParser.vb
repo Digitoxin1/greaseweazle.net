@@ -157,10 +157,17 @@ Namespace Greaseweazle.Cli.Parsers
             End If
             Dim resolvedRevs = If(revs, 3)
 
-            Dim trackSet = TrackResolution.ResolveDefaultTracksFromFormat(If(formatDef Is Nothing, Nothing, formatDef.Tracks), tracksSpec)
-            Dim trackList = trackSet.IteratePhysical().ToList()
-            Dim pairs = trackList.Select(Function(t) Tuple.Create(t.Cyl, t.Head)).ToList()
-            Greaseweazle.Tools.Align.ValidateTrackCylinders(pairs)
+            ' --tracks captured as user intent; engine resolves and runs
+            ' ValidateTrackCylinders against the resolved set inside
+            ' RunFromOptions.
+            Dim trackSet As TrackSetSpec = Nothing
+            If tracksSpec IsNot Nothing Then
+                Try
+                    trackSet = New TrackSetSpec(tracksSpec)
+                Catch ex As ArgumentException
+                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
+                End Try
+            End If
 
             Dim drive As DriveSpec = Nothing
             Try
@@ -174,20 +181,7 @@ Namespace Greaseweazle.Cli.Parsers
             End If
             pllProfiles.AddRange(Plls.Values)
 
-            Dim header As String
-            If trackList.Count = 1 Then
-                Dim t = trackList(0)
-                header = Greaseweazle.Tools.Align.BuildSingleTrackHeader(
-                    Greaseweazle.Tools.Align.BuildTrackSpec(t.Cyl, t.Head, t.PhysicalCyl, t.PhysicalHead),
-                    reads,
-                    resolvedRevs)
-            Else
-                Dim heads = trackList.Select(Function(t) t.Head).ToList()
-                header = Greaseweazle.Tools.Align.BuildMultiTrackHeader(trackList(0).Cyl, heads, reads, resolvedRevs)
-            End If
-
             Return New AlignOptions With {
-                .Header = header,
                 .Format = format,
                 .DiskDefsPath = diskDefsPath,
                 .FormatDef = formatDef,

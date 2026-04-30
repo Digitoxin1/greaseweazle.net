@@ -75,15 +75,18 @@ Namespace Greaseweazle.Codecs
         Private ReadOnly _head As Integer
         Private ReadOnly _rate As Integer?
         Private ReadOnly _rpm As Integer?
-        Private _sectors As New SortedDictionary(Of Integer, Byte())()
-        Private _sectorNs As New SortedDictionary(Of Integer, Integer)()
+
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.sectors
+        ' Python stores Sector instances in physical decode order (sorted by
+        ' a.start). Each entry carries its own IDAM (c/h/r/n) and DAM (data)
+        ' plus a combined CRC indicator (s.crc = idam.crc | dam.crc). Bad-CRC
+        ' sectors are kept in the list with crc != 0 -- they still count
+        ' toward nsec but are reported as "missing" by nr_missing().
+        Private _sectors As New List(Of ScanSector)()
         Private _summary As String = "IBM Empty"
         Private _bestFormatName As String = "ibm.mfm"
         Private _bestTimePerRev As Double = 0.2
         Private _bestClock As Double = 2.0E-6
-        ' Total IDAMs seen by best scan pass (Python: t.nsec). May differ from
-        ' _sectors.Count when some sectors have bad data CRC (Python: nr_missing > 0).
-        Private _totalIdamSlots As Integer = 0
 
         Private Shared ReadOnly MfmSyncPattern As Boolean() = BitsFrom01("010001001000100101000100100010010100010010001001")
         Private Shared ReadOnly FmSyncPrefixPattern As Boolean() = BitsFrom01("10101010101010101111010101")
@@ -99,56 +102,70 @@ Namespace Greaseweazle.Codecs
             _rpm = rpm
         End Sub
 
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Scan.nsec
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.nsec
         Public Overrides ReadOnly Property Nsec As Integer
             Get
-                ' Python: IBMTrack.nsec = len(self.sectors), where self.sectors
-                ' contains every IDAM-bearing slot, even those with bad data CRC.
-                Return Math.Max(_totalIdamSlots, _sectors.Count)
+                ' Python: nsec = len(self.sectors). The list contains every
+                ' IDAM+DAM pair found, including bad-CRC ones.
+                Return _sectors.Count
             End Get
         End Property
 
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Scan.has_sec
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.has_sec
         Public Overrides Function HasSec(sectorId As Integer) As Boolean
-            Return _sectors.ContainsKey(sectorId)
+            ' Python: self.sectors[sec_id].crc == 0. Treats sec_id as a
+            ' positional index into the (physical-order) sector list, not as
+            ' an IDAM R value.
+            Return sectorId >= 0 _
+                AndAlso sectorId < _sectors.Count _
+                AndAlso _sectors(sectorId).GoodCrc
         End Function
 
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Scan.nr_missing
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.nr_missing
         Public Overrides Function NrMissing() As Integer
-            ' Python: count of IDAM slots whose data CRC is non-zero.
-            ' VB tracks decoded sectors in _sectors and total IDAMs in _totalIdamSlots.
-            Return Math.Max(0, _totalIdamSlots - _sectors.Count)
+            ' Python: count of sectors whose combined CRC is non-zero.
+            Return _sectors.Where(Function(s) Not s.GoodCrc).Count()
         End Function
 
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Scan.get_img_track
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.get_img_track
         Public Overrides Function GetImgTrack() As Byte()
+            ' Python sorts sectors by idam.r and concatenates dam.data for
+            ' every sector (good and bad CRC alike).
+            Dim sorted = _sectors.OrderBy(Function(s) s.R).ToList()
             Dim bytes As New List(Of Byte)()
-            For Each kv In _sectors
-                bytes.AddRange(kv.Value)
+            For Each s In sorted
+                bytes.AddRange(s.Data)
             Next
             Return bytes.ToArray()
         End Function
 
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Scan.set_img_track
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.set_img_track
         Public Overrides Function SetImgTrack(trackData As Byte()) As Integer
             If _sectors.Count = 0 Then
                 Throw New FatalException("ibm.scan: Cannot handle IMG input data")
             End If
+            ' Python sorts the in-memory list by idam.r, fills in dam.data
+            ' from the supplied buffer, then resorts back to start order.
+            Dim sorted = _sectors.OrderBy(Function(s) s.R).ToList()
+            Dim totalSize = sorted.Sum(Function(s) s.Data.Length)
             Dim src = If(trackData, Array.Empty(Of Byte)())
+            Dim padded(totalSize - 1) As Byte
+            If src.Length > 0 Then
+                Dim copy = Math.Min(src.Length, totalSize)
+                Array.Copy(src, padded, copy)
+            End If
             Dim pos = 0
-            Dim total = 0
-            For Each id In _sectors.Keys.ToList()
-                Dim size = _sectors(id).Length
-                total += size
-                Dim sector(size - 1) As Byte
-                If pos < src.Length Then
-                    Dim avail = Math.Min(size, src.Length - pos)
-                    Array.Copy(src, pos, sector, 0, avail)
-                End If
-                _sectors(id) = sector
+            For Each s In sorted
+                Dim size = s.Data.Length
+                Dim newData(size - 1) As Byte
+                Array.Copy(padded, pos, newData, 0, size)
+                s.Data = newData
+                ' Python: s.crc = s.idam.crc = s.dam.crc = 0 -- writing image
+                ' bytes is treated as having reconstructed a perfect sector.
+                s.GoodCrc = True
                 pos += size
             Next
-            Return total
+            Return totalSize
         End Function
 
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Scan.decode_flux
@@ -156,17 +173,18 @@ Namespace Greaseweazle.Codecs
             Dim flux = track.Flux()
             flux.CueAtIndex()
 
-            ' Python: "Add more data to an existing track instance" -- if a previous
-            ' DecodeFlux pass already produced sectors, re-decode at the locked-in
-            ' best-guess settings and only fill slots that are still missing.
+            ' Python: "Add more data to an existing track instance" -- if a
+            ' previous DecodeFlux pass already produced sectors, re-decode at
+            ' the locked-in best-guess settings and merge new sectors with
+            ' the existing list (replacing bad-CRC slots with good ones,
+            ' otherwise leaving the existing entry alone).
             If _sectors.Count > 0 Then
                 Dim raw As New PllTrack(clock:=_bestClock, data:=flux, timePerRev:=_bestTimePerRev, pll:=pll)
-                Dim bits = raw.GetAllData().Item1
                 Dim parsed As ScanResult
                 If String.Equals(_bestFormatName, "ibm.mfm", StringComparison.OrdinalIgnoreCase) Then
-                    parsed = ParseMfm(bits)
+                    parsed = ParseMfm(raw)
                 Else
-                    parsed = ParseFm(bits)
+                    parsed = ParseFm(raw)
                 End If
                 MergeScan(parsed)
                 Return
@@ -182,15 +200,12 @@ Namespace Greaseweazle.Codecs
             If BestGuess IsNot Nothing Then
                 Dim mode = BestGuess.Item3
                 Dim raw As New PllTrack(clock:=BestGuess.Item2, data:=flux, timePerRev:=BestGuess.Item1, pll:=pll)
-                Dim guess = If(mode = "mfm", ParseMfm(raw.GetAllData().Item1), ParseFm(raw.GetAllData().Item1))
-                If guess.Sectors.Count > 0 AndAlso guess.Sectors.Count = guess.TotalIdamSlots Then
-                    _sectors = guess.Sectors
-                    _sectorNs = guess.SectorNs
-                    _totalIdamSlots = guess.TotalIdamSlots
-                    _summary = guess.Summary
-                    _bestTimePerRev = BestGuess.Item1
-                    _bestClock = BestGuess.Item2
-                    _bestFormatName = If(mode = "mfm", "ibm.mfm", "ibm.fm")
+                Dim guess = If(mode = "mfm", ParseMfm(raw), ParseFm(raw))
+                Dim total = guess.Sectors.Count
+                Dim good = guess.Sectors.Where(Function(s) s.GoodCrc).Count()
+                If total > 0 AndAlso good = total Then
+                    AdoptResult(guess, BestGuess.Item1, BestGuess.Item2,
+                                If(mode = "mfm", "ibm.mfm", "ibm.fm"))
                     Return
                 End If
             End If
@@ -202,9 +217,8 @@ Namespace Greaseweazle.Codecs
                 For Each probeRate As Integer In rates
                     Dim clock = 0.0005 / probeRate
                     Dim raw As New PllTrack(clock:=clock, data:=flux, timePerRev:=timePerRev, pll:=pll)
-                    Dim bits = raw.GetAllData().Item1
 
-                    Dim mfm = ParseMfm(bits)
+                    Dim mfm = ParseMfm(raw)
                     If best Is Nothing OrElse mfm.Score > best.Score Then
                         best = mfm
                         bestTimePerRev = timePerRev
@@ -212,7 +226,7 @@ Namespace Greaseweazle.Codecs
                         bestFormat = "ibm.mfm"
                     End If
 
-                    Dim fm = ParseFm(bits)
+                    Dim fm = ParseFm(raw)
                     If best Is Nothing OrElse fm.Score > best.Score Then
                         best = fm
                         bestTimePerRev = timePerRev
@@ -223,13 +237,7 @@ Namespace Greaseweazle.Codecs
             Next
 
             If best IsNot Nothing AndAlso best.Sectors.Count > 0 Then
-                _sectors = best.Sectors
-                _sectorNs = best.SectorNs
-                _totalIdamSlots = best.TotalIdamSlots
-                _summary = best.Summary
-                _bestTimePerRev = bestTimePerRev
-                _bestClock = bestClock
-                _bestFormatName = bestFormat
+                AdoptResult(best, bestTimePerRev, bestClock, bestFormat)
                 ' Python: BEST_GUESS is updated only once, after probing finishes,
                 ' using the winning track's settings. Mirror that here.
                 BestGuess = Tuple.Create(bestTimePerRev, bestClock,
@@ -237,24 +245,48 @@ Namespace Greaseweazle.Codecs
             End If
         End Sub
 
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux (re-call merge)
+        Private Sub AdoptResult(result As ScanResult,
+                                timePerRev As Double,
+                                clock As Double,
+                                formatName As String)
+            _sectors = result.Sectors
+            _bestTimePerRev = timePerRev
+            _bestClock = clock
+            _bestFormatName = formatName
+            _summary = BuildSummaryString()
+        End Sub
+
+        Private Function BuildSummaryString() As String
+            Dim mode = If(String.Equals(_bestFormatName, "ibm.mfm", StringComparison.OrdinalIgnoreCase), "IBM MFM", "IBM FM")
+            Dim total = _sectors.Count
+            Dim good = total - NrMissing()
+            Return String.Format("{0} ({1}/{2} sectors)", mode, good, total)
+        End Function
+
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.decode_raw (dedup pass)
         Private Sub MergeScan(parsed As ScanResult)
-            ' Only fill slots that don't already have valid data; never overwrite
-            ' a previously-decoded sector. Mirrors Python's per-slot "is None" guard.
-            For Each kv In parsed.Sectors
-                If Not _sectors.ContainsKey(kv.Key) Then
-                    _sectors(kv.Key) = kv.Value
+            ' Python: for each newly-decoded Sector, look for an existing
+            ' entry with abs(start - a.start) < 1000. If a dupe is found, the
+            ' new sector replaces the old one only when the existing entry
+            ' has bad CRC and the new one has good CRC. Otherwise the new
+            ' entry is appended. Finally the list is resorted by start.
+            For Each newSec In parsed.Sectors
+                Dim foundDupe = False
+                For i = 0 To _sectors.Count - 1
+                    If Math.Abs(_sectors(i).Start - newSec.Start) < 1000 Then
+                        foundDupe = True
+                        If Not _sectors(i).GoodCrc AndAlso newSec.GoodCrc Then
+                            _sectors(i) = newSec
+                        End If
+                        Exit For
+                    End If
+                Next
+                If Not foundDupe Then
+                    _sectors.Add(newSec)
                 End If
             Next
-            For Each kv In parsed.SectorNs
-                If Not _sectorNs.ContainsKey(kv.Key) Then
-                    _sectorNs(kv.Key) = kv.Value
-                End If
-            Next
-            _totalIdamSlots = Math.Max(_totalIdamSlots, parsed.TotalIdamSlots)
-            _summary = String.Format("{0} ({1}/{2} sectors)",
-                                     If(String.Equals(_bestFormatName, "ibm.mfm", StringComparison.OrdinalIgnoreCase), "IBM MFM", "IBM FM"),
-                                     _sectors.Count, _totalIdamSlots)
+            _sectors.Sort(Function(a, b) a.Start.CompareTo(b.Start))
+            _summary = BuildSummaryString()
         End Sub
 
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Scan.master_track
@@ -274,36 +306,46 @@ Namespace Greaseweazle.Codecs
             Return mt
         End Function
 
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Scan.summary_string
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.summary_string
         Public Overrides Function SummaryString() As String
             Return _summary
         End Function
 
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::(no direct 1:1 symbol; VB helper container for scan pass results)
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::Sector
+        Private Class ScanSector
+            Public Property Start As Integer
+            Public Property R As Integer
+            Public Property N As Integer
+            Public Property Data As Byte()
+            Public Property GoodCrc As Boolean
+        End Class
+
+        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB helper container for scan pass results)
         Private Class ScanResult
-            Public Property Sectors As SortedDictionary(Of Integer, Byte())
-            Public Property SectorNs As SortedDictionary(Of Integer, Integer)
-            ' Total number of IDAM-bearing slots discovered (Python: len(track.sectors)).
-            Public Property TotalIdamSlots As Integer
-            Public Property Summary As String
+            Public Property Sectors As List(Of ScanSector)
             Public Property FormatName As String
-            Public Property TimePerRev As Double
-            Public Property Clock As Double
 
             Public ReadOnly Property Score As Integer
                 Get
                     ' Python's choose-track scoring: t.nsec - t.nr_missing(),
                     ' i.e. the number of decoded (good-CRC) sectors.
-                    Return Sectors.Count
+                    Return Sectors.Where(Function(s) s.GoodCrc).Count()
                 End Get
             End Property
         End Class
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ParseMfm)
-        Private Function ParseMfm(bits As List(Of Boolean)) As ScanResult
-            Dim sectors As New SortedDictionary(Of Integer, Byte())()
-            Dim sectorNs As New SortedDictionary(Of Integer, Integer)()
-            Dim seenIds As New HashSet(Of Integer)()
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.mfm_decode_raw
+        ' Mirrors Python's behaviour of always remembering the most recent
+        ' IDAM (good or bad CRC) and pairing it with the next DAM/DDAM that
+        ' appears within ~1000 bits, even when either CRC is bad. Bad-CRC
+        ' sectors are still added to the result with GoodCrc = False.
+        ' After collection, sector start offsets are normalised to within
+        ' a single revolution (Python: a.delta(p) loop) so duplicates seen
+        ' across revolutions land at the same Start and the dedup pass
+        ' (mirror of decode_raw's per-Sector dupe check) collapses them.
+        Private Function ParseMfm(rawTrack As PllTrack) As ScanResult
+            Dim bits = rawTrack.GetAllData().Item1
+            Dim sectors As New List(Of ScanSector)()
             Dim pending As ParsedIdam = Nothing
             For Each offs In FindPatternOffsets(bits, MfmSyncPattern)
                 If bits.Count < offs + 64 Then Continue For
@@ -311,13 +353,14 @@ Namespace Greaseweazle.Codecs
                 If mark = &HFE Then
                     If bits.Count < offs + 160 Then Continue For
                     Dim idamBytes = DecodeWords(bits, offs, 10)
-                    If ComputeCrcCcittFalse(idamBytes) <> 0 Then Continue For
+                    Dim idamCrc = ComputeCrcCcittFalse(idamBytes)
                     pending = New ParsedIdam With {
+                        .Start = offs,
                         .EndOffset = offs + 160,
                         .R = idamBytes(6),
-                        .N = idamBytes(7)
+                        .N = idamBytes(7),
+                        .CrcGood = (idamCrc = 0)
                     }
-                    seenIds.Add(pending.R)
                     Continue For
                 End If
                 If mark <> &HFB AndAlso mark <> &HF8 Then Continue For
@@ -325,36 +368,38 @@ Namespace Greaseweazle.Codecs
                     pending = Nothing
                     Continue For
                 End If
-                Dim size = 128 << pending.N
-                Dim byteCount = 4 + size + 2
-                Dim e = offs + byteCount * 16
-                If bits.Count < e Then Continue For
-                Dim payload = DecodeWords(bits, offs, byteCount)
-                If ComputeCrcCcittFalse(payload) <> 0 Then
+                Dim size = SafeSectorSize(pending.N)
+                If size <= 0 Then
                     pending = Nothing
                     Continue For
                 End If
+                Dim byteCount = 4 + size + 2
+                Dim e = offs + byteCount * 16
+                If bits.Count < e Then
+                    pending = Nothing
+                    Continue For
+                End If
+                Dim payload = DecodeWords(bits, offs, byteCount)
+                Dim damCrcGood = (ComputeCrcCcittFalse(payload) = 0)
                 Dim mfmData(size - 1) As Byte
                 Array.Copy(payload, 4, mfmData, 0, size)
-                sectors(pending.R) = mfmData
-                sectorNs(pending.R) = pending.N
+                sectors.Add(New ScanSector With {
+                    .Start = pending.Start,
+                    .R = pending.R,
+                    .N = pending.N,
+                    .Data = mfmData,
+                    .GoodCrc = pending.CrcGood AndAlso damCrcGood
+                })
                 pending = Nothing
             Next
-            Dim totalSlots = Math.Max(seenIds.Count, sectors.Count)
-            Return New ScanResult With {
-                .Sectors = sectors,
-                .SectorNs = sectorNs,
-                .TotalIdamSlots = totalSlots,
-                .Summary = String.Format("IBM MFM ({0}/{1} sectors)", sectors.Count, totalSlots),
-                .FormatName = "ibm.mfm"
-            }
+            Return BuildScanResult(sectors, rawTrack, "ibm.mfm")
         End Function
 
-        ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ParseFm)
-        Private Function ParseFm(bits As List(Of Boolean)) As ScanResult
-            Dim sectors As New SortedDictionary(Of Integer, Byte())()
-            Dim sectorNs As New SortedDictionary(Of Integer, Integer)()
-            Dim seenIds As New HashSet(Of Integer)()
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.fm_decode_raw
+        ' Same bad-CRC-aware + per-revolution-normalised semantics as ParseMfm.
+        Private Function ParseFm(rawTrack As PllTrack) As ScanResult
+            Dim bits = rawTrack.GetAllData().Item1
+            Dim sectors As New List(Of ScanSector)()
             Dim pending As ParsedIdam = Nothing
             Dim offsets = FindPatternOffsets(bits, FmIdamPattern).
                 Concat(FindPatternOffsets(bits, FmDamPattern)).
@@ -367,9 +412,14 @@ Namespace Greaseweazle.Codecs
                     Dim endIdam = offs + 7 * 16
                     If bits.Count < endIdam Then Continue For
                     Dim idamBytes = DecodeWords(bits, offs, 7)
-                    If ComputeCrcCcittFalse(idamBytes) <> 0 Then Continue For
-                    pending = New ParsedIdam With {.EndOffset = endIdam, .R = idamBytes(3), .N = idamBytes(4)}
-                    seenIds.Add(pending.R)
+                    Dim idamCrc = ComputeCrcCcittFalse(idamBytes)
+                    pending = New ParsedIdam With {
+                        .Start = offs,
+                        .EndOffset = endIdam,
+                        .R = idamBytes(3),
+                        .N = idamBytes(4),
+                        .CrcGood = (idamCrc = 0)
+                    }
                     Continue For
                 End If
                 If mark <> &HFB AndAlso mark <> &HF8 Then Continue For
@@ -377,36 +427,116 @@ Namespace Greaseweazle.Codecs
                     pending = Nothing
                     Continue For
                 End If
-                Dim size = 128 << pending.N
-                Dim byteCount = 1 + size + 2
-                Dim endDam = offs + byteCount * 16
-                If bits.Count < endDam Then Continue For
-                Dim payload = DecodeWords(bits, offs, byteCount)
-                If ComputeCrcCcittFalse(payload) <> 0 Then
+                Dim size = SafeSectorSize(pending.N)
+                If size <= 0 Then
                     pending = Nothing
                     Continue For
                 End If
+                Dim byteCount = 1 + size + 2
+                Dim endDam = offs + byteCount * 16
+                If bits.Count < endDam Then
+                    pending = Nothing
+                    Continue For
+                End If
+                Dim payload = DecodeWords(bits, offs, byteCount)
+                Dim damCrcGood = (ComputeCrcCcittFalse(payload) = 0)
                 Dim fmData(size - 1) As Byte
                 Array.Copy(payload, 1, fmData, 0, size)
-                sectors(pending.R) = fmData
-                sectorNs(pending.R) = pending.N
+                sectors.Add(New ScanSector With {
+                    .Start = pending.Start,
+                    .R = pending.R,
+                    .N = pending.N,
+                    .Data = fmData,
+                    .GoodCrc = pending.CrcGood AndAlso damCrcGood
+                })
                 pending = Nothing
             Next
-            Dim totalSlots = Math.Max(seenIds.Count, sectors.Count)
+            Return BuildScanResult(sectors, rawTrack, "ibm.fm")
+        End Function
+
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.mfm_decode_raw +
+        ' decode_raw (the "Convert to offsets within track" loop and the
+        ' isinstance(a, Sector) dedup that follows). Combined here because
+        ' Python first normalises area starts via raw.revolutions, then
+        ' decode_raw collapses per-revolution duplicates into the per-track
+        ' sector list.
+        Private Shared Function BuildScanResult(sectors As List(Of ScanSector),
+                                                rawTrack As PllTrack,
+                                                formatName As String) As ScanResult
+            NormaliseToRevolutions(sectors, rawTrack)
+            sectors.Sort(Function(a, b) a.Start.CompareTo(b.Start))
+            Dim deduped As New List(Of ScanSector)()
+            For Each sec In sectors
+                Dim foundDupe = False
+                For i = 0 To deduped.Count - 1
+                    If Math.Abs(deduped(i).Start - sec.Start) < 1000 Then
+                        foundDupe = True
+                        If Not deduped(i).GoodCrc AndAlso sec.GoodCrc Then
+                            deduped(i) = sec
+                        End If
+                        Exit For
+                    End If
+                Next
+                If Not foundDupe Then
+                    deduped.Add(sec)
+                End If
+            Next
+            deduped.Sort(Function(a, b) a.Start.CompareTo(b.Start))
             Return New ScanResult With {
-                .Sectors = sectors,
-                .SectorNs = sectorNs,
-                .TotalIdamSlots = totalSlots,
-                .Summary = String.Format("IBM FM ({0}/{1} sectors)", sectors.Count, totalSlots),
-                .FormatName = "ibm.fm"
+                .Sectors = deduped,
+                .FormatName = formatName
             }
+        End Function
+
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.mfm_decode_raw
+        '   "Convert to offsets within track" loop (lines 492-504). Walks
+        '   start-sorted areas alongside an iterator over revolution bit
+        '   counts; each time an area's start crosses the cumulative end of
+        '   the current revolution we set p=n (start of the next rev) and
+        '   advance n by the next revolution's NrBits, then subtract p from
+        '   each subsequent area's start. That yields per-revolution offsets
+        '   so duplicates from different revolutions collapse on dedup.
+        Private Shared Sub NormaliseToRevolutions(sectors As List(Of ScanSector),
+                                                  rawTrack As PllTrack)
+            If rawTrack Is Nothing OrElse rawTrack.Revolutions Is Nothing OrElse rawTrack.Revolutions.Count = 0 Then
+                Return
+            End If
+            sectors.Sort(Function(a, b) a.Start.CompareTo(b.Start))
+            Dim revs = rawTrack.Revolutions
+            Dim revIdx = 0
+            Dim p As Long = 0
+            Dim n As Long = revs(0).NrBits
+            For Each sec In sectors
+                If sec.Start >= n Then
+                    p = n
+                    revIdx += 1
+                    If revIdx < revs.Count Then
+                        n += revs(revIdx).NrBits
+                    Else
+                        n = Long.MaxValue
+                    End If
+                End If
+                sec.Start = CInt(sec.Start - p)
+            Next
+        End Sub
+
+        ' Python uses arbitrary-precision integers for `128 << idam.n` and
+        ' relies on len(bits) bounds to skip impossibly large reads. .NET
+        ' Int32 wraps on shifts >= 25, so reject any N outside the IBM-valid
+        ' 0..7 range here -- the corresponding Python branch always fails
+        ' the len(bits) check anyway, so the resulting sector is dropped.
+        Private Shared Function SafeSectorSize(n As Integer) As Integer
+            If n < 0 OrElse n > 7 Then Return 0
+            Return 128 << n
         End Function
 
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::(no direct 1:1 symbol; VB helper record for intermediate IDAM parse state)
         Private Class ParsedIdam
+            Public Property Start As Integer
             Public Property EndOffset As Integer
             Public Property R As Integer
             Public Property N As Integer
+            Public Property CrcGood As Boolean
         End Class
 
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Scan.track
@@ -428,19 +558,19 @@ Namespace Greaseweazle.Codecs
                 Return Nothing
             End If
 
-            Dim sectorIds = _sectors.Keys.ToList()
-            Dim sectorSizes As New List(Of Integer)(sectorIds.Count)
-            Dim sectorHeaderNs As New List(Of Integer)(sectorIds.Count)
-            For Each id In sectorIds
-                Dim size = _sectors(id).Length
-                sectorSizes.Add(size)
-                Dim n As Integer
-                If _sectorNs.ContainsKey(id) Then
-                    n = _sectorNs(id)
-                Else
-                    n = InferSectorN(size)
+            ' Pass sectors in physical order; IbmTrackFixed re-sorts by sector
+            ' ID internally for image I/O via its _logicalOrder map.
+            Dim sectorIds As New List(Of Integer)(_sectors.Count)
+            Dim sectorSizes As New List(Of Integer)(_sectors.Count)
+            Dim sectorHeaderNs As New List(Of Integer)(_sectors.Count)
+            For Each s In _sectors
+                sectorIds.Add(s.R)
+                sectorSizes.Add(s.Data.Length)
+                Dim n = s.N
+                If n < 0 OrElse n > 7 Then
+                    n = InferSectorN(s.Data.Length)
                 End If
-                ErrorHandling.Check(n >= 0, String.Format("ibm.scan: Unsupported sector size {0}", size))
+                ErrorHandling.Check(n >= 0, String.Format("ibm.scan: Unsupported sector size {0}", s.Data.Length))
                 sectorHeaderNs.Add(n)
             Next
 

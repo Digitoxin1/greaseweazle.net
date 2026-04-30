@@ -121,21 +121,40 @@ Namespace Greaseweazle.Tools
         Public Shared Function RunFromOptions(preview As ReadOptions,
                                               cmd As Greaseweazle.Actions.ReadCommand,
                                               ct As CancellationToken) As Greaseweazle.Actions.ReadSummary
+            Dim resolvedTracks = ResolveReadTracks(preview)
+            Dim resolvedTracksSpec = resolvedTracks.ToString()
             Dim revsDisplay = If(preview.RevsDisplay, preview.Revs.ToString(Globalization.CultureInfo.InvariantCulture))
             If cmd IsNot Nothing Then
-                cmd.OnStarted(New Greaseweazle.Actions.ReadStartedEventArgs(preview.Tracks, revsDisplay, preview.Format))
+                cmd.OnStarted(New Greaseweazle.Actions.ReadStartedEventArgs(resolvedTracksSpec, revsDisplay, preview.Format))
             End If
             If Not preview.Live Then
-                Return New Greaseweazle.Actions.ReadSummary(preview.Tracks, revsDisplay, 0,
+                Return New Greaseweazle.Actions.ReadSummary(resolvedTracksSpec, revsDisplay, 0,
                                                             preview.Format, Nothing,
                                                             Nothing, dryRun:=True)
             End If
-            Return RunLive(preview, cmd, ct, revsDisplay)
+            Return RunLive(preview, resolvedTracks, cmd, ct, revsDisplay)
+        End Function
+
+        ' Folds preview.TrackSet (user intent) onto format defaults derived
+        ' from preview.Format. Falls back to "c=0-81:h=0-1" when the format
+        ' is unknown or carries no tracks. Mirrors Python read.py:269-285.
+        Private Shared Function ResolveReadTracks(preview As ReadOptions) As TrackSet
+            Dim formatDefaults As TrackSet = Nothing
+            If Not String.IsNullOrEmpty(preview.Format) Then
+                Try
+                    Dim disk = ResolveDiskDefinition(preview.Format, preview.DiskDefsPath)
+                    If disk IsNot Nothing Then formatDefaults = disk.Tracks
+                Catch
+                    ' Format not found / unparseable - fall through to base spec.
+                End Try
+            End If
+            Return TrackResolution.ResolveSpec(preview.TrackSet, formatDefaults, "c=0-81:h=0-1")
         End Function
 
         ' Live-mode body for Read. Pure logic — all output flows
         ' through ReadCommand events.
         Private Shared Function RunLive(preview As ReadOptions,
+                                        resolvedTracks As TrackSet,
                                         cmd As Greaseweazle.Actions.ReadCommand,
                                         ct As CancellationToken,
                                         revsDisplay As String) As Greaseweazle.Actions.ReadSummary
@@ -237,6 +256,7 @@ Namespace Greaseweazle.Tools
             Dim tracksProcessed = 0
             Dim trackProcessedCallback As Action(Of Greaseweazle.Actions.ReadTrackProcessedEventArgs) = Nothing
             Dim trackGaveUpCallback As Action(Of Greaseweazle.Actions.ReadTrackGaveUpEventArgs) = Nothing
+            Dim unexpectedSectorCallback As Action(Of Greaseweazle.Actions.ReadUnexpectedSectorEventArgs) = Nothing
             If cmd IsNot Nothing Then
                 trackProcessedCallback = Sub(args)
                                              ct.ThrowIfCancellationRequested()
@@ -246,6 +266,10 @@ Namespace Greaseweazle.Tools
                                           ct.ThrowIfCancellationRequested()
                                           cmd.OnTrackGaveUp(args)
                                       End Sub
+                unexpectedSectorCallback = Sub(args)
+                                               ct.ThrowIfCancellationRequested()
+                                               cmd.OnUnexpectedSectorIgnored(args)
+                                           End Sub
             End If
 
             Try
@@ -326,7 +350,7 @@ Namespace Greaseweazle.Tools
                             effectiveTicks = 0
                         End If
 
-                        Dim safeTracks = preview.TrackSet.IteratePhysical().ToList()
+                        Dim safeTracks = resolvedTracks.IteratePhysical().ToList()
                         For Each track In safeTracks
                             ct.ThrowIfCancellationRequested()
                             ' Python read.py:197 always passes args.fmt_cls into read_with_retry,
@@ -348,7 +372,8 @@ Namespace Greaseweazle.Tools
                                                                      preview.Retries,
                                                                      preview.SeekRetries,
                                                                      preview.GenTg43,
-                                                                     preview.PllProfiles)
+                                                                     preview.PllProfiles,
+                                                                     unexpectedSectorCallback)
                             Dim flux = readResult.Item1
                             Dim dat = readResult.Item2
                             tracksProcessed += 1
@@ -427,7 +452,7 @@ Namespace Greaseweazle.Tools
             ' Python read.py:206-207: print_summary when --format was supplied.
             Dim grid As Greaseweazle.Actions.SectorSummaryGrid = Nothing
             If imgDisk IsNot Nothing Then
-                grid = ReadWrite.BuildSectorSummary(preview.TrackSet, summaryDict)
+                grid = ReadWrite.BuildSectorSummary(resolvedTracks, summaryDict)
                 If cmd IsNot Nothing Then
                     cmd.OnSummaryReady(New Greaseweazle.Actions.ReadSummaryReadyEventArgs(grid))
                 End If
@@ -452,7 +477,7 @@ Namespace Greaseweazle.Tools
                 File.WriteAllBytes(outPath, d88Image.GetImage())
             End If
 
-            Return New Greaseweazle.Actions.ReadSummary(preview.Tracks, revsDisplay,
+            Return New Greaseweazle.Actions.ReadSummary(resolvedTracks.ToString(), revsDisplay,
                                                         tracksProcessed, preview.Format,
                                                         outPath, grid, dryRun:=False)
         End Function
@@ -628,8 +653,10 @@ Namespace Greaseweazle.Tools
         Public Shared Function RunFromOptions(preview As WriteOptions,
                                               cmd As Greaseweazle.Actions.WriteCommand,
                                               ct As CancellationToken) As Greaseweazle.Actions.WriteSummary
+            Dim resolvedTracks = ResolveWriteTracks(preview)
+            Dim resolvedTracksSpec = resolvedTracks.ToString()
             If cmd IsNot Nothing Then
-                cmd.OnStarted(New Greaseweazle.Actions.WriteStartedEventArgs(preview.Format, preview.Tracks, preview.Precomp))
+                cmd.OnStarted(New Greaseweazle.Actions.WriteStartedEventArgs(preview.Format, resolvedTracksSpec, preview.Precomp))
             End If
             If Not preview.Live Then
                 ' --test parity (VB-only): the dry-run path emits only
@@ -637,19 +664,35 @@ Namespace Greaseweazle.Tools
                 ' and the verify-summary footer is intentionally
                 ' suppressed (Python has no --test mode but the existing
                 ' fixtures expect just the header echo).
-                Return New Greaseweazle.Actions.WriteSummary(preview.Tracks,
+                Return New Greaseweazle.Actions.WriteSummary(resolvedTracksSpec,
                                                               preview.Format,
                                                               Greaseweazle.Actions.WriteVerifyOutcome.AllVerified,
                                                               0,
                                                               0,
                                                               dryRun:=True)
             End If
-            Return RunWriteLive(preview, cmd, ct)
+            Return RunWriteLive(preview, resolvedTracks, cmd, ct)
+        End Function
+
+        ' Folds preview.TrackSet (user intent) onto format defaults derived
+        ' from preview.Format. Mirrors Python write.py:268-280.
+        Private Shared Function ResolveWriteTracks(preview As WriteOptions) As TrackSet
+            Dim formatDefaults As TrackSet = Nothing
+            If Not String.IsNullOrEmpty(preview.Format) Then
+                Try
+                    Dim disk = ResolveDiskDefinition(preview.Format, preview.DiskDefsPath)
+                    If disk IsNot Nothing Then formatDefaults = disk.Tracks
+                Catch
+                    ' Format not found / unparseable - fall through to base spec.
+                End Try
+            End If
+            Return TrackResolution.ResolveSpec(preview.TrackSet, formatDefaults, "c=0-81:h=0-1")
         End Function
 
         ' Live-mode body for Write. Pure logic — all output flows through
         ' WriteCommand events. Returns the final WriteSummary.
         Private Shared Function RunWriteLive(preview As WriteOptions,
+                                             resolvedTracks As TrackSet,
                                              cmd As Greaseweazle.Actions.WriteCommand,
                                              ct As CancellationToken) As Greaseweazle.Actions.WriteSummary
             Dim inSplit = ConvertAction.SplitImageFileOptions(preview.FileName)
@@ -946,7 +989,7 @@ Namespace Greaseweazle.Tools
                             ' WriteSummary after the with-drive-selected
                             ' lambda returns. The lambda mutates them via
                             ' closure capture.
-                            Dim safeTracks = preview.TrackSet.IteratePhysical().ToList()
+                            Dim safeTracks = resolvedTracks.IteratePhysical().ToList()
                             For Each track In safeTracks
                                 ct.ThrowIfCancellationRequested()
                                 Dim trackInfo = New Greaseweazle.Actions.WriteTrackInfo(track.Cyl, track.Head, track.PhysicalCyl, track.PhysicalHead)
@@ -961,10 +1004,17 @@ Namespace Greaseweazle.Tools
                                                 End If
                                                 Return Nothing
                                             End If
-                                            ErrorHandling.Check(decoded.NrMissing() = 0,
-                                                               String.Format("T{0}.{1}: {2} missing sectors in input image",
-                                                                             track.Cyl, track.Head,
-                                                                             decoded.NrMissing()))
+                                            ' Drain any structured per-track diagnostics the codec
+                                            ' produced (e.g. unexpected-sector findings) and dispatch
+                                            ' them as typed Write events. Mirrors Python's
+                                            ' "Ignoring unexpected sector ..." print but as data.
+                                            If cmd IsNot Nothing Then
+                                                ReadWrite.DrainUnexpectedSectorsForWrite(decoded, trackInfo,
+                                                    Sub(args) cmd.OnUnexpectedSectorIgnored(args))
+                                            End If
+                                            If decoded.NrMissing() <> 0 Then
+                                                Throw New WriteMissingSectorsException(track.Cyl, track.Head, decoded.NrMissing())
+                                            End If
                                             prepared = decoded
                                         End If
                                         If TypeOf prepared Is Codec Then
@@ -1074,10 +1124,9 @@ Namespace Greaseweazle.Tools
                                                 Exit For
                                             End If
                                         Next
-                                        ErrorHandling.Check(verified,
-                                                           String.Format("Failed to verify Track {0}.{1}",
-                                                                         track.Cyl,
-                                                                         track.Head))
+                                        If Not verified Then
+                                            Throw New WriteVerifyFailedException(track.Cyl, track.Head)
+                                        End If
                                     End Sub
                                 ' Python write.py:62-72: get_track once, skip when
                                 ' the input has no flux for this (cyl, head) and
@@ -1160,7 +1209,7 @@ Namespace Greaseweazle.Tools
                         Try : usbClient.Serial.Close() : Catch : End Try
                     End If
                 End Try
-            Return New Greaseweazle.Actions.WriteSummary(preview.Tracks,
+            Return New Greaseweazle.Actions.WriteSummary(resolvedTracks.ToString(),
                                                           preview.Format,
                                                           runOutcome,
                                                           runVerifiedCount,
@@ -1414,8 +1463,8 @@ Namespace Greaseweazle.Tools
             ' bitrate, etc.) surface AFTER that header — not before. Mirror
             ' that ordering here so error diffs against gw.exe match.
             Dim resolvedTracks = Convert.ResolveTrackSets(If(fmtCls IsNot Nothing, fmtCls.Tracks, Nothing),
-                                                          preview.TracksSpec,
-                                                          preview.OutTracksSpec)
+                                                          preview.TrackSet,
+                                                          preview.OutTrackSet)
             Dim inSpec = resolvedTracks.Item1.ToString()
             Dim outSpec = resolvedTracks.Item2.ToString()
 
@@ -1434,6 +1483,7 @@ Namespace Greaseweazle.Tools
 
             Dim hardSectorsCallback As Action(Of Greaseweazle.Actions.ConvertHardSectorsEventArgs) = Nothing
             Dim trackProcessedCallback As Action(Of Greaseweazle.Actions.ConvertTrackProcessedEventArgs) = Nothing
+            Dim unexpectedSectorCallback As Action(Of Greaseweazle.Actions.ConvertUnexpectedSectorEventArgs) = Nothing
             If cmd IsNot Nothing Then
                 hardSectorsCallback = Sub(args)
                                           ct.ThrowIfCancellationRequested()
@@ -1443,6 +1493,10 @@ Namespace Greaseweazle.Tools
                                              ct.ThrowIfCancellationRequested()
                                              cmd.OnTrackProcessed(args)
                                          End Sub
+                unexpectedSectorCallback = Sub(args)
+                                               ct.ThrowIfCancellationRequested()
+                                               cmd.OnUnexpectedSectorIgnored(args)
+                                           End Sub
             End If
 
             Dim processedCount = 0
@@ -1462,7 +1516,8 @@ Namespace Greaseweazle.Tools
                                                      preview.Reverse,
                                                      preview.HardSectors,
                                                      preview.AdjustSpeed,
-                                                     preview.PllProfiles)
+                                                     preview.PllProfiles,
+                                                     unexpectedSectorCallback)
             Dim grid = ReadWrite.BuildSectorSummary(resolvedTracks.Item1, summaryDict)
             If cmd IsNot Nothing Then
                 cmd.OnSummaryReady(New Greaseweazle.Actions.ConvertSummaryReadyEventArgs(grid))
@@ -2005,12 +2060,16 @@ Namespace Greaseweazle.Tools
         Public Shared Function RunFromOptions(preview As EraseOptions,
                                               cmd As Greaseweazle.Actions.EraseCommand,
                                               ct As CancellationToken) As Greaseweazle.Actions.EraseSummary
+            ' Erase has no format concept — fold preview.TrackSet against
+            ' the canonical "c=0-81:h=0-1" defaults.
+            Dim resolvedTracks = TrackResolution.ResolveSpec(preview.TrackSet, Nothing, "c=0-81:h=0-1")
+            Dim resolvedTracksSpec = resolvedTracks.ToString()
             If cmd IsNot Nothing Then
-                cmd.OnStarted(New Greaseweazle.Actions.EraseStartedEventArgs(preview.Tracks, preview.Revs))
+                cmd.OnStarted(New Greaseweazle.Actions.EraseStartedEventArgs(resolvedTracksSpec, preview.Revs))
             End If
 
             If Not preview.Live Then
-                Return New Greaseweazle.Actions.EraseSummary(preview.Tracks, preview.Revs, 0, dryRun:=True)
+                Return New Greaseweazle.Actions.EraseSummary(resolvedTracksSpec, preview.Revs, 0, dryRun:=True)
             End If
 
             Dim processed = 0
@@ -2019,7 +2078,7 @@ Namespace Greaseweazle.Tools
                 usbClient = ToolOptions.UsbOpen(preview.Device)
                 ToolOptions.WithDriveSelected(
                     Sub()
-                        Dim safeTracks = preview.TrackSet.IteratePhysical().ToList()
+                        Dim safeTracks = resolvedTracks.IteratePhysical().ToList()
                         processed = [Erase].[Erase](usbClient, preview, safeTracks,
                             Sub(track As TrackIter)
                                 ct.ThrowIfCancellationRequested()
@@ -2039,7 +2098,7 @@ Namespace Greaseweazle.Tools
                     Try : usbClient.Serial.Close() : Catch : End Try
                 End If
             End Try
-            Return New Greaseweazle.Actions.EraseSummary(preview.Tracks, preview.Revs, processed, dryRun:=False)
+            Return New Greaseweazle.Actions.EraseSummary(resolvedTracksSpec, preview.Revs, processed, dryRun:=False)
         End Function
     End Class
 
@@ -2571,10 +2630,19 @@ Namespace Greaseweazle.Tools
         Public Shared Function RunFromOptions(preview As AlignOptions,
                                               cmd As Greaseweazle.Actions.AlignCommand,
                                               ct As CancellationToken) As Greaseweazle.Actions.AlignSummary
+            ' Fold preview.TrackSet (user intent) onto FormatDef defaults
+            ' (when a --format was resolved) and validate the resulting
+            ' cylinder set. ValidateTrackCylinders enforces Python's
+            ' "no negative cyls / no cyls > 84" guard rails.
+            Dim formatDefaults As TrackSet = If(preview.FormatDef IsNot Nothing, preview.FormatDef.Tracks, Nothing)
+            Dim resolvedTracks = TrackResolution.ResolveSpec(preview.TrackSet, formatDefaults, "c=0-81:h=0-1")
+            Dim trackList = resolvedTracks.IteratePhysical().ToList()
+            Align.ValidateTrackCylinders(trackList.Select(Function(t) Tuple.Create(t.Cyl, t.Head)).ToList())
+
             If Not preview.Live Then
                 If cmd IsNot Nothing Then
                     cmd.OnStarted(New Greaseweazle.Actions.AlignStartedEventArgs(
-                        preview.TrackSet.IteratePhysical().ToList(),
+                        trackList,
                         preview.Reads,
                         preview.Revs,
                         preview.Format))
@@ -2638,13 +2706,13 @@ Namespace Greaseweazle.Tools
                         End If
 
                         If preview.GenTg43 Then
-                            Dim firstTrack = preview.TrackSet.IteratePhysical().First()
+                            Dim firstTrack = trackList(0)
                             usbClient.SetPin(2, firstTrack.Cyl < 60)
                         End If
 
                         readsCompleted = Align.AlignTrack(
                             usbClient,
-                            preview.TrackSet.IteratePhysical().ToList(),
+                            trackList,
                             preview.Reads,
                             effectiveRevs,
                             effectiveTicks,

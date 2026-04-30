@@ -682,6 +682,7 @@ Namespace Greaseweazle.Codecs
     Public Class IbmTrackFixed
         Inherits CodecBase
         Implements HasVerify
+        Implements HasDecodeDiagnostics
 
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.verify_revs
         Public ReadOnly Property VerifyRevsValue As Double Implements HasVerify.VerifyRevs
@@ -693,6 +694,34 @@ Namespace Greaseweazle.Codecs
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack.verify_track
         Public Function VerifyTrackInterface(flux As Flux) As Boolean Implements HasVerify.VerifyTrack
             Return VerifyTrack(flux)
+        End Function
+
+        ' Buffer for "unexpected sector" findings produced by the most
+        ' recent DecodeFlux call. The action layer (ReadWithRetry,
+        ' ProcessInputTrack, PrepareSourceTrack) is expected to invoke
+        ' DrainDecodeDiagnostics after each DecodeFlux to translate the
+        ' findings into typed Read/Write/Convert events; the buffer is
+        ' cleared on drain. This replaces the previous design that
+        ' emitted pre-formatted strings via LibraryDiagnostics.EmitInfo
+        ' from inside DecodeFlux, which leaked CLI presentation concerns
+        ' into the library.
+        '
+        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
+        '   (the `mismatches` set/print loop -- preserved here as
+        '   structured data instead of an in-library print).
+        Private ReadOnly _pendingDiagnostics As New List(Of CodecDecodeDiagnostic)()
+
+        ' Python map: src/greaseweazle/codec/codec.py::(no direct 1:1 symbol;
+        '   VB drain method to expose codec-buffered diagnostics to the
+        '   action layer; see HasDecodeDiagnostics in CodecContracts.vb.)
+        Public Function DrainDecodeDiagnostics() As IReadOnlyList(Of CodecDecodeDiagnostic) _
+            Implements HasDecodeDiagnostics.DrainDecodeDiagnostics
+            If _pendingDiagnostics.Count = 0 Then
+                Return Array.Empty(Of CodecDecodeDiagnostic)()
+            End If
+            Dim snapshot = _pendingDiagnostics.ToArray()
+            _pendingDiagnostics.Clear()
+            Return snapshot
         End Function
 
         ' Python map: src/greaseweazle/codec/ibm/ibm.py::bad_sector_data
@@ -942,9 +971,12 @@ Namespace Greaseweazle.Codecs
         ' (each call accumulates - sectors are NOT cleared at the top of
         ' decode_flux, so multiple calls with different PLLs are cumulative and
         ' first-good-wins). Sectors with a good IDAM CRC whose (C,H,R,N) tuple
-        ' does not match any predeclared layout entry are reported via:
+        ' does not match any predeclared layout entry are accumulated in
+        ' _pendingDiagnostics and surfaced to the action layer via
+        ' DrainDecodeDiagnostics. Python's equivalent prints
         '     T<cyl>.<head>: Ignoring unexpected sector C:<c> H:<h> R:<r> N:<n>
-        ' (one print per unique tuple).
+        ' inline; in VB the CLI's per-command formatter renders that line
+        ' via the typed event so the library produces no console text.
         Public Overrides Sub DecodeFlux(track As HasFlux, Optional pll As Pll = Nothing)
             Dim mismatchOrder As New List(Of Tuple(Of Integer, Integer, Integer, Integer))
             Dim mismatchSeen As New HashSet(Of Tuple(Of Integer, Integer, Integer, Integer))
@@ -958,8 +990,7 @@ Namespace Greaseweazle.Codecs
                 DecodeMfmFlux(track, pll, mismatchOrder, mismatchSeen)
             End If
             For Each m In mismatchOrder
-                LibraryDiagnostics.EmitInfo(String.Format("T{0}.{1}: Ignoring unexpected sector C:{2} H:{3} R:{4} N:{5}",
-                                                          _cyl, _head, m.Item1, m.Item2, m.Item3, m.Item4))
+                _pendingDiagnostics.Add(New UnexpectedSectorDiagnostic(m.Item1, m.Item2, m.Item3, m.Item4))
             Next
         End Sub
 

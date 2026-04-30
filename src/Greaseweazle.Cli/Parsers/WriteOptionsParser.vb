@@ -137,10 +137,19 @@ Namespace Greaseweazle.Cli.Parsers
             End If
             ParserHelpers.ValidateFormatIfSpecified(format, knownFormats, diskDefsPath)
 
-            ' Python write.py:274-279: shared resolution of --tracks against
-            ' the format's default range. See ParserHelpers.ResolveTracksOption.
-            Dim tracks As TrackSet = ParserHelpers.ResolveTracksOption(
-                "write", "--tracks", tracksSpec, format, diskDefsPath, "c=0-81:h=0-1")
+            ' --tracks is captured as user intent (TrackSetSpec); the engine
+            ' folds it against format defaults inside RunFromOptions.
+            Dim tracks As TrackSetSpec = Nothing
+            If tracksSpec IsNot Nothing AndAlso tracksSpec.Length = 0 Then
+                Argparse("argument --tracks: invalid TrackSet value: ''")
+            End If
+            If tracksSpec IsNot Nothing Then
+                Try
+                    tracks = New TrackSetSpec(tracksSpec)
+                Catch ex As ArgumentException
+                    Argparse(String.Format("argument --tracks: invalid TrackSet value: '{0}'", tracksSpec))
+                End Try
+            End If
 
             Dim precompText As String = Nothing
             If Not String.IsNullOrEmpty(precompSpec) Then
@@ -156,7 +165,6 @@ Namespace Greaseweazle.Cli.Parsers
                 .FileName = positionals(0),
                 .Format = format,
                 .DiskDefsPath = diskDefsPath,
-                .Tracks = tracks.ToString(),
                 .Precomp = precompText,
                 .PrecompSpec = precompSpec,
                 .TrackSet = tracks,

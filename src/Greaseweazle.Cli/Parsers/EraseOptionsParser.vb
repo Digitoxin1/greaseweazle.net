@@ -100,12 +100,14 @@ Namespace Greaseweazle.Cli.Parsers
                 Argparse("invalid value for option --tracks: ''")
             End If
 
-            Dim resolvedTracks As TrackSet = Nothing
-            Try
-                resolvedTracks = TrackResolution.ResolveDefaultTracks("c=0-81:h=0-1", tracksSpec)
-            Catch ex As Exception When tracksSpec IsNot Nothing
-                Argparse(String.Format("invalid value for option --tracks: '{0}'", tracksSpec))
-            End Try
+            Dim resolvedTracks As TrackSetSpec = Nothing
+            If tracksSpec IsNot Nothing Then
+                Try
+                    resolvedTracks = New TrackSetSpec(tracksSpec)
+                Catch ex As Exception
+                    Argparse(String.Format("invalid value for option --tracks: '{0}'", tracksSpec))
+                End Try
+            End If
             Dim drive As DriveSpec = Nothing
             Try
                 drive = ParserHelpers.Drive(driveToken)
@@ -113,7 +115,6 @@ Namespace Greaseweazle.Cli.Parsers
                 Argparse(ex.Message)
             End Try
             Return New EraseOptions With {
-                .Tracks = resolvedTracks.ToString(),
                 .TrackSet = resolvedTracks,
                 .Revs = revs,
                 .Hfreq = hfreq,

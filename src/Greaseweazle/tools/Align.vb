@@ -6,8 +6,12 @@ Imports Greaseweazle.Shared
 Namespace Greaseweazle.Tools
 
     ' Strongly-typed options for the `align` action.
+    '
+    ' TrackSet is a TrackSetSpec (partial / user intent). The engine
+    ' resolves it against the format defaults (FormatDef.Tracks if set,
+    ' otherwise "c=0-81:h=0-1") and runs ValidateTrackCylinders on the
+    ' resolved set inside RunFromOptions.
     Public Class AlignOptions
-        Public Property Header As String
         Public Property Format As String
         Public Property DiskDefsPath As String
         Public Property FormatDef As DiskDef
@@ -20,7 +24,7 @@ Namespace Greaseweazle.Tools
         ' Python's `ticks = drive_tpr * fractional_revs; revs = 2` collapse.
         Public Property FractionalRevs As Nullable(Of Double)
         Public Property Ticks As Integer
-        Public Property TrackSet As TrackSet
+        Public Property TrackSet As TrackSetSpec
         Public Property Raw As Boolean
         Public Property HardSectors As Boolean
         Public Property Reverse As Boolean
@@ -183,7 +187,11 @@ Namespace Greaseweazle.Tools
                         Greaseweazle.Actions.AlignReadOutcome.NoFormat,
                         flux.SummaryString(),
                         Nothing,
-                        Nothing)
+                        Nothing,
+                        0,
+                        0,
+                        flux.List.Count,
+                        flux.List.Sum() * 1000.0 / flux.SampleFreq)
                 Else
                     ' Python (align.py:126-135): `dat = fmt_cls.decode_flux(cyl, head, flux)`
                     ' creates the codec instance and runs the first decode pass; each retry
@@ -199,7 +207,11 @@ Namespace Greaseweazle.Tools
                             Greaseweazle.Actions.AlignReadOutcome.OutOfRange,
                             flux.SummaryString(),
                             Nothing,
-                            If(formatName, String.Empty))
+                            If(formatName, String.Empty),
+                            0,
+                            0,
+                            flux.List.Count,
+                            flux.List.Sum() * 1000.0 / flux.SampleFreq)
                     Else
                         Dim nr = 1
                         While decoded.NrMissing() <> 0 AndAlso nr < profiles.Count
@@ -211,7 +223,11 @@ Namespace Greaseweazle.Tools
                             Greaseweazle.Actions.AlignReadOutcome.Decoded,
                             flux.SummaryString(),
                             decoded.SummaryString(),
-                            Nothing)
+                            Nothing,
+                            decoded.Nsec - decoded.NrMissing(),
+                            decoded.Nsec,
+                            flux.List.Count,
+                            flux.List.Sum() * 1000.0 / flux.SampleFreq)
                     End If
                 End If
                 If onReadCompleted IsNot Nothing Then

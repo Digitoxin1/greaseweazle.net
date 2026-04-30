@@ -146,6 +146,40 @@ Namespace Greaseweazle.Actions
 
     End Class
 
+    ' Raised once per (C, H, R, N) tuple whose IDAM CRC was good but
+    ' the tuple does not match any predeclared sector entry for the
+    ' track's format layout, encountered while decoding the input
+    ' image during a Write run (PrepareSourceTrack). Mirrors Python's
+    '   "T<cyl>.<head>: Ignoring unexpected sector C:<c> H:<h> R:<r> N:<n>"
+    ' line, but as structured data — the CLI formatter renders the
+    ' line and non-CLI hosts can consume the typed fields directly.
+    '
+    ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
+    Public NotInheritable Class WriteUnexpectedSectorEventArgs
+        Inherits EventArgs
+
+        Public Sub New(track As WriteTrackInfo, c As Integer, h As Integer, r As Integer, n As Integer)
+            Me.Track = track
+            Me.C = c
+            Me.H = h
+            Me.R = r
+            Me.N = n
+        End Sub
+
+        ' Track address as it appears to a Write subscriber.
+        Public ReadOnly Property Track As WriteTrackInfo
+        ' Cylinder reported in the unexpected IDAM (the C field).
+        Public ReadOnly Property C As Integer
+        ' Head reported in the unexpected IDAM (the H field).
+        Public ReadOnly Property H As Integer
+        ' Sector-id (R) reported in the unexpected IDAM.
+        Public ReadOnly Property R As Integer
+        ' Size code (N) reported in the unexpected IDAM
+        ' (sector size in bytes = 128 << N for valid IBM tracks).
+        Public ReadOnly Property N As Integer
+
+    End Class
+
     ' Raised once at the end of a Write run with the verify tally.
     ' Always fires (live and dry-run) so subscribers can render the
     ' final footer line without having to re-derive the verdict.

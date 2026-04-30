@@ -10,6 +10,7 @@ Namespace Greaseweazle.Cli.Formatters
     '   "Writing <tracks>"                                       (Started)
     '   "<precomp summary>"                                      (Started, optional)
     '   "Drive reports {N} hard sectors"                         (HardSectorsDetected)
+    '   "{tspec}: Ignoring unexpected sector C:.. H:.. R:.. N:.."(UnexpectedSectorIgnored)
     '   "{tspec}: Erasing Track"                                 (TrackErasing)
     '   "{tspec}: WARNING: Out of range for format '{f}': …"     (TrackOutOfRange)
     '   "{tspec}: Writing Track ({summary})"                     (TrackWriting, retry=0)
@@ -28,6 +29,7 @@ Namespace Greaseweazle.Cli.Formatters
         Private ReadOnly _outOfRangeHandler As EventHandler(Of WriteTrackOutOfRangeEventArgs)
         Private ReadOnly _writingHandler As EventHandler(Of WriteTrackWritingEventArgs)
         Private ReadOnly _verifyHandler As EventHandler(Of WriteVerifyOutcomeEventArgs)
+        Private ReadOnly _unexpectedSectorHandler As EventHandler(Of WriteUnexpectedSectorEventArgs)
         Private _disposed As Boolean
 
         Public Sub New(command As WriteCommand, output As TextWriter)
@@ -39,12 +41,14 @@ Namespace Greaseweazle.Cli.Formatters
             _outOfRangeHandler = AddressOf OnTrackOutOfRange
             _writingHandler = AddressOf OnTrackWriting
             _verifyHandler = AddressOf OnVerifyCompleted
+            _unexpectedSectorHandler = AddressOf OnUnexpectedSectorIgnored
             AddHandler _command.Started, _startedHandler
             AddHandler _command.HardSectorsDetected, _hardSectorsHandler
             AddHandler _command.TrackErasing, _erasingHandler
             AddHandler _command.TrackOutOfRange, _outOfRangeHandler
             AddHandler _command.TrackWriting, _writingHandler
             AddHandler _command.VerifyCompleted, _verifyHandler
+            AddHandler _command.UnexpectedSectorIgnored, _unexpectedSectorHandler
         End Sub
 
         Private Sub OnStarted(sender As Object, e As WriteStartedEventArgs)
@@ -100,6 +104,14 @@ Namespace Greaseweazle.Cli.Formatters
             End Select
         End Sub
 
+        ' Mirrors Python's ibm.py "Ignoring unexpected sector ..." print
+        ' (one line per unique (C, H, R, N) tuple per DecodeFlux pass).
+        Private Sub OnUnexpectedSectorIgnored(sender As Object, e As WriteUnexpectedSectorEventArgs)
+            _output.WriteLine(String.Format(CultureInfo.InvariantCulture,
+                                            "{0}: Ignoring unexpected sector C:{1} H:{2} R:{3} N:{4}",
+                                            BuildTrackSpec(e.Track), e.C, e.H, e.R, e.N))
+        End Sub
+
         ' "T{c}.{h}[ -> Drive {pc}.{ph}]" (note arrow direction is the
         ' opposite of Read/Convert).
         Private Shared Function BuildTrackSpec(t As WriteTrackInfo) As String
@@ -119,6 +131,7 @@ Namespace Greaseweazle.Cli.Formatters
             RemoveHandler _command.TrackOutOfRange, _outOfRangeHandler
             RemoveHandler _command.TrackWriting, _writingHandler
             RemoveHandler _command.VerifyCompleted, _verifyHandler
+            RemoveHandler _command.UnexpectedSectorIgnored, _unexpectedSectorHandler
         End Sub
 
     End Class

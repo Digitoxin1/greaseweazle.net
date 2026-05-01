@@ -21,11 +21,11 @@ Namespace Greaseweazle.Cli.Formatters
         Private ReadOnly _command As ReadCommand
         Private ReadOnly _output As TextWriter
         Private ReadOnly _startedHandler As EventHandler(Of ReadStartedEventArgs)
-        Private ReadOnly _hardSectorsHandler As EventHandler(Of ReadHardSectorsEventArgs)
-        Private ReadOnly _trackHandler As EventHandler(Of ReadTrackProcessedEventArgs)
+        Private ReadOnly _hardSectorsHandler As EventHandler(Of HardSectorsDetectedEventArgs)
+        Private ReadOnly _trackHandler As EventHandler(Of TrackProcessedEventArgs)
         Private ReadOnly _gaveUpHandler As EventHandler(Of ReadTrackGaveUpEventArgs)
-        Private ReadOnly _summaryHandler As EventHandler(Of ReadSummaryReadyEventArgs)
-        Private ReadOnly _unexpectedSectorHandler As EventHandler(Of ReadUnexpectedSectorEventArgs)
+        Private ReadOnly _summaryHandler As EventHandler(Of SectorSummaryReadyEventArgs)
+        Private ReadOnly _unexpectedSectorHandler As EventHandler(Of UnexpectedSectorEventArgs)
         Private _disposed As Boolean
 
         Public Sub New(command As ReadCommand, output As TextWriter)
@@ -53,20 +53,20 @@ Namespace Greaseweazle.Cli.Formatters
             End If
         End Sub
 
-        Private Sub OnHardSectorsDetected(sender As Object, e As ReadHardSectorsEventArgs)
+        Private Sub OnHardSectorsDetected(sender As Object, e As HardSectorsDetectedEventArgs)
             _output.WriteLine(String.Format(CultureInfo.InvariantCulture,
                                             "Drive reports {0} hard sectors", e.HardSectorCount))
         End Sub
 
-        Private Sub OnTrackProcessed(sender As Object, e As ReadTrackProcessedEventArgs)
+        Private Sub OnTrackProcessed(sender As Object, e As TrackProcessedEventArgs)
             Dim tspec = BuildTrackSpec(e.Track)
             Select Case e.Outcome
-                Case ReadTrackOutcome.NoFormat
+                Case TrackDecodeOutcome.NoFormat
                     _output.WriteLine(String.Format("{0}: {1}", tspec, e.FluxSummary))
-                Case ReadTrackOutcome.OutOfRange
+                Case TrackDecodeOutcome.OutOfRange
                     _output.WriteLine(String.Format("{0}: WARNING: Out of range for format '{1}': No format conversion applied: {2}",
                                                     tspec, If(e.FormatName, ""), e.FluxSummary))
-                Case ReadTrackOutcome.Decoded
+                Case TrackDecodeOutcome.Decoded
                     Dim line = String.Format("{0}: {1} from {2}", tspec, e.DecodedSummary, e.FluxSummary)
                     If e.Retry <> 0 Then
                         line &= String.Format(" (Retry #{0}.{1})", e.SeekRetry, e.Retry)
@@ -81,20 +81,20 @@ Namespace Greaseweazle.Cli.Formatters
                                             BuildTrackSpec(e.Track), e.MissingSectors))
         End Sub
 
-        Private Sub OnSummaryReady(sender As Object, e As ReadSummaryReadyEventArgs)
+        Private Sub OnSummaryReady(sender As Object, e As SectorSummaryReadyEventArgs)
             SectorSummaryFormatter.Render(e.Grid, _output)
         End Sub
 
         ' Mirrors Python's ibm.py "Ignoring unexpected sector ..." print
         ' (one line per unique (C, H, R, N) tuple per DecodeFlux pass).
-        Private Sub OnUnexpectedSectorIgnored(sender As Object, e As ReadUnexpectedSectorEventArgs)
+        Private Sub OnUnexpectedSectorIgnored(sender As Object, e As UnexpectedSectorEventArgs)
             _output.WriteLine(String.Format(CultureInfo.InvariantCulture,
                                             "{0}: Ignoring unexpected sector C:{1} H:{2} R:{3} N:{4}",
                                             BuildTrackSpec(e.Track), e.C, e.H, e.R, e.N))
         End Sub
 
         ' "T{c}.{h}[ <- Drive {pc}.{ph}]"
-        Private Shared Function BuildTrackSpec(t As ReadTrackInfo) As String
+        Private Shared Function BuildTrackSpec(t As TrackInfo) As String
             Dim spec = String.Format(CultureInfo.InvariantCulture, "T{0}.{1}", t.Cyl, t.Head)
             If t.PhysicalCyl <> t.Cyl OrElse t.PhysicalHead <> t.Head Then
                 spec &= String.Format(CultureInfo.InvariantCulture, " <- Drive {0}.{1}", t.PhysicalCyl, t.PhysicalHead)

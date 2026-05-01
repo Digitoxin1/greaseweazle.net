@@ -71,15 +71,15 @@ Namespace Greaseweazle.Tools
         Public Shared Function ProcessInputTrack(t As TrackIdentity,
                                                  inImage As Image,
                                                  onHardSectorsApplied As Action(Of Greaseweazle.Actions.ConvertHardSectorsEventArgs),
-                                                 onTrackProcessed As Action(Of Greaseweazle.Actions.ConvertTrackProcessedEventArgs),
+                                                 onTrackProcessed As Action(Of Greaseweazle.Actions.TrackProcessedEventArgs),
                                                  Optional fmtCls As DiskDef = Nothing,
                                                  Optional formatName As String = Nothing,
                                                  Optional reverse As Boolean = False,
                                                  Optional hardSectors As Boolean = False,
                                                  Optional adjustSpeed As Nullable(Of Double) = Nothing,
                                                  Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing,
-                                                 Optional onUnexpectedSector As Action(Of Greaseweazle.Actions.ConvertUnexpectedSectorEventArgs) = Nothing) As HasFlux
-            Dim trackInfo = New Greaseweazle.Actions.ConvertTrackInfo(t.Cyl, t.Head, t.PhysicalCyl, t.PhysicalHead)
+                                                 Optional onUnexpectedSector As Action(Of Greaseweazle.Actions.UnexpectedSectorEventArgs) = Nothing) As HasFlux
+            Dim trackInfo = Greaseweazle.Actions.TrackInfo.FromTrackIdentity(t)
             Dim track = inImage.GetTrack(t.PhysicalCyl, t.PhysicalHead)
             If track Is Nothing Then
                 Return Nothing
@@ -132,9 +132,9 @@ Namespace Greaseweazle.Tools
 
             If fmtCls Is Nothing OrElse TypeOf track Is Codec Then
                 If onTrackProcessed IsNot Nothing Then
-                    onTrackProcessed(New Greaseweazle.Actions.ConvertTrackProcessedEventArgs(
+                    onTrackProcessed(New Greaseweazle.Actions.TrackProcessedEventArgs(
                         trackInfo,
-                        Greaseweazle.Actions.ConvertTrackOutcome.NoFormat,
+                        Greaseweazle.Actions.TrackDecodeOutcome.NoFormat,
                         track.SummaryString(),
                         Nothing,
                         Nothing,
@@ -151,9 +151,9 @@ Namespace Greaseweazle.Tools
             Dim dat = fmtCls.DecodeFlux(t.Cyl, t.Head, track, firstPll)
             If dat Is Nothing Then
                 If onTrackProcessed IsNot Nothing Then
-                    onTrackProcessed(New Greaseweazle.Actions.ConvertTrackProcessedEventArgs(
+                    onTrackProcessed(New Greaseweazle.Actions.TrackProcessedEventArgs(
                         trackInfo,
-                        Greaseweazle.Actions.ConvertTrackOutcome.OutOfRange,
+                        Greaseweazle.Actions.TrackDecodeOutcome.OutOfRange,
                         track.SummaryString(),
                         Nothing,
                         If(formatName, ""),
@@ -164,18 +164,18 @@ Namespace Greaseweazle.Tools
                 End If
                 Return Nothing
             End If
-            ReadWrite.DrainUnexpectedSectorsForConvert(dat, trackInfo, onUnexpectedSector)
+            ReadWrite.DrainUnexpectedSectors(dat, trackInfo, onUnexpectedSector)
             For i = 1 To profiles.Count - 1
                 If dat.NrMissing() = 0 Then
                     Exit For
                 End If
                 dat.DecodeFlux(track, profiles(i))
-                ReadWrite.DrainUnexpectedSectorsForConvert(dat, trackInfo, onUnexpectedSector)
+                ReadWrite.DrainUnexpectedSectors(dat, trackInfo, onUnexpectedSector)
             Next
             If onTrackProcessed IsNot Nothing Then
-                onTrackProcessed(New Greaseweazle.Actions.ConvertTrackProcessedEventArgs(
+                onTrackProcessed(New Greaseweazle.Actions.TrackProcessedEventArgs(
                     trackInfo,
-                    Greaseweazle.Actions.ConvertTrackOutcome.Decoded,
+                    Greaseweazle.Actions.TrackDecodeOutcome.Decoded,
                     track.SummaryString(),
                     dat.SummaryString(),
                     Nothing,
@@ -197,14 +197,14 @@ Namespace Greaseweazle.Tools
                                          inImage As Image,
                                          outImage As Image,
                                          onHardSectorsApplied As Action(Of Greaseweazle.Actions.ConvertHardSectorsEventArgs),
-                                         onTrackProcessed As Action(Of Greaseweazle.Actions.ConvertTrackProcessedEventArgs),
+                                         onTrackProcessed As Action(Of Greaseweazle.Actions.TrackProcessedEventArgs),
                                          Optional fmtCls As DiskDef = Nothing,
                                          Optional formatName As String = Nothing,
                                          Optional reverse As Boolean = False,
                                          Optional hardSectors As Boolean = False,
                                          Optional adjustSpeed As Nullable(Of Double) = Nothing,
                                          Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing,
-                                         Optional onUnexpectedSector As Action(Of Greaseweazle.Actions.ConvertUnexpectedSectorEventArgs) = Nothing) As IDictionary(Of Tuple(Of Integer, Integer), Codec)
+                                         Optional onUnexpectedSector As Action(Of Greaseweazle.Actions.UnexpectedSectorEventArgs) = Nothing) As IDictionary(Of Tuple(Of Integer, Integer), Codec)
             Dim summary As New Dictionary(Of Tuple(Of Integer, Integer), Codec)()
             For Each t In outTracks
                 Dim key = Tuple.Create(t.Cyl, t.Head)

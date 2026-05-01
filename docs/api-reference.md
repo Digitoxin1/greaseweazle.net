@@ -98,11 +98,11 @@ the resolved output image.
 | Event                       | Args                              | When it fires                                              |
 | --------------------------- | --------------------------------- | ---------------------------------------------------------- |
 | `Started`                   | `ReadStartedEventArgs`            | Once after track-set/format resolution                     |
-| `HardSectorsDetected`       | `ReadHardSectorsEventArgs`        | Once when `--hard-sectors` auto-detection succeeds         |
-| `TrackProcessed`            | `ReadTrackProcessedEventArgs`     | Once per attempt (initial + each retry); exposes `DecodedSectorsFound`/`DecodedSectorsTotal` and (when the source is a raw Flux) `FluxSampleCount`/`FluxDurationMs` so hosts don't have to parse `DecodedSummary` / `FluxSummary` |
+| `HardSectorsDetected`       | `HardSectorsDetectedEventArgs`    | Once when `--hard-sectors` auto-detection succeeds         |
+| `TrackProcessed`            | `TrackProcessedEventArgs`         | Once per attempt (initial + each retry); exposes `DecodedSectorsFound`/`DecodedSectorsTotal` and (when the source is a raw Flux) `FluxSampleCount`/`FluxDurationMs` so hosts don't have to parse `DecodedSummary` / `FluxSummary` |
 | `TrackGaveUp`               | `ReadTrackGaveUpEventArgs`        | Once when retry budget is exhausted                        |
-| `SummaryReady`              | `ReadSummaryReadyEventArgs`       | Once after decode if codec produced a grid                 |
-| `UnexpectedSectorIgnored`   | `ReadUnexpectedSectorEventArgs`   | Per unique `(C,H,R,N)` sector header that doesn't match the format layout (may fire multiple times across retries) |
+| `SummaryReady`              | `SectorSummaryReadyEventArgs`     | Once after decode if codec produced a grid                 |
+| `UnexpectedSectorIgnored`   | `UnexpectedSectorEventArgs`       | Per unique `(C,H,R,N)` sector header that doesn't match the format layout (may fire multiple times across retries) |
 
 ```vb
 Function Run(options As ReadOptions,
@@ -121,12 +121,12 @@ verify + retries) to the unit.
 | Event                       | Args                              | When it fires                                        |
 | --------------------------- | --------------------------------- | ---------------------------------------------------- |
 | `Started`                   | `WriteStartedEventArgs`           | Once at start                                        |
-| `HardSectorsDetected`       | `WriteHardSectorsEventArgs`       | Once when `--hard-sectors` succeeds                  |
+| `HardSectorsDetected`       | `HardSectorsDetectedEventArgs`    | Once when `--hard-sectors` succeeds                  |
 | `TrackErasing`              | `WriteTrackErasingEventArgs`      | Per erased track (`--erase-empty` or `--pre-erase`)  |
 | `TrackOutOfRange`           | `WriteTrackOutOfRangeEventArgs`   | When codec rejects an input track                    |
 | `TrackWriting`              | `WriteTrackWritingEventArgs`      | Per write attempt (first + each verify retry)        |
 | `VerifyCompleted`           | `WriteVerifyOutcomeEventArgs`     | Once at end with verify tally                        |
-| `UnexpectedSectorIgnored`   | `WriteUnexpectedSectorEventArgs`  | Per unique `(C,H,R,N)` sector header in the input image that doesn't match the format layout |
+| `UnexpectedSectorIgnored`   | `UnexpectedSectorEventArgs`       | Per unique `(C,H,R,N)` sector header in the input image that doesn't match the format layout |
 
 ```vb
 Function Run(options As WriteOptions,
@@ -144,9 +144,9 @@ Streaming image-to-image conversion (no USB activity).
 | --------------------------- | ----------------------------------- | ---------------------------------------------- |
 | `Started`                   | `ConvertStartedEventArgs`           | Once before per-track work                     |
 | `HardSectorsApplied`        | `ConvertHardSectorsEventArgs`       | When `--hard-sectors` resolves a track's count |
-| `TrackProcessed`            | `ConvertTrackProcessedEventArgs`    | Once per input track; exposes `DecodedSectorsFound`/`DecodedSectorsTotal` and (when the input is a raw Flux) `FluxSampleCount`/`FluxDurationMs` so hosts don't have to parse `DecodedSummary` / `FluxSummary` |
-| `SummaryReady`              | `ConvertSummaryReadyEventArgs`      | Once at end with the decoded sector grid       |
-| `UnexpectedSectorIgnored`   | `ConvertUnexpectedSectorEventArgs`  | Per unique `(C,H,R,N)` sector header in the input image that doesn't match the format layout |
+| `TrackProcessed`            | `TrackProcessedEventArgs`           | Once per input track; exposes `DecodedSectorsFound`/`DecodedSectorsTotal` and (when the input is a raw Flux) `FluxSampleCount`/`FluxDurationMs` so hosts don't have to parse `DecodedSummary` / `FluxSummary` |
+| `SummaryReady`              | `SectorSummaryReadyEventArgs`       | Once at end with the decoded sector grid       |
+| `UnexpectedSectorIgnored`   | `UnexpectedSectorEventArgs`         | Per unique `(C,H,R,N)` sector header in the input image that doesn't match the format layout |
 
 ```vb
 Function Run(options As ConvertOptions,
@@ -301,8 +301,8 @@ Streaming repeated-read for drive alignment.
 | Event                | Args                                 | When it fires                                |
 | -------------------- | ------------------------------------ | -------------------------------------------- |
 | `Started`            | `AlignStartedEventArgs`              | Once after live-mode adjustments             |
-| `HardSectorsDetected`| `AlignHardSectorsDetectedEventArgs`  | When `--hard-sectors` succeeds               |
-| `ReadCompleted`      | `AlignReadCompletedEventArgs`        | Per read pass; exposes `DecodedSectorsFound`/`DecodedSectorsTotal` and `FluxSampleCount`/`FluxDurationMs` so hosts don't have to parse `DecodedSummary` / `FluxSummary` |
+| `HardSectorsDetected`| `HardSectorsDetectedEventArgs`       | When `--hard-sectors` succeeds               |
+| `ReadCompleted`      | `TrackProcessedEventArgs`            | Per read pass; exposes `DecodedSectorsFound`/`DecodedSectorsTotal` and `FluxSampleCount`/`FluxDurationMs` so hosts don't have to parse `DecodedSummary` / `FluxSummary` |
 
 ```vb
 Function Run(options As AlignOptions,
@@ -512,8 +512,7 @@ DryRun          As Boolean
 
 ### 3.14 `SectorSummaryGrid`
 
-Carried by `ReadSummaryReadyEventArgs`, `ConvertSummaryReadyEventArgs`,
-and on `Read`/`Convert` summaries.
+Carried by `SectorSummaryReadyEventArgs` and on `Read`/`Convert` summaries.
 
 ```vb
 Cyls          As IReadOnlyList(Of Integer)

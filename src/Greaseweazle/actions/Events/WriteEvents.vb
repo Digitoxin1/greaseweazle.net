@@ -1,25 +1,5 @@
 Namespace Greaseweazle.Actions
 
-    ' Track address as it appears to a Write subscriber.
-    ' PhysicalCyl/PhysicalHead reflect the drive's physical address —
-    ' Write renders "{cyl}.{head} -> Drive {pcyl}.{phead}" when they
-    ' differ (note the arrow direction is the inverse of Read/Convert).
-    Public NotInheritable Class WriteTrackInfo
-
-        Public Sub New(cyl As Integer, head As Integer, physicalCyl As Integer, physicalHead As Integer)
-            Me.Cyl = cyl
-            Me.Head = head
-            Me.PhysicalCyl = physicalCyl
-            Me.PhysicalHead = physicalHead
-        End Sub
-
-        Public ReadOnly Property Cyl As Integer
-        Public ReadOnly Property Head As Integer
-        Public ReadOnly Property PhysicalCyl As Integer
-        Public ReadOnly Property PhysicalHead As Integer
-
-    End Class
-
     ' Why a track is being erased before/instead of being written.
     Public Enum WriteEraseReason
         ' Input image had no track at this (cyl, head) AND --erase-empty
@@ -82,19 +62,6 @@ Namespace Greaseweazle.Actions
 
     End Class
 
-    ' Raised when --hard-sectors auto-detection succeeds. CLI prints
-    ' "Drive reports {N} hard sectors".
-    Public NotInheritable Class WriteHardSectorsEventArgs
-        Inherits EventArgs
-
-        Public Sub New(hardSectorCount As Integer)
-            Me.HardSectorCount = hardSectorCount
-        End Sub
-
-        Public ReadOnly Property HardSectorCount As Integer
-
-    End Class
-
     ' Raised when a track is erased — either because the input image
     ' didn't have data for it (--erase-empty) or because --pre-erase
     ' was passed before each write attempt. Renders "{tspec}: Erasing
@@ -102,12 +69,12 @@ Namespace Greaseweazle.Actions
     Public NotInheritable Class WriteTrackErasingEventArgs
         Inherits EventArgs
 
-        Public Sub New(track As WriteTrackInfo, reason As WriteEraseReason)
+        Public Sub New(track As TrackInfo, reason As WriteEraseReason)
             Me.Track = track
             Me.Reason = reason
         End Sub
 
-        Public ReadOnly Property Track As WriteTrackInfo
+        Public ReadOnly Property Track As TrackInfo
         Public ReadOnly Property Reason As WriteEraseReason
 
     End Class
@@ -117,12 +84,12 @@ Namespace Greaseweazle.Actions
     Public NotInheritable Class WriteTrackOutOfRangeEventArgs
         Inherits EventArgs
 
-        Public Sub New(track As WriteTrackInfo, formatName As String)
+        Public Sub New(track As TrackInfo, formatName As String)
             Me.Track = track
             Me.FormatName = formatName
         End Sub
 
-        Public ReadOnly Property Track As WriteTrackInfo
+        Public ReadOnly Property Track As TrackInfo
         Public ReadOnly Property FormatName As String
 
     End Class
@@ -134,49 +101,15 @@ Namespace Greaseweazle.Actions
     Public NotInheritable Class WriteTrackWritingEventArgs
         Inherits EventArgs
 
-        Public Sub New(track As WriteTrackInfo, fluxSummary As String, retryNumber As Integer)
+        Public Sub New(track As TrackInfo, fluxSummary As String, retryNumber As Integer)
             Me.Track = track
             Me.FluxSummary = fluxSummary
             Me.RetryNumber = retryNumber
         End Sub
 
-        Public ReadOnly Property Track As WriteTrackInfo
+        Public ReadOnly Property Track As TrackInfo
         Public ReadOnly Property FluxSummary As String
         Public ReadOnly Property RetryNumber As Integer
-
-    End Class
-
-    ' Raised once per (C, H, R, N) tuple whose IDAM CRC was good but
-    ' the tuple does not match any predeclared sector entry for the
-    ' track's format layout, encountered while decoding the input
-    ' image during a Write run (PrepareSourceTrack). Mirrors Python's
-    '   "T<cyl>.<head>: Ignoring unexpected sector C:<c> H:<h> R:<r> N:<n>"
-    ' line, but as structured data — the CLI formatter renders the
-    ' line and non-CLI hosts can consume the typed fields directly.
-    '
-    ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
-    Public NotInheritable Class WriteUnexpectedSectorEventArgs
-        Inherits EventArgs
-
-        Public Sub New(track As WriteTrackInfo, c As Integer, h As Integer, r As Integer, n As Integer)
-            Me.Track = track
-            Me.C = c
-            Me.H = h
-            Me.R = r
-            Me.N = n
-        End Sub
-
-        ' Track address as it appears to a Write subscriber.
-        Public ReadOnly Property Track As WriteTrackInfo
-        ' Cylinder reported in the unexpected IDAM (the C field).
-        Public ReadOnly Property C As Integer
-        ' Head reported in the unexpected IDAM (the H field).
-        Public ReadOnly Property H As Integer
-        ' Sector-id (R) reported in the unexpected IDAM.
-        Public ReadOnly Property R As Integer
-        ' Size code (N) reported in the unexpected IDAM
-        ' (sector size in bytes = 128 << N for valid IBM tracks).
-        Public ReadOnly Property N As Integer
 
     End Class
 

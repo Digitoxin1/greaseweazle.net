@@ -145,7 +145,7 @@ Namespace Greaseweazle.Tools
         ' Performs the read loop. Two callbacks expose progress without
         ' the algorithm producing any text:
         '   onStarted        (tracks, reads, revs, formatName)
-        '   onReadCompleted  (AlignReadCompletedEventArgs)
+        '   onReadCompleted  (TrackProcessedEventArgs)
         ' Returns the number of read passes that fully completed
         ' (always equal to `reads` on the success path).
         Public Shared Function AlignTrack(usbClient As Unit,
@@ -159,7 +159,7 @@ Namespace Greaseweazle.Tools
                                           adjustSpeed As Nullable(Of Double),
                                           driveTicksPerRev As Nullable(Of Double),
                                           onStarted As Action(Of IReadOnlyList(Of TrackIter), Integer, Integer, String),
-                                          onReadCompleted As Action(Of Greaseweazle.Actions.AlignReadCompletedEventArgs),
+                                          onReadCompleted As Action(Of Greaseweazle.Actions.TrackProcessedEventArgs),
                                           Optional fakeIndexPeriod As Nullable(Of Double) = Nothing,
                                           Optional formatDef As DiskDef = Nothing,
                                           Optional formatName As String = Nothing,
@@ -180,11 +180,11 @@ Namespace Greaseweazle.Tools
                 Dim t = trackList(ResolveAlternatingTrackIndex(readNum, trackList.Count))
                 usbClient.Seek(t.PhysicalCyl, t.PhysicalHead)
                 Dim flux = ReadAndNormalise(usbClient, revs, ticks, driveTicksPerRev, reverse, hardSectors, raw, adjustSpeed, fakeIndexPeriod)
-                Dim args As Greaseweazle.Actions.AlignReadCompletedEventArgs
+                Dim args As Greaseweazle.Actions.TrackProcessedEventArgs
                 If formatDef Is Nothing Then
-                    args = New Greaseweazle.Actions.AlignReadCompletedEventArgs(
-                        t,
-                        Greaseweazle.Actions.AlignReadOutcome.NoFormat,
+                    args = New Greaseweazle.Actions.TrackProcessedEventArgs(
+                        Greaseweazle.Actions.TrackInfo.FromTrackIter(t),
+                        Greaseweazle.Actions.TrackDecodeOutcome.NoFormat,
                         flux.SummaryString(),
                         Nothing,
                         Nothing,
@@ -202,9 +202,9 @@ Namespace Greaseweazle.Tools
                     Dim firstPll As Pll = If(profiles.Count > 0, profiles(0), Nothing)
                     Dim decoded = formatDef.DecodeFlux(t.Cyl, t.Head, flux, firstPll)
                     If decoded Is Nothing Then
-                        args = New Greaseweazle.Actions.AlignReadCompletedEventArgs(
-                            t,
-                            Greaseweazle.Actions.AlignReadOutcome.OutOfRange,
+                        args = New Greaseweazle.Actions.TrackProcessedEventArgs(
+                            Greaseweazle.Actions.TrackInfo.FromTrackIter(t),
+                            Greaseweazle.Actions.TrackDecodeOutcome.OutOfRange,
                             flux.SummaryString(),
                             Nothing,
                             If(formatName, String.Empty),
@@ -218,9 +218,9 @@ Namespace Greaseweazle.Tools
                             decoded.DecodeFlux(flux, profiles(nr))
                             nr += 1
                         End While
-                        args = New Greaseweazle.Actions.AlignReadCompletedEventArgs(
-                            t,
-                            Greaseweazle.Actions.AlignReadOutcome.Decoded,
+                        args = New Greaseweazle.Actions.TrackProcessedEventArgs(
+                            Greaseweazle.Actions.TrackInfo.FromTrackIter(t),
+                            Greaseweazle.Actions.TrackDecodeOutcome.Decoded,
                             flux.SummaryString(),
                             decoded.SummaryString(),
                             Nothing,

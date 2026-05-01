@@ -24,12 +24,12 @@ Namespace Greaseweazle.Cli.Formatters
         Private ReadOnly _command As WriteCommand
         Private ReadOnly _output As TextWriter
         Private ReadOnly _startedHandler As EventHandler(Of WriteStartedEventArgs)
-        Private ReadOnly _hardSectorsHandler As EventHandler(Of WriteHardSectorsEventArgs)
+        Private ReadOnly _hardSectorsHandler As EventHandler(Of HardSectorsDetectedEventArgs)
         Private ReadOnly _erasingHandler As EventHandler(Of WriteTrackErasingEventArgs)
         Private ReadOnly _outOfRangeHandler As EventHandler(Of WriteTrackOutOfRangeEventArgs)
         Private ReadOnly _writingHandler As EventHandler(Of WriteTrackWritingEventArgs)
         Private ReadOnly _verifyHandler As EventHandler(Of WriteVerifyOutcomeEventArgs)
-        Private ReadOnly _unexpectedSectorHandler As EventHandler(Of WriteUnexpectedSectorEventArgs)
+        Private ReadOnly _unexpectedSectorHandler As EventHandler(Of UnexpectedSectorEventArgs)
         Private _disposed As Boolean
 
         Public Sub New(command As WriteCommand, output As TextWriter)
@@ -61,7 +61,7 @@ Namespace Greaseweazle.Cli.Formatters
             End If
         End Sub
 
-        Private Sub OnHardSectorsDetected(sender As Object, e As WriteHardSectorsEventArgs)
+        Private Sub OnHardSectorsDetected(sender As Object, e As HardSectorsDetectedEventArgs)
             _output.WriteLine(String.Format(CultureInfo.InvariantCulture,
                                             "Drive reports {0} hard sectors", e.HardSectorCount))
         End Sub
@@ -106,7 +106,7 @@ Namespace Greaseweazle.Cli.Formatters
 
         ' Mirrors Python's ibm.py "Ignoring unexpected sector ..." print
         ' (one line per unique (C, H, R, N) tuple per DecodeFlux pass).
-        Private Sub OnUnexpectedSectorIgnored(sender As Object, e As WriteUnexpectedSectorEventArgs)
+        Private Sub OnUnexpectedSectorIgnored(sender As Object, e As UnexpectedSectorEventArgs)
             _output.WriteLine(String.Format(CultureInfo.InvariantCulture,
                                             "{0}: Ignoring unexpected sector C:{1} H:{2} R:{3} N:{4}",
                                             BuildTrackSpec(e.Track), e.C, e.H, e.R, e.N))
@@ -114,7 +114,7 @@ Namespace Greaseweazle.Cli.Formatters
 
         ' "T{c}.{h}[ -> Drive {pc}.{ph}]" (note arrow direction is the
         ' opposite of Read/Convert).
-        Private Shared Function BuildTrackSpec(t As WriteTrackInfo) As String
+        Private Shared Function BuildTrackSpec(t As TrackInfo) As String
             Dim spec = String.Format(CultureInfo.InvariantCulture, "T{0}.{1}", t.Cyl, t.Head)
             If t.PhysicalCyl <> t.Cyl OrElse t.PhysicalHead <> t.Head Then
                 spec &= String.Format(CultureInfo.InvariantCulture, " -> Drive {0}.{1}", t.PhysicalCyl, t.PhysicalHead)

@@ -21,9 +21,9 @@ Namespace Greaseweazle.Cli.Formatters
         Private ReadOnly _output As TextWriter
         Private ReadOnly _startedHandler As EventHandler(Of ConvertStartedEventArgs)
         Private ReadOnly _hardSectorsHandler As EventHandler(Of ConvertHardSectorsEventArgs)
-        Private ReadOnly _trackHandler As EventHandler(Of ConvertTrackProcessedEventArgs)
-        Private ReadOnly _summaryHandler As EventHandler(Of ConvertSummaryReadyEventArgs)
-        Private ReadOnly _unexpectedSectorHandler As EventHandler(Of ConvertUnexpectedSectorEventArgs)
+        Private ReadOnly _trackHandler As EventHandler(Of TrackProcessedEventArgs)
+        Private ReadOnly _summaryHandler As EventHandler(Of SectorSummaryReadyEventArgs)
+        Private ReadOnly _unexpectedSectorHandler As EventHandler(Of UnexpectedSectorEventArgs)
         Private _disposed As Boolean
 
         Public Sub New(command As ConvertCommand, output As TextWriter)
@@ -55,33 +55,33 @@ Namespace Greaseweazle.Cli.Formatters
                                             BuildTrackSpec(e.Track), e.HardSectorCount))
         End Sub
 
-        Private Sub OnTrackProcessed(sender As Object, e As ConvertTrackProcessedEventArgs)
+        Private Sub OnTrackProcessed(sender As Object, e As TrackProcessedEventArgs)
             Dim tspec = BuildTrackSpec(e.Track)
             Select Case e.Outcome
-                Case ConvertTrackOutcome.NoFormat
+                Case TrackDecodeOutcome.NoFormat
                     _output.WriteLine(String.Format("{0}: {1}", tspec, e.FluxSummary))
-                Case ConvertTrackOutcome.OutOfRange
+                Case TrackDecodeOutcome.OutOfRange
                     _output.WriteLine(String.Format("{0}: WARNING: Out of range for format '{1}': Track skipped",
                                                     tspec, If(e.FormatName, "")))
-                Case ConvertTrackOutcome.Decoded
+                Case TrackDecodeOutcome.Decoded
                     _output.WriteLine(String.Format("{0}: {1} from {2}", tspec, e.DecodedSummary, e.FluxSummary))
             End Select
         End Sub
 
-        Private Sub OnSummaryReady(sender As Object, e As ConvertSummaryReadyEventArgs)
+        Private Sub OnSummaryReady(sender As Object, e As SectorSummaryReadyEventArgs)
             SectorSummaryFormatter.Render(e.Grid, _output)
         End Sub
 
         ' Mirrors Python's ibm.py "Ignoring unexpected sector ..." print
         ' (one line per unique (C, H, R, N) tuple per DecodeFlux pass).
-        Private Sub OnUnexpectedSectorIgnored(sender As Object, e As ConvertUnexpectedSectorEventArgs)
+        Private Sub OnUnexpectedSectorIgnored(sender As Object, e As UnexpectedSectorEventArgs)
             _output.WriteLine(String.Format(CultureInfo.InvariantCulture,
                                             "{0}: Ignoring unexpected sector C:{1} H:{2} R:{3} N:{4}",
                                             BuildTrackSpec(e.Track), e.C, e.H, e.R, e.N))
         End Sub
 
         ' "T{c}.{h}[ <- Image {pc}.{ph}]"
-        Private Shared Function BuildTrackSpec(t As ConvertTrackInfo) As String
+        Private Shared Function BuildTrackSpec(t As TrackInfo) As String
             Dim spec = String.Format(CultureInfo.InvariantCulture, "T{0}.{1}", t.Cyl, t.Head)
             If t.PhysicalCyl <> t.Cyl OrElse t.PhysicalHead <> t.Head Then
                 spec &= String.Format(CultureInfo.InvariantCulture, " <- Image {0}.{1}", t.PhysicalCyl, t.PhysicalHead)

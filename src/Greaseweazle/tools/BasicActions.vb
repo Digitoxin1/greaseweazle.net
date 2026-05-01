@@ -254,9 +254,9 @@ Namespace Greaseweazle.Tools
             Dim usbClient As Unit = Nothing
             Dim prevPin2 As Nullable(Of Boolean) = Nothing
             Dim tracksProcessed = 0
-            Dim trackProcessedCallback As Action(Of Greaseweazle.Actions.ReadTrackProcessedEventArgs) = Nothing
+            Dim trackProcessedCallback As Action(Of Greaseweazle.Actions.TrackProcessedEventArgs) = Nothing
             Dim trackGaveUpCallback As Action(Of Greaseweazle.Actions.ReadTrackGaveUpEventArgs) = Nothing
-            Dim unexpectedSectorCallback As Action(Of Greaseweazle.Actions.ReadUnexpectedSectorEventArgs) = Nothing
+            Dim unexpectedSectorCallback As Action(Of Greaseweazle.Actions.UnexpectedSectorEventArgs) = Nothing
             If cmd IsNot Nothing Then
                 trackProcessedCallback = Sub(args)
                                              ct.ThrowIfCancellationRequested()
@@ -316,7 +316,7 @@ Namespace Greaseweazle.Tools
                             effectiveHardSectors = True
                             hardSectorCount = probe.SectorList(probe.SectorList.Count - 1).Count
                             If cmd IsNot Nothing Then
-                                cmd.OnHardSectorsDetected(New Greaseweazle.Actions.ReadHardSectorsEventArgs(hardSectorCount))
+                                cmd.OnHardSectorsDetected(New Greaseweazle.Actions.HardSectorsDetectedEventArgs(hardSectorCount))
                             End If
                         End If
 
@@ -454,7 +454,7 @@ Namespace Greaseweazle.Tools
             If imgDisk IsNot Nothing Then
                 grid = ReadWrite.BuildSectorSummary(resolvedTracks, summaryDict)
                 If cmd IsNot Nothing Then
-                    cmd.OnSummaryReady(New Greaseweazle.Actions.ReadSummaryReadyEventArgs(grid))
+                    cmd.OnSummaryReady(New Greaseweazle.Actions.SectorSummaryReadyEventArgs(grid))
                 End If
             End If
 
@@ -962,7 +962,7 @@ Namespace Greaseweazle.Tools
                                 hardSectorCount = fluxProbe.SectorList(fluxProbe.SectorList.Count - 1).Count
                                 driveTicksPerRev = fluxProbe.TicksPerRev
                                 If cmd IsNot Nothing Then
-                                    cmd.OnHardSectorsDetected(New Greaseweazle.Actions.WriteHardSectorsEventArgs(hardSectorCount))
+                                    cmd.OnHardSectorsDetected(New Greaseweazle.Actions.HardSectorsDetectedEventArgs(hardSectorCount))
                                 End If
                             ElseIf noIndex Then
                                 driveTicksPerRev = preview.FakeIndexPeriod.Value * usbClient.SampleFreq
@@ -992,7 +992,7 @@ Namespace Greaseweazle.Tools
                             Dim safeTracks = resolvedTracks.IteratePhysical().ToList()
                             For Each track In safeTracks
                                 ct.ThrowIfCancellationRequested()
-                                Dim trackInfo = New Greaseweazle.Actions.WriteTrackInfo(track.Cyl, track.Head, track.PhysicalCyl, track.PhysicalHead)
+                                Dim trackInfo = New Greaseweazle.Actions.TrackInfo(track.Cyl, track.Head, track.PhysicalCyl, track.PhysicalHead)
                                 Dim PrepareSourceTrack As Func(Of HasFlux, HasFlux) =
                                     Function(source As HasFlux) As HasFlux
                                         Dim prepared = source
@@ -1009,7 +1009,7 @@ Namespace Greaseweazle.Tools
                                             ' them as typed Write events. Mirrors Python's
                                             ' "Ignoring unexpected sector ..." print but as data.
                                             If cmd IsNot Nothing Then
-                                                ReadWrite.DrainUnexpectedSectorsForWrite(decoded, trackInfo,
+                                                ReadWrite.DrainUnexpectedSectors(decoded, trackInfo,
                                                     Sub(args) cmd.OnUnexpectedSectorIgnored(args))
                                             End If
                                             If decoded.NrMissing() <> 0 Then
@@ -1482,8 +1482,8 @@ Namespace Greaseweazle.Tools
             End If
 
             Dim hardSectorsCallback As Action(Of Greaseweazle.Actions.ConvertHardSectorsEventArgs) = Nothing
-            Dim trackProcessedCallback As Action(Of Greaseweazle.Actions.ConvertTrackProcessedEventArgs) = Nothing
-            Dim unexpectedSectorCallback As Action(Of Greaseweazle.Actions.ConvertUnexpectedSectorEventArgs) = Nothing
+            Dim trackProcessedCallback As Action(Of Greaseweazle.Actions.TrackProcessedEventArgs) = Nothing
+            Dim unexpectedSectorCallback As Action(Of Greaseweazle.Actions.UnexpectedSectorEventArgs) = Nothing
             If cmd IsNot Nothing Then
                 hardSectorsCallback = Sub(args)
                                           ct.ThrowIfCancellationRequested()
@@ -1507,7 +1507,7 @@ Namespace Greaseweazle.Tools
                                                      hardSectorsCallback,
                                                      Sub(args)
                                                          If trackProcessedCallback IsNot Nothing Then trackProcessedCallback(args)
-                                                         If args.Outcome <> Greaseweazle.Actions.ConvertTrackOutcome.OutOfRange Then
+                                                         If args.Outcome <> Greaseweazle.Actions.TrackDecodeOutcome.OutOfRange Then
                                                              processedCount += 1
                                                          End If
                                                      End Sub,
@@ -1520,7 +1520,7 @@ Namespace Greaseweazle.Tools
                                                      unexpectedSectorCallback)
             Dim grid = ReadWrite.BuildSectorSummary(resolvedTracks.Item1, summaryDict)
             If cmd IsNot Nothing Then
-                cmd.OnSummaryReady(New Greaseweazle.Actions.ConvertSummaryReadyEventArgs(grid))
+                cmd.OnSummaryReady(New Greaseweazle.Actions.SectorSummaryReadyEventArgs(grid))
             End If
 
             Dim outExt = Path.GetExtension(outputPath)
@@ -2680,7 +2680,7 @@ Namespace Greaseweazle.Tools
                             driveTicksPerRev = flux.TicksPerRev
                             hardSectorCount = flux.SectorList(flux.SectorList.Count - 1).Count
                             If cmd IsNot Nothing Then
-                                cmd.OnHardSectorsDetected(New Greaseweazle.Actions.AlignHardSectorsDetectedEventArgs(hardSectorCount))
+                                cmd.OnHardSectorsDetected(New Greaseweazle.Actions.HardSectorsDetectedEventArgs(hardSectorCount))
                             End If
                         End If
 
@@ -2726,7 +2726,7 @@ Namespace Greaseweazle.Tools
                                     cmd.OnStarted(New Greaseweazle.Actions.AlignStartedEventArgs(tracks, reads, revs, formatName))
                                 End If
                             End Sub,
-                            Sub(args As Greaseweazle.Actions.AlignReadCompletedEventArgs)
+                            Sub(args As Greaseweazle.Actions.TrackProcessedEventArgs)
                                 ct.ThrowIfCancellationRequested()
                                 If cmd IsNot Nothing Then cmd.OnReadCompleted(args)
                             End Sub,

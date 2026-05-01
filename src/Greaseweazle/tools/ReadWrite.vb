@@ -130,7 +130,7 @@ Namespace Greaseweazle.Tools
         Public Shared Function ReadWithRetry(usbClient As Unit,
                                              t As TrackIter,
                                              revs As Integer,
-                                             onTrackProcessed As Action(Of Greaseweazle.Actions.ReadTrackProcessedEventArgs),
+                                             onTrackProcessed As Action(Of Greaseweazle.Actions.TrackProcessedEventArgs),
                                              onTrackGaveUp As Action(Of Greaseweazle.Actions.ReadTrackGaveUpEventArgs),
                                              Optional fmtCls As DiskDef = Nothing,
                                              Optional formatName As String = Nothing,
@@ -145,8 +145,8 @@ Namespace Greaseweazle.Tools
                                              Optional seekRetries As Integer = 0,
                                              Optional genTg43 As Boolean = False,
                                              Optional pllProfiles As IReadOnlyList(Of Pll) = Nothing,
-                                             Optional onUnexpectedSector As Action(Of Greaseweazle.Actions.ReadUnexpectedSectorEventArgs) = Nothing) As Tuple(Of Flux, HasFlux)
-            Dim trackInfo = Greaseweazle.Actions.ReadTrackInfo.FromTrackIter(t)
+                                             Optional onUnexpectedSector As Action(Of Greaseweazle.Actions.UnexpectedSectorEventArgs) = Nothing) As Tuple(Of Flux, HasFlux)
+            Dim trackInfo = Greaseweazle.Actions.TrackInfo.FromTrackIter(t)
             usbClient.Seek(t.PhysicalCyl, t.PhysicalHead)
             If genTg43 Then
                 usbClient.SetPin(2, t.Cyl < 60)
@@ -162,10 +162,10 @@ Namespace Greaseweazle.Tools
                                         fakeIndexPeriod:=fakeIndexPeriod)
             If fmtCls Is Nothing Then
                 If onTrackProcessed IsNot Nothing Then
-                    onTrackProcessed(New Greaseweazle.Actions.ReadTrackProcessedEventArgs(
+                    onTrackProcessed(New Greaseweazle.Actions.TrackProcessedEventArgs(
                         trackInfo,
-                        Greaseweazle.Actions.ReadTrackOutcome.NoFormat,
-                        flux.SummaryString(), Nothing, Nothing, 0, 0, 0, 0,
+                        Greaseweazle.Actions.TrackDecodeOutcome.NoFormat,
+                        flux.SummaryString(), Nothing, Nothing, 0, 0,
                         flux.List.Count,
                         flux.List.Sum() * 1000.0 / flux.SampleFreq))
                 End If
@@ -180,38 +180,39 @@ Namespace Greaseweazle.Tools
             Dim dat = fmtCls.DecodeFlux(t.Cyl, t.Head, flux, firstPll)
             If dat Is Nothing Then
                 If onTrackProcessed IsNot Nothing Then
-                    onTrackProcessed(New Greaseweazle.Actions.ReadTrackProcessedEventArgs(
+                    onTrackProcessed(New Greaseweazle.Actions.TrackProcessedEventArgs(
                         trackInfo,
-                        Greaseweazle.Actions.ReadTrackOutcome.OutOfRange,
-                        flux.SummaryString(), Nothing, If(formatName, String.Empty), 0, 0, 0, 0,
+                        Greaseweazle.Actions.TrackDecodeOutcome.OutOfRange,
+                        flux.SummaryString(), Nothing, If(formatName, String.Empty), 0, 0,
                         flux.List.Count,
                         flux.List.Sum() * 1000.0 / flux.SampleFreq))
                 End If
                 Return Tuple.Create(flux, CType(Nothing, HasFlux))
             End If
-            DrainUnexpectedSectorsForRead(dat, trackInfo, onUnexpectedSector)
+            DrainUnexpectedSectors(dat, trackInfo, onUnexpectedSector)
             For i = 1 To profiles.Count - 1
                 If dat.NrMissing() = 0 Then
                     Exit For
                 End If
                 dat.DecodeFlux(flux, profiles(i))
-                DrainUnexpectedSectorsForRead(dat, trackInfo, onUnexpectedSector)
+                DrainUnexpectedSectors(dat, trackInfo, onUnexpectedSector)
             Next
 
             Dim seekRetry = 0
             Dim retry = 0
             While True
                 If onTrackProcessed IsNot Nothing Then
-                    onTrackProcessed(New Greaseweazle.Actions.ReadTrackProcessedEventArgs(
+                    onTrackProcessed(New Greaseweazle.Actions.TrackProcessedEventArgs(
                         trackInfo,
-                        Greaseweazle.Actions.ReadTrackOutcome.Decoded,
+                        Greaseweazle.Actions.TrackDecodeOutcome.Decoded,
                         flux.SummaryString(),
                         dat.SummaryString(),
-                        Nothing, seekRetry, retry,
+                        Nothing,
                         dat.Nsec - dat.NrMissing(),
                         dat.Nsec,
                         flux.List.Count,
-                        flux.List.Sum() * 1000.0 / flux.SampleFreq))
+                        flux.List.Sum() * 1000.0 / flux.SampleFreq,
+                        seekRetry, retry))
                 End If
                 If dat.NrMissing() = 0 Then
                     Exit While
@@ -249,7 +250,7 @@ Namespace Greaseweazle.Tools
                         Exit For
                     End If
                     dat.DecodeFlux(retryFlux, pll)
-                    DrainUnexpectedSectorsForRead(dat, trackInfo, onUnexpectedSector)
+                    DrainUnexpectedSectors(dat, trackInfo, onUnexpectedSector)
                 Next
                 If raw Then
                     flux.Append(retryFlux)
@@ -265,52 +266,20 @@ Namespace Greaseweazle.Tools
         '   that print into a structured drain: codecs that implement
         '   HasDecodeDiagnostics buffer per-pass findings, and we call
         '   this helper after each DecodeFlux invocation to translate
-        '   them into typed Read events. No-op when the codec doesn't
-        '   implement HasDecodeDiagnostics or when no callback is wired.
-        Private Shared Sub DrainUnexpectedSectorsForRead(dat As Object,
-                                                         trackInfo As Greaseweazle.Actions.ReadTrackInfo,
-                                                         onUnexpectedSector As Action(Of Greaseweazle.Actions.ReadUnexpectedSectorEventArgs))
+        '   them into typed events. Shared by Read/Write/Convert flows
+        '   (the originating command supplies its own typed callback).
+        '   No-op when the codec doesn't implement HasDecodeDiagnostics
+        '   or when no callback is wired.
+        Public Shared Sub DrainUnexpectedSectors(dat As Object,
+                                                 trackInfo As Greaseweazle.Actions.TrackInfo,
+                                                 onUnexpectedSector As Action(Of Greaseweazle.Actions.UnexpectedSectorEventArgs))
             If onUnexpectedSector Is Nothing Then Return
             Dim hd = TryCast(dat, HasDecodeDiagnostics)
             If hd Is Nothing Then Return
             For Each d In hd.DrainDecodeDiagnostics()
                 Dim us = TryCast(d, UnexpectedSectorDiagnostic)
                 If us IsNot Nothing Then
-                    onUnexpectedSector(New Greaseweazle.Actions.ReadUnexpectedSectorEventArgs(
-                        trackInfo, us.C, us.H, us.R, us.N))
-                End If
-            Next
-        End Sub
-
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
-        '   (drain helper; Write twin of DrainUnexpectedSectorsForRead).
-        Public Shared Sub DrainUnexpectedSectorsForWrite(dat As Object,
-                                                         trackInfo As Greaseweazle.Actions.WriteTrackInfo,
-                                                         onUnexpectedSector As Action(Of Greaseweazle.Actions.WriteUnexpectedSectorEventArgs))
-            If onUnexpectedSector Is Nothing Then Return
-            Dim hd = TryCast(dat, HasDecodeDiagnostics)
-            If hd Is Nothing Then Return
-            For Each d In hd.DrainDecodeDiagnostics()
-                Dim us = TryCast(d, UnexpectedSectorDiagnostic)
-                If us IsNot Nothing Then
-                    onUnexpectedSector(New Greaseweazle.Actions.WriteUnexpectedSectorEventArgs(
-                        trackInfo, us.C, us.H, us.R, us.N))
-                End If
-            Next
-        End Sub
-
-        ' Python map: src/greaseweazle/codec/ibm/ibm.py::IBMTrack_Fixed.decode_flux
-        '   (drain helper; Convert twin of DrainUnexpectedSectorsForRead).
-        Public Shared Sub DrainUnexpectedSectorsForConvert(dat As Object,
-                                                           trackInfo As Greaseweazle.Actions.ConvertTrackInfo,
-                                                           onUnexpectedSector As Action(Of Greaseweazle.Actions.ConvertUnexpectedSectorEventArgs))
-            If onUnexpectedSector Is Nothing Then Return
-            Dim hd = TryCast(dat, HasDecodeDiagnostics)
-            If hd Is Nothing Then Return
-            For Each d In hd.DrainDecodeDiagnostics()
-                Dim us = TryCast(d, UnexpectedSectorDiagnostic)
-                If us IsNot Nothing Then
-                    onUnexpectedSector(New Greaseweazle.Actions.ConvertUnexpectedSectorEventArgs(
+                    onUnexpectedSector(New Greaseweazle.Actions.UnexpectedSectorEventArgs(
                         trackInfo, us.C, us.H, us.R, us.N))
                 End If
             Next

@@ -65,11 +65,11 @@ Namespace Greaseweazle.Actions
         Public Event Started As EventHandler(Of ReadStartedEventArgs)
 
         ' Raised when --hard-sectors auto-detection succeeds.
-        Public Event HardSectorsDetected As EventHandler(Of ReadHardSectorsEventArgs)
+        Public Event HardSectorsDetected As EventHandler(Of HardSectorsDetectedEventArgs)
 
         ' Raised once per read attempt — initial reads have Retry=0,
         ' retries have Retry>0 (and SeekRetry counts whole-disk seeks).
-        Public Event TrackProcessed As EventHandler(Of ReadTrackProcessedEventArgs)
+        Public Event TrackProcessed As EventHandler(Of TrackProcessedEventArgs)
 
         ' Raised when the retry budget is exhausted with sectors
         ' still missing.
@@ -77,7 +77,7 @@ Namespace Greaseweazle.Actions
 
         ' Raised once after all tracks decode, when --format produced
         ' a non-empty grid. Carries the typed SectorSummaryGrid.
-        Public Event SummaryReady As EventHandler(Of ReadSummaryReadyEventArgs)
+        Public Event SummaryReady As EventHandler(Of SectorSummaryReadyEventArgs)
 
         ' Raised once per (C, H, R, N) tuple whose IDAM CRC was good
         ' but the tuple does not match any predeclared sector entry
@@ -86,7 +86,7 @@ Namespace Greaseweazle.Actions
         ' Mirrors Python read.py's "Ignoring unexpected sector ..."
         ' print, but the CLI formatter renders the line so the
         ' library produces no console output.
-        Public Event UnexpectedSectorIgnored As EventHandler(Of ReadUnexpectedSectorEventArgs)
+        Public Event UnexpectedSectorIgnored As EventHandler(Of UnexpectedSectorEventArgs)
 
         Public Function Run(options As ReadOptions,
                             Optional cancellationToken As CancellationToken = Nothing) As ReadSummary
@@ -98,11 +98,11 @@ Namespace Greaseweazle.Actions
             RaiseEvent Started(Me, args)
         End Sub
 
-        Friend Sub OnHardSectorsDetected(args As ReadHardSectorsEventArgs)
+        Friend Sub OnHardSectorsDetected(args As HardSectorsDetectedEventArgs)
             RaiseEvent HardSectorsDetected(Me, args)
         End Sub
 
-        Friend Sub OnTrackProcessed(args As ReadTrackProcessedEventArgs)
+        Friend Sub OnTrackProcessed(args As TrackProcessedEventArgs)
             RaiseEvent TrackProcessed(Me, args)
         End Sub
 
@@ -110,11 +110,11 @@ Namespace Greaseweazle.Actions
             RaiseEvent TrackGaveUp(Me, args)
         End Sub
 
-        Friend Sub OnSummaryReady(args As ReadSummaryReadyEventArgs)
+        Friend Sub OnSummaryReady(args As SectorSummaryReadyEventArgs)
             RaiseEvent SummaryReady(Me, args)
         End Sub
 
-        Friend Sub OnUnexpectedSectorIgnored(args As ReadUnexpectedSectorEventArgs)
+        Friend Sub OnUnexpectedSectorIgnored(args As UnexpectedSectorEventArgs)
             RaiseEvent UnexpectedSectorIgnored(Me, args)
         End Sub
 
@@ -137,7 +137,7 @@ Namespace Greaseweazle.Actions
         Public Event Started As EventHandler(Of WriteStartedEventArgs)
 
         ' Raised when --hard-sectors auto-detection succeeds.
-        Public Event HardSectorsDetected As EventHandler(Of WriteHardSectorsEventArgs)
+        Public Event HardSectorsDetected As EventHandler(Of HardSectorsDetectedEventArgs)
 
         ' Raised when a track is erased (empty source + --erase-empty,
         ' or before each write attempt with --pre-erase).
@@ -160,7 +160,7 @@ Namespace Greaseweazle.Actions
         ' the input image (PrepareSourceTrack). The CLI formatter
         ' renders the per-track line; the library produces no
         ' console output.
-        Public Event UnexpectedSectorIgnored As EventHandler(Of WriteUnexpectedSectorEventArgs)
+        Public Event UnexpectedSectorIgnored As EventHandler(Of UnexpectedSectorEventArgs)
 
         Public Function Run(options As WriteOptions,
                             Optional cancellationToken As CancellationToken = Nothing) As WriteSummary
@@ -172,7 +172,7 @@ Namespace Greaseweazle.Actions
             RaiseEvent Started(Me, args)
         End Sub
 
-        Friend Sub OnHardSectorsDetected(args As WriteHardSectorsEventArgs)
+        Friend Sub OnHardSectorsDetected(args As HardSectorsDetectedEventArgs)
             RaiseEvent HardSectorsDetected(Me, args)
         End Sub
 
@@ -192,7 +192,7 @@ Namespace Greaseweazle.Actions
             RaiseEvent VerifyCompleted(Me, args)
         End Sub
 
-        Friend Sub OnUnexpectedSectorIgnored(args As WriteUnexpectedSectorEventArgs)
+        Friend Sub OnUnexpectedSectorIgnored(args As UnexpectedSectorEventArgs)
             RaiseEvent UnexpectedSectorIgnored(Me, args)
         End Sub
 
@@ -218,18 +218,18 @@ Namespace Greaseweazle.Actions
         ' Raised once per processed input track (NoFormat / Decoded /
         ' OutOfRange) so the formatter can stream Python's
         ' per-track text.
-        Public Event TrackProcessed As EventHandler(Of ConvertTrackProcessedEventArgs)
+        Public Event TrackProcessed As EventHandler(Of TrackProcessedEventArgs)
 
         ' Raised at the end of the run with the post-decode sector
         ' grid. Subscribers render the "Cyl-> / H. S: / .X" table.
-        Public Event SummaryReady As EventHandler(Of ConvertSummaryReadyEventArgs)
+        Public Event SummaryReady As EventHandler(Of SectorSummaryReadyEventArgs)
 
         ' Raised once per (C, H, R, N) tuple whose IDAM CRC was good
         ' but the tuple does not match any predeclared sector entry
         ' for the track's format layout, encountered while decoding
         ' the input image. The CLI formatter renders the per-track
         ' line; the library produces no console output.
-        Public Event UnexpectedSectorIgnored As EventHandler(Of ConvertUnexpectedSectorEventArgs)
+        Public Event UnexpectedSectorIgnored As EventHandler(Of UnexpectedSectorEventArgs)
 
         Public Function Run(options As ConvertOptions,
                             Optional cancellationToken As CancellationToken = Nothing) As ConvertSummary
@@ -245,15 +245,15 @@ Namespace Greaseweazle.Actions
             RaiseEvent HardSectorsApplied(Me, args)
         End Sub
 
-        Friend Sub OnTrackProcessed(args As ConvertTrackProcessedEventArgs)
+        Friend Sub OnTrackProcessed(args As TrackProcessedEventArgs)
             RaiseEvent TrackProcessed(Me, args)
         End Sub
 
-        Friend Sub OnSummaryReady(args As ConvertSummaryReadyEventArgs)
+        Friend Sub OnSummaryReady(args As SectorSummaryReadyEventArgs)
             RaiseEvent SummaryReady(Me, args)
         End Sub
 
-        Friend Sub OnUnexpectedSectorIgnored(args As ConvertUnexpectedSectorEventArgs)
+        Friend Sub OnUnexpectedSectorIgnored(args As UnexpectedSectorEventArgs)
             RaiseEvent UnexpectedSectorIgnored(Me, args)
         End Sub
 
@@ -485,8 +485,8 @@ Namespace Greaseweazle.Actions
         Inherits GwCommandBase
 
         Public Event Started As EventHandler(Of AlignStartedEventArgs)
-        Public Event HardSectorsDetected As EventHandler(Of AlignHardSectorsDetectedEventArgs)
-        Public Event ReadCompleted As EventHandler(Of AlignReadCompletedEventArgs)
+        Public Event HardSectorsDetected As EventHandler(Of HardSectorsDetectedEventArgs)
+        Public Event ReadCompleted As EventHandler(Of TrackProcessedEventArgs)
 
         Public Function Run(options As AlignOptions,
                             Optional cancellationToken As CancellationToken = Nothing) As AlignSummary
@@ -498,11 +498,11 @@ Namespace Greaseweazle.Actions
             RaiseEvent Started(Me, args)
         End Sub
 
-        Friend Sub OnHardSectorsDetected(args As AlignHardSectorsDetectedEventArgs)
+        Friend Sub OnHardSectorsDetected(args As HardSectorsDetectedEventArgs)
             RaiseEvent HardSectorsDetected(Me, args)
         End Sub
 
-        Friend Sub OnReadCompleted(args As AlignReadCompletedEventArgs)
+        Friend Sub OnReadCompleted(args As TrackProcessedEventArgs)
             RaiseEvent ReadCompleted(Me, args)
         End Sub
 

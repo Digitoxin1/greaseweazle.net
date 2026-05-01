@@ -19,8 +19,8 @@ Namespace Greaseweazle.Cli.Formatters
         Private ReadOnly _command As AlignCommand
         Private ReadOnly _output As TextWriter
         Private ReadOnly _startedHandler As EventHandler(Of AlignStartedEventArgs)
-        Private ReadOnly _hardSectorsHandler As EventHandler(Of AlignHardSectorsDetectedEventArgs)
-        Private ReadOnly _readHandler As EventHandler(Of AlignReadCompletedEventArgs)
+        Private ReadOnly _hardSectorsHandler As EventHandler(Of HardSectorsDetectedEventArgs)
+        Private ReadOnly _readHandler As EventHandler(Of TrackProcessedEventArgs)
         Private _disposed As Boolean
 
         Public Sub New(command As AlignCommand, output As TextWriter)
@@ -50,19 +50,19 @@ Namespace Greaseweazle.Cli.Formatters
             End If
         End Sub
 
-        Private Sub OnHardSectorsDetected(sender As Object, e As AlignHardSectorsDetectedEventArgs)
+        Private Sub OnHardSectorsDetected(sender As Object, e As HardSectorsDetectedEventArgs)
             _output.WriteLine(String.Format("Drive reports {0} hard sectors", e.HardSectorCount))
         End Sub
 
-        Private Sub OnReadCompleted(sender As Object, e As AlignReadCompletedEventArgs)
+        Private Sub OnReadCompleted(sender As Object, e As TrackProcessedEventArgs)
             Dim tspec = BuildTrackSpec(e.Track)
             Select Case e.Outcome
-                Case AlignReadOutcome.NoFormat
+                Case TrackDecodeOutcome.NoFormat
                     _output.WriteLine(String.Format("{0}: {1}", tspec, e.FluxSummary))
-                Case AlignReadOutcome.OutOfRange
+                Case TrackDecodeOutcome.OutOfRange
                     _output.WriteLine(String.Format("{0}: WARNING: Out of range for format '{1}': No format conversion applied: {2}",
                                                     tspec, e.FormatName, e.FluxSummary))
-                Case AlignReadOutcome.Decoded
+                Case TrackDecodeOutcome.Decoded
                     _output.WriteLine(String.Format("{0}: {1} from {2}", tspec, e.DecodedSummary, e.FluxSummary))
             End Select
         End Sub
@@ -72,6 +72,17 @@ Namespace Greaseweazle.Cli.Formatters
         ' helper for this one purpose. (Same logic, byte-for-byte
         ' compatible with the parity probe.)
         Private Shared Function BuildTrackSpec(t As TrackIter) As String
+            Dim spec = String.Format("T{0}.{1}", t.Cyl, t.Head)
+            If t.PhysicalCyl <> t.Cyl OrElse t.PhysicalHead <> t.Head Then
+                spec &= String.Format(" <- Drive {0}.{1}", t.PhysicalCyl, t.PhysicalHead)
+            End If
+            Return spec
+        End Function
+
+        ' TrackInfo overload for ReadCompleted (post-Tier-2). Same logic
+        ' as the TrackIter overload above — both surface
+        ' Cyl/Head/PhysicalCyl/PhysicalHead.
+        Private Shared Function BuildTrackSpec(t As TrackInfo) As String
             Dim spec = String.Format("T{0}.{1}", t.Cyl, t.Head)
             If t.PhysicalCyl <> t.Cyl OrElse t.PhysicalHead <> t.Head Then
                 spec &= String.Format(" <- Drive {0}.{1}", t.PhysicalCyl, t.PhysicalHead)

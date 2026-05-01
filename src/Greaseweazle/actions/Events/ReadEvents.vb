@@ -36,4 +36,24 @@ Namespace Greaseweazle.Actions
 
     End Class
 
+    ' Raised per duplicate entry in ReadOptions.AdditionalFiles that was
+    ' silently skipped because it normalised (Path.GetFullPath,
+    ' OrdinalIgnoreCase) to the same absolute path as the primary sink or
+    ' an earlier additional. Fires before any USB activity, during
+    ' sink-list construction inside ReadAction.RunLive. Path is the
+    ' caller-supplied raw string (including any `::opts` tail); MatchedPath
+    ' is the already-accepted sink whose normalised form collided.
+    Public NotInheritable Class ReadAdditionalOutputDedupedEventArgs
+        Inherits EventArgs
+
+        Public Sub New(path As String, matchedPath As String)
+            Me.Path = path
+            Me.MatchedPath = matchedPath
+        End Sub
+
+        Public ReadOnly Property Path As String
+        Public ReadOnly Property MatchedPath As String
+
+    End Class
+
 End Namespace

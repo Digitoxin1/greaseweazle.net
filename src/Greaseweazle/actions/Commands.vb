@@ -88,6 +88,13 @@ Namespace Greaseweazle.Actions
         ' library produces no console output.
         Public Event UnexpectedSectorIgnored As EventHandler(Of UnexpectedSectorEventArgs)
 
+        ' Raised per duplicate entry in ReadOptions.AdditionalFiles that
+        ' was silently skipped at sink-build time. Fires before any USB
+        ' activity. Subscribers that don't care about dedup behaviour can
+        ' ignore this event — the run continues with the non-duplicate
+        ' sinks exactly as if the caller had pre-filtered the list.
+        Public Event AdditionalOutputDeduped As EventHandler(Of ReadAdditionalOutputDedupedEventArgs)
+
         Public Function Run(options As ReadOptions,
                             Optional cancellationToken As CancellationToken = Nothing) As ReadSummary
             ThrowIfCancellationRequested(cancellationToken)
@@ -116,6 +123,10 @@ Namespace Greaseweazle.Actions
 
         Friend Sub OnUnexpectedSectorIgnored(args As UnexpectedSectorEventArgs)
             RaiseEvent UnexpectedSectorIgnored(Me, args)
+        End Sub
+
+        Friend Sub OnAdditionalOutputDeduped(args As ReadAdditionalOutputDedupedEventArgs)
+            RaiseEvent AdditionalOutputDeduped(Me, args)
         End Sub
 
     End Class

@@ -44,6 +44,30 @@ Namespace Greaseweazle.Tools
         Public Property Live As Boolean = True
         Public Property Device As String
         Public Property Drive As DriveSpec
+
+        ' DLL-only extension: additional output files produced in the same
+        ' single-pass read as FileName. Each entry is a raw
+        ' `path[::opt=val[:opt=val]]` string (identical syntax to FileName);
+        ' the engine splits it via ConvertAction.SplitImageFileOptions and
+        ' applies per-sink WOpts. Nothing / empty list preserves exact
+        ' single-sink parity (same error order, same emit sequence, same
+        ' final-write behaviour as before AdditionalFiles existed).
+        '
+        ' Constraints enforced at sink-build time:
+        '   - flux-only extensions (.scp, .raw) are rejected as additional
+        '     sinks (they remain valid as the primary FileName)
+        '   - every other per-sink validation (UnrecognisedSuffix, read-only
+        '     image type, "X output requires a disk format", --no-clobber)
+        '     fires per sink with the same exception types + messages that
+        '     apply to the primary
+        '   - entries that normalise (Path.GetFullPath, OrdinalIgnoreCase)
+        '     to the same path as the primary or an earlier additional are
+        '     silently skipped; subscribers that want to observe the skip
+        '     listen for ReadCommand.AdditionalOutputDeduped
+        '
+        ' Only consulted on the live path — --test short-circuits before
+        ' RunLive, so AdditionalFiles is ignored for dry-run summaries.
+        Public Property AdditionalFiles As IReadOnlyList(Of String)
     End Class
 
     ' Strongly-typed options for the `write` action.

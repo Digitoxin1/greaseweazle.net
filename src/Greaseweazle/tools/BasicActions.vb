@@ -158,96 +158,71 @@ Namespace Greaseweazle.Tools
                                         cmd As Greaseweazle.Actions.ReadCommand,
                                         ct As CancellationToken,
                                         revsDisplay As String) As Greaseweazle.Actions.ReadSummary
-            Dim outSplit = ConvertAction.SplitImageFileOptions(preview.FileName)
-            Dim outPath = outSplit.Item1
-            Dim outOpts = outSplit.Item2
-            Dim outExt = Path.GetExtension(outPath)
-            Dim readOnlyType = ResolveReadOnlyImageTypeName(outExt)
-            Dim writeScp = String.Equals(outExt, ".scp", StringComparison.OrdinalIgnoreCase)
-            Dim writeSector = IsSectorImageExtension(outExt)
-            Dim writeRaw = String.Equals(outExt, ".raw", StringComparison.OrdinalIgnoreCase)
-            Dim writeD88 = String.Equals(outExt, ".d88", StringComparison.OrdinalIgnoreCase)
-            Dim writeNsi = String.Equals(outExt, ".nsi", StringComparison.OrdinalIgnoreCase)
-            Dim writeImd = String.Equals(outExt, ".imd", StringComparison.OrdinalIgnoreCase)
-            Dim writeHfe = String.Equals(outExt, ".hfe", StringComparison.OrdinalIgnoreCase)
-            If Not (writeScp OrElse writeSector OrElse writeRaw OrElse writeD88 OrElse writeNsi OrElse writeImd OrElse writeHfe OrElse Not String.IsNullOrEmpty(readOnlyType)) Then
-                Throw New UnrecognisedSuffixException(outPath, Path.GetExtension(outPath), New ImageTypeRegistry().GetKnownSuffixes().ToList())
-            End If
-            If Not String.IsNullOrEmpty(readOnlyType) Then
-                Throw New FatalException(String.Format("{0}: Cannot create {1} image files", outPath, readOnlyType))
-            End If
-            Dim scpImage As Scp = Nothing
-            Dim imgImage As Img = Nothing
-            Dim rawImage As KryoFlux = Nothing
-            Dim nsiImage As Nsi = Nothing
-            Dim imdImage As Imd = Nothing
-            Dim hfeImage As Hfe = Nothing
-            Dim d88Image As D88 = Nothing
+            ' Multi-sink pipeline. The primary sink (ReadOptions.FileName)
+            ' drives every byte-for-byte parity guarantee: when
+            ' AdditionalFiles is Nothing/empty, the sinks list collapses to
+            ' a single entry and the downstream emit/write loops behave
+            ' byte-identically to the pre-AdditionalFiles implementation
+            ' (same error order, same emit order, same final WriteAllBytes
+            ' order). Additional sinks are appended in caller order after
+            ' the primary and share preview.Format / imgDisk / the Python-
+            ' parity decode pipeline.
             Dim imgDisk As DiskDef = Nothing
-            If writeScp Then
-                scpImage = New Scp()
-                scpImage.FileName = outPath
-                scpImage.ApplyWOpts(outOpts)
-            ElseIf writeImd Then
-                Dim effectiveFormat = preview.Format
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMD output requires a disk format")
-                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
-                imdImage = New Imd()
-                imdImage.FileName = outPath
-                imdImage.ApplyWOpts(outOpts)
-            ElseIf writeHfe Then
-                ' HFE accepts raw flux when no --format is supplied — the
-                ' file-options `::bitrate=N` (or, when present, a master
-                ' track's auto-computed bitrate) tells the codec how to
-                ' bin flux into bitcells. So unlike IMG/IMD/NSI/D88, we
-                ' don't require a disk format up front; we only resolve
-                ' one if the user actually passed --format. The shared
-                ' "imgDisk Is Nothing AndAlso preview.Format" block below
-                ' covers that case so format-driven decode + summary
-                ' still fire when --format is supplied alongside HFE.
-                hfeImage = New Hfe()
-                hfeImage.FileName = outPath
-                hfeImage.ApplyWOpts(outOpts)
-            ElseIf writeSector Then
-                Dim effectiveFormat = preview.Format
-                If String.IsNullOrEmpty(effectiveFormat) Then
-                    effectiveFormat = ImageDefaults.DefaultFormatForExtension(outExt)
+            Dim sinks As New List(Of ReadOutputSink)()
+            Dim primarySink = BuildSink(preview.FileName, isPrimary:=True, imgDisk, preview)
+            sinks.Add(primarySink)
+            If preview.AdditionalFiles IsNot Nothing AndAlso preview.AdditionalFiles.Count > 0 Then
+                ' Dedup keyed on the absolute path (Path.GetFullPath +
+                ' OrdinalIgnoreCase). pathToSpec keeps the raw
+                ' already-accepted spec string so the dedup event can cite
+                ' the exact entry the caller originally supplied. Silent
+                ' skip (not throw) matches the documented policy on
+                ' ReadOptions.AdditionalFiles.
+                Dim seen As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+                Dim pathToSpec As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
+                Dim primaryKey = NormalizePathForDedup(primarySink.Path)
+                If Not String.IsNullOrEmpty(primaryKey) Then
+                    seen.Add(primaryKey)
+                    pathToSpec(primaryKey) = preview.FileName
                 End If
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG output requires a disk format")
-                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
-                imgImage = New Img(imgDisk)
-                ConfigureSectorImageDefaults(imgImage, outExt)
-                imgImage.FileName = outPath
-                imgImage.ApplyWOpts(outOpts)
-            ElseIf writeRaw Then
-                rawImage = New KryoFlux(outPath)
-            ElseIf writeNsi Then
-                Dim effectiveFormat = preview.Format
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "NSI output requires a disk format")
-                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
-                nsiImage = New Nsi(imgDisk)
-                nsiImage.FileName = outPath
-                nsiImage.ApplyWOpts(outOpts)
-            ElseIf writeD88 Then
-                Dim effectiveFormat = preview.Format
-                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D88 output requires a disk format")
-                imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
-                d88Image = New D88(imgDisk)
-                d88Image.FileName = outPath
-                d88Image.ApplyWOpts(outOpts)
+                For Each rawSpec In preview.AdditionalFiles
+                    Dim addPath = ConvertAction.SplitImageFileOptions(rawSpec).Item1
+                    Dim normalized = NormalizePathForDedup(addPath)
+                    If Not String.IsNullOrEmpty(normalized) AndAlso Not seen.Add(normalized) Then
+                        If cmd IsNot Nothing Then
+                            cmd.OnAdditionalOutputDeduped(
+                                New Greaseweazle.Actions.ReadAdditionalOutputDedupedEventArgs(
+                                    rawSpec, pathToSpec(normalized)))
+                        End If
+                        Continue For
+                    End If
+                    Dim addSink = BuildSink(rawSpec, isPrimary:=False, imgDisk, preview)
+                    If Not String.IsNullOrEmpty(normalized) Then
+                        pathToSpec(normalized) = rawSpec
+                    End If
+                    sinks.Add(addSink)
+                Next
             End If
             ' Python read.py:271 sets `args.fmt_cls = codec.get_diskdef(args.format, args.diskdefs)`
             ' regardless of the output image type. Resolve the format here so that
             ' --format always triggers decode + summary, even when paired with
-            ' --raw or a flux-only output (e.g. .scp/.raw).
+            ' --raw or a flux-only output (e.g. .scp/.raw). This is a no-op when
+            ' a sink already resolved imgDisk during BuildSink.
             If imgDisk Is Nothing AndAlso Not String.IsNullOrEmpty(preview.Format) Then
                 imgDisk = ResolveDiskDefinition(preview.Format, preview.DiskDefsPath)
             End If
             ' Python image/image.py::Image.__enter__ opens with mode="x" when --no-clobber
             ' is set, raising FileExistsError if the target already exists. KryoFlux
             ' is a directory-template name so we skip it (mirrors Python's KryoFlux class).
-            If preview.NoClobber AndAlso Not writeRaw AndAlso File.Exists(outPath) Then
-                Throw New FatalException(String.Format("{0}: File exists", outPath))
+            ' Applied per-sink so every destination is validated; short-circuits on the
+            ' first collision in sink order (primary first, then additionals in caller
+            ' order).
+            If preview.NoClobber Then
+                For Each sink In sinks
+                    If Not sink.WriteRaw AndAlso File.Exists(sink.Path) Then
+                        Throw New FatalException(String.Format("{0}: File exists", sink.Path))
+                    End If
+                Next
             End If
 
             Dim summaryDict As New Dictionary(Of Tuple(Of Integer, Integer), Codec)()
@@ -382,53 +357,14 @@ Namespace Greaseweazle.Tools
                                 summaryDict(Tuple.Create(track.Cyl, track.Head)) = CType(dat, Codec)
                             End If
                             ' Python read.py:201-204: `if args.raw: image.emit_track(cyl,head,flux)`
-                            ' fires regardless of image type. The fall-through emits decoded
-                            ' data for codec-aware sector images.
-                            If preview.Raw Then
-                                If writeScp Then
-                                    scpImage.EmitTrack(track.Cyl, track.Head, flux)
-                                ElseIf writeRaw Then
-                                    rawImage.EmitTrack(track.Cyl, track.Head, flux)
-                                ElseIf writeNsi Then
-                                    nsiImage.EmitTrack(track.Cyl, track.Head, flux)
-                                ElseIf writeImd Then
-                                    imdImage.EmitTrack(track.Cyl, track.Head, flux)
-                                ElseIf writeHfe Then
-                                    hfeImage.EmitTrack(track.Cyl, track.Head, flux)
-                                ElseIf writeSector Then
-                                    imgImage.EmitTrack(track.Cyl, track.Head, flux)
-                                ElseIf writeD88 Then
-                                    d88Image.EmitTrack(track.Cyl, track.Head, flux)
-                                End If
-                            ElseIf writeScp Then
-                                scpImage.EmitTrack(track.Cyl, track.Head, flux)
-                            ElseIf writeRaw Then
-                                rawImage.EmitTrack(track.Cyl, track.Head, flux)
-                            ElseIf writeNsi Then
-                                If dat IsNot Nothing Then
-                                    nsiImage.EmitTrack(track.Cyl, track.Head, dat)
-                                End If
-                            ElseIf writeImd Then
-                                If dat IsNot Nothing Then
-                                    imdImage.EmitTrack(track.Cyl, track.Head, dat)
-                                End If
-                            ElseIf writeHfe Then
-                                ' Python read.py:204 emits `dat` only when not None; when
-                                ' --format is unset, `dat` is the raw flux (read_with_retry
-                                ' returns (flux, flux)) and HFE.emit_track handles the raw
-                                ' bitstream via the configured/auto-derived bitrate.
-                                If dat IsNot Nothing Then
-                                    hfeImage.EmitTrack(track.Cyl, track.Head, dat)
-                                End If
-                            ElseIf writeSector Then
-                                If dat IsNot Nothing Then
-                                    imgImage.EmitTrack(track.Cyl, track.Head, dat)
-                                End If
-                            ElseIf writeD88 Then
-                                If dat IsNot Nothing Then
-                                    d88Image.EmitTrack(track.Cyl, track.Head, dat)
-                                End If
-                            End If
+                            ' fires regardless of image type. EmitToSink collapses the
+                            ' previous per-extension If/ElseIf chain into a single
+                            ' dispatch; primary sink runs first, then additional sinks
+                            ' in caller order, so the single-sink emit sequence is
+                            ' preserved byte-for-byte when AdditionalFiles is empty.
+                            For Each sink In sinks
+                                EmitToSink(sink, track.Cyl, track.Head, flux, dat, preview.Raw)
+                            Next
                         Next
                     End Sub,
                     New UsbDriveControlAdapter(usbClient),
@@ -460,26 +396,31 @@ Namespace Greaseweazle.Tools
 
             ' Python read.py writes the image silently inside its
             ' `with open_image(...)` context manager — no "Wrote ..."
-            ' line. Mirror that: just emit the bytes (KryoFlux is a
-            ' directory template, so it has no single-file body to
-            ' write here).
-            If writeScp Then
-                File.WriteAllBytes(outPath, scpImage.GetImage())
-            ElseIf writeImd Then
-                File.WriteAllBytes(outPath, imdImage.GetImage())
-            ElseIf writeHfe Then
-                File.WriteAllBytes(outPath, hfeImage.GetImage())
-            ElseIf writeSector Then
-                File.WriteAllBytes(outPath, imgImage.GetImage())
-            ElseIf writeNsi Then
-                File.WriteAllBytes(outPath, nsiImage.GetImage())
-            ElseIf writeD88 Then
-                File.WriteAllBytes(outPath, d88Image.GetImage())
+            ' line. Mirror that: just emit the bytes. FinalWriteSink
+            ' no-ops for KryoFlux (.raw) which is a directory template.
+            ' Primary sink writes first; additional sinks follow in
+            ' caller order so a Ctrl-C between writes yields a fully
+            ' written primary and a missing additional rather than
+            ' the reverse.
+            For Each sink In sinks
+                FinalWriteSink(sink)
+            Next
+
+            Dim additionalPaths As IReadOnlyList(Of String)
+            If sinks.Count > 1 Then
+                Dim list As New List(Of String)(sinks.Count - 1)
+                For i = 1 To sinks.Count - 1
+                    list.Add(sinks(i).Path)
+                Next
+                additionalPaths = list
+            Else
+                additionalPaths = Array.Empty(Of String)()
             End If
 
             Return New Greaseweazle.Actions.ReadSummary(resolvedTracks.ToString(), revsDisplay,
                                                         tracksProcessed, preview.Format,
-                                                        outPath, grid, dryRun:=False)
+                                                        primarySink.Path, additionalPaths,
+                                                        grid, dryRun:=False)
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ResolveDiskDefinition)
@@ -637,6 +578,219 @@ Namespace Greaseweazle.Tools
                String.Equals(ext, ".d4m", StringComparison.OrdinalIgnoreCase) Then
                 image.SidesSwapped = True
             End If
+        End Sub
+
+        ' DLL-only multi-sink support (ReadOptions.AdditionalFiles).
+        '
+        ' ReadOutputSink captures everything RunLive needs to drive
+        ' EmitTrack / GetImage against a single output destination. The
+        ' boolean octet mirrors the extension flags that RunLive used to
+        ' derive inline; keeping them per-sink lets EmitToSink dispatch
+        ' raw-vs-decoded emission without re-parsing the extension each
+        ' track. Single-sink runs keep byte-for-byte parity by wrapping
+        ' the primary FileName in a one-element list.
+        Private NotInheritable Class ReadOutputSink
+            ' Caller-supplied spec (`path[::opts]`). Retained so dedup
+            ' events can quote the exact entry the caller provided.
+            Public Property RawSpec As String
+            Public Property Path As String
+            Public Property Opts As IDictionary(Of String, String)
+            Public Property Ext As String
+            Public Property IsPrimary As Boolean
+            Public Property WriteScp As Boolean
+            Public Property WriteSector As Boolean
+            Public Property WriteRaw As Boolean
+            Public Property WriteD88 As Boolean
+            Public Property WriteNsi As Boolean
+            Public Property WriteImd As Boolean
+            Public Property WriteHfe As Boolean
+            ' Concrete instance typed as the Image base — EmitTrack and
+            ' GetImage are MustOverride on Image, so dispatch is fully
+            ' polymorphic and the per-extension typed variables that
+            ' RunLive used to hold are no longer needed.
+            Public Property Image As Greaseweazle.Images.Image
+        End Class
+
+        ' Dedup key builder for ReadOptions.AdditionalFiles. Path.GetFullPath
+        ' normalises relative paths, mixed separators, and `.`/`..` segments,
+        ' matching the behaviour a user would expect when two entries point
+        ' at the same file via different spellings. Case folding is handled
+        ' by the HashSet's OrdinalIgnoreCase comparer — Windows' filesystem
+        ' is case-insensitive, and on Linux the over-match is a safe
+        ' conservative choice (no realistic caller wants two same-cased-but-
+        ' different-casing paths to produce independent files). Falls back
+        ' to the raw string on paths that GetFullPath rejects; the
+        ' subsequent BuildSink call will surface the real error.
+        Private Shared Function NormalizePathForDedup(p As String) As String
+            If String.IsNullOrEmpty(p) Then Return String.Empty
+            Try
+                Return Path.GetFullPath(p)
+            Catch
+                Return p
+            End Try
+        End Function
+
+        ' Constructs a ReadOutputSink from a raw `path[::opts]` string.
+        ' Replicates the exact error order the single-sink path used to
+        ' surface (UnrecognisedSuffix → "Cannot create X image files" →
+        ' "X output requires a disk format" → ApplyWOpts-thrown) so the
+        ' primary sink produces byte-identical failures to today. The
+        ' isPrimary flag adds one new error for additional sinks only:
+        ' flux-only extensions (.scp, .raw) are rejected with a
+        ' FatalException telling the caller to use them as the primary
+        ' instead.
+        '
+        ' imgDisk is ByRef so format-aware sinks can populate it lazily
+        ' (first format-requiring sink resolves the DiskDef, later sinks
+        ' with the same preview.Format reuse it). Shares the same single
+        ' preview.Format / DiskDefsPath across every sink in a run.
+        Private Shared Function BuildSink(rawSpec As String,
+                                          isPrimary As Boolean,
+                                          ByRef imgDisk As DiskDef,
+                                          preview As ReadOptions) As ReadOutputSink
+            Dim split = ConvertAction.SplitImageFileOptions(rawSpec)
+            Dim path = split.Item1
+            Dim opts = split.Item2
+            ErrorHandling.Check(Not String.IsNullOrEmpty(path), "Output file path is empty")
+            Dim ext = System.IO.Path.GetExtension(path)
+            Dim readOnlyType = ResolveReadOnlyImageTypeName(ext)
+            Dim writeScp = String.Equals(ext, ".scp", StringComparison.OrdinalIgnoreCase)
+            Dim writeSector = IsSectorImageExtension(ext)
+            Dim writeRaw = String.Equals(ext, ".raw", StringComparison.OrdinalIgnoreCase)
+            Dim writeD88 = String.Equals(ext, ".d88", StringComparison.OrdinalIgnoreCase)
+            Dim writeNsi = String.Equals(ext, ".nsi", StringComparison.OrdinalIgnoreCase)
+            Dim writeImd = String.Equals(ext, ".imd", StringComparison.OrdinalIgnoreCase)
+            Dim writeHfe = String.Equals(ext, ".hfe", StringComparison.OrdinalIgnoreCase)
+            If Not (writeScp OrElse writeSector OrElse writeRaw OrElse writeD88 OrElse writeNsi OrElse writeImd OrElse writeHfe OrElse Not String.IsNullOrEmpty(readOnlyType)) Then
+                Throw New UnrecognisedSuffixException(path, ext, New ImageTypeRegistry().GetKnownSuffixes().ToList())
+            End If
+            If Not String.IsNullOrEmpty(readOnlyType) Then
+                Throw New FatalException(String.Format("{0}: Cannot create {1} image files", path, readOnlyType))
+            End If
+            ' Flux-only extensions are only valid as the primary output;
+            ' an additional .scp/.raw alongside e.g. a .ima primary has no
+            ' well-defined behaviour (neither the Python tool nor the
+            ' single-sink VB path supports it), so reject it up-front.
+            If Not isPrimary AndAlso (writeScp OrElse writeRaw) Then
+                Throw New FatalException(String.Format(
+                    "{0}: Flux-only outputs (.scp, .raw) cannot be used as additional output files; specify them as the primary output instead.",
+                    path))
+            End If
+            Dim image As Greaseweazle.Images.Image = Nothing
+            If writeScp Then
+                Dim scp As New Scp() With {.FileName = path}
+                scp.ApplyWOpts(opts)
+                image = scp
+            ElseIf writeImd Then
+                Dim effectiveFormat = preview.Format
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMD output requires a disk format")
+                If imgDisk Is Nothing Then
+                    imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                End If
+                Dim imd As New Imd() With {.FileName = path}
+                imd.ApplyWOpts(opts)
+                image = imd
+            ElseIf writeHfe Then
+                ' HFE accepts raw flux when no --format is supplied — the
+                ' file-options `::bitrate=N` (or, when present, a master
+                ' track's auto-computed bitrate) tells the codec how to
+                ' bin flux into bitcells. So unlike IMG/IMD/NSI/D88, we
+                ' don't require a disk format up front; we only resolve
+                ' one if the user actually passed --format. The shared
+                ' "imgDisk Is Nothing AndAlso preview.Format" block in
+                ' RunLive covers that case so format-driven decode +
+                ' summary still fire when --format is supplied alongside
+                ' HFE.
+                Dim hfe As New Hfe() With {.FileName = path}
+                hfe.ApplyWOpts(opts)
+                image = hfe
+            ElseIf writeSector Then
+                Dim effectiveFormat = preview.Format
+                If String.IsNullOrEmpty(effectiveFormat) Then
+                    effectiveFormat = ImageDefaults.DefaultFormatForExtension(ext)
+                End If
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "IMG output requires a disk format")
+                If imgDisk Is Nothing Then
+                    imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                End If
+                Dim img As New Img(imgDisk) With {.FileName = path}
+                ConfigureSectorImageDefaults(img, ext)
+                img.ApplyWOpts(opts)
+                image = img
+            ElseIf writeRaw Then
+                image = New KryoFlux(path)
+            ElseIf writeNsi Then
+                Dim effectiveFormat = preview.Format
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "NSI output requires a disk format")
+                If imgDisk Is Nothing Then
+                    imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                End If
+                Dim nsi As New Nsi(imgDisk) With {.FileName = path}
+                nsi.ApplyWOpts(opts)
+                image = nsi
+            ElseIf writeD88 Then
+                Dim effectiveFormat = preview.Format
+                ErrorHandling.Check(Not String.IsNullOrEmpty(effectiveFormat), "D88 output requires a disk format")
+                If imgDisk Is Nothing Then
+                    imgDisk = ResolveDiskDefinition(effectiveFormat, preview.DiskDefsPath)
+                End If
+                Dim d88 As New D88(imgDisk) With {.FileName = path}
+                d88.ApplyWOpts(opts)
+                image = d88
+            End If
+            Return New ReadOutputSink With {
+                .RawSpec = rawSpec,
+                .Path = path,
+                .Opts = opts,
+                .Ext = ext,
+                .IsPrimary = isPrimary,
+                .WriteScp = writeScp,
+                .WriteSector = writeSector,
+                .WriteRaw = writeRaw,
+                .WriteD88 = writeD88,
+                .WriteNsi = writeNsi,
+                .WriteImd = writeImd,
+                .WriteHfe = writeHfe,
+                .Image = image
+            }
+        End Function
+
+        ' Per-track emit dispatch. Collapses the previous twelve-branch
+        ' If/ElseIf chain into a single deterministic rule:
+        '   - SCP and KryoFlux (.raw) always consume raw flux (their
+        '     EmitTrack handles index cueing / per-track file output
+        '     without a codec)
+        '   - every other sink (sector images, IMD, HFE, NSI, D88)
+        '     consumes raw flux when --raw is set, otherwise consumes
+        '     the decoded `dat` when read_with_retry returned one
+        '     (the `dat IsNot Nothing` guard mirrors Python's
+        '     `if dat is not None: image.emit_track(...)`)
+        Private Shared Sub EmitToSink(sink As ReadOutputSink,
+                                      cyl As Integer,
+                                      head As Integer,
+                                      flux As Flux,
+                                      dat As HasFlux,
+                                      raw As Boolean)
+            If sink.WriteScp OrElse sink.WriteRaw Then
+                sink.Image.EmitTrack(cyl, head, flux)
+                Return
+            End If
+            If raw Then
+                sink.Image.EmitTrack(cyl, head, flux)
+                Return
+            End If
+            If dat IsNot Nothing Then
+                sink.Image.EmitTrack(cyl, head, dat)
+            End If
+        End Sub
+
+        ' Final materialisation for a sink. KryoFlux is a directory
+        ' template — its EmitTrack already wrote each per-track file, so
+        ' there is no whole-image byte buffer to flush. Every other sink
+        ' materialises via Image.GetImage() and writes to Path.
+        Private Shared Sub FinalWriteSink(sink As ReadOutputSink)
+            If sink.WriteRaw Then Return
+            File.WriteAllBytes(sink.Path, sink.Image.GetImage())
         End Sub
     End Class
 

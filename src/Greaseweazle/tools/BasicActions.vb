@@ -1436,7 +1436,16 @@ Namespace Greaseweazle.Tools
             ' OpenImageForRead/Write. Python's convert.py runs
             ' get_image_class() for both paths up front and reports the output
             ' path first, so we mirror that ordering here.
-            ValidateConvertSuffix(outputPath)
+            '
+            ' DLL-only dry-run extension: an empty OutputFile means "walk the
+            ' entire convert pipeline but skip every output-side side effect
+            ' (open/write/emit)." In that mode there's no output suffix to
+            ' validate, so skip the output-side check but still validate the
+            ' input suffix so bad inputs fail identically to a real convert.
+            Dim dryRun = String.IsNullOrEmpty(preview.OutputFile)
+            If Not dryRun Then
+                ValidateConvertSuffix(outputPath)
+            End If
             ValidateConvertSuffix(inputPath)
 
             ' Python convert.py opens the input image FIRST so the IMG.fmt fallback
@@ -1472,13 +1481,19 @@ Namespace Greaseweazle.Tools
                 cmd.OnStarted(New Greaseweazle.Actions.ConvertStartedEventArgs(effectiveFormat, inSpec, outSpec))
             End If
 
-            Dim outputImage = OpenImageForWrite(preview.OutputFile, effectiveFormat, preview.DiskDefsPath)
-            outputImage.NoClobber = preview.NoClobber
-            ' Deferred --no-clobber check (see comment above): matches Python's
-            ' convert.py order — open_output_image first (which surfaces format
-            ' errors), then the existence check.
-            If preview.NoClobber AndAlso File.Exists(outputPath) Then
-                Throw New FatalException(String.Format("{0}: File exists", outputPath))
+            ' Dry-run (no output file): leave outputImage as Nothing and skip
+            ' OpenImageForWrite + the deferred --no-clobber check. The decode
+            ' pipeline downstream honours a null sink via ConvertFunctions.Convert.
+            Dim outputImage As Image = Nothing
+            If Not dryRun Then
+                outputImage = OpenImageForWrite(preview.OutputFile, effectiveFormat, preview.DiskDefsPath)
+                outputImage.NoClobber = preview.NoClobber
+                ' Deferred --no-clobber check (see comment above): matches Python's
+                ' convert.py order — open_output_image first (which surfaces format
+                ' errors), then the existence check.
+                If preview.NoClobber AndAlso File.Exists(outputPath) Then
+                    Throw New FatalException(String.Format("{0}: File exists", outputPath))
+                End If
             End If
 
             Dim hardSectorsCallback As Action(Of Greaseweazle.Actions.ConvertHardSectorsEventArgs) = Nothing
@@ -1523,13 +1538,15 @@ Namespace Greaseweazle.Tools
                 cmd.OnSummaryReady(New Greaseweazle.Actions.SectorSummaryReadyEventArgs(grid))
             End If
 
-            Dim outExt = Path.GetExtension(outputPath)
-            If IsSectorImageExtension(outExt) OrElse
-               String.Equals(outExt, ".imd", StringComparison.OrdinalIgnoreCase) OrElse
-               String.Equals(outExt, ".hfe", StringComparison.OrdinalIgnoreCase) OrElse
-               String.Equals(outExt, ".d88", StringComparison.OrdinalIgnoreCase) OrElse
-               String.Equals(outExt, ".scp", StringComparison.OrdinalIgnoreCase) Then
-                File.WriteAllBytes(outputPath, outputImage.GetImage())
+            If Not dryRun Then
+                Dim outExt = Path.GetExtension(outputPath)
+                If IsSectorImageExtension(outExt) OrElse
+                   String.Equals(outExt, ".imd", StringComparison.OrdinalIgnoreCase) OrElse
+                   String.Equals(outExt, ".hfe", StringComparison.OrdinalIgnoreCase) OrElse
+                   String.Equals(outExt, ".d88", StringComparison.OrdinalIgnoreCase) OrElse
+                   String.Equals(outExt, ".scp", StringComparison.OrdinalIgnoreCase) Then
+                    File.WriteAllBytes(outputPath, outputImage.GetImage())
+                End If
             End If
 
             Return New Greaseweazle.Actions.ConvertSummary(inSpec, outSpec, processedCount, effectiveFormat, grid)

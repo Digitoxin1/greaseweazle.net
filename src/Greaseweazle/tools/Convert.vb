@@ -192,6 +192,14 @@ Namespace Greaseweazle.Tools
         ' Walks the output track set and decodes/emits each one.
         ' Returns the post-decode summary dict so the caller can
         ' surface a typed SectorSummaryGrid via SummaryReady.
+        '
+        ' outImage may be Nothing for a dry-run: the full decode
+        ' pipeline (ProcessInputTrack, PLL passes, track-processed
+        ' events, sector summary) still runs, but no track is emitted
+        ' to an output image. Callers that want the complete convert
+        ' behaviour without persisting anything should pair this with
+        ' ConvertAction.RunFromOptions(OutputFile:=Nothing), which
+        ' also skips OpenImageForWrite and the final File.WriteAllBytes.
         Public Shared Function [Convert](outTracks As IEnumerable(Of TrackIter),
                                          tracks As TrackSet,
                                          inImage As Image,
@@ -232,7 +240,9 @@ Namespace Greaseweazle.Tools
                 Else
                     Continue For
                 End If
-                outImage.EmitTrack(t.PhysicalCyl, t.PhysicalHead, dat)
+                If outImage IsNot Nothing Then
+                    outImage.EmitTrack(t.PhysicalCyl, t.PhysicalHead, dat)
+                End If
             Next
             Return summary
         End Function

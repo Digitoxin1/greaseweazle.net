@@ -4,6 +4,7 @@
     <RootNamespace></RootNamespace>
     <OutputType>Library</OutputType>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Version>1.23.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,14 +1,48 @@
 {
-  "generated_by": "dotnet/tools/audit_conversion.py",
+  "generated_by": "tools/audit_conversion.py",
   "python_files_total": 77,
-  "vb_files_total": 68,
+  "vb_files_total": 108,
   "file_relation_counts": {
-    "1:1": 43,
+    "orphan-py": 1,
     "orphan-py-empty-init": 14,
-    "1:N": 20
+    "1:1": 41,
+    "1:N": 21
   },
   "orphan_vb_files": [
-    "dotnet/src/Greaseweazle/tools/TrackResolution.vb"
+    "src/Greaseweazle/My Project/Resources.Designer.vb",
+    "src/Greaseweazle/My Project/Settings.Designer.vb",
+    "src/Greaseweazle/actions/Commands.vb",
+    "src/Greaseweazle/actions/Events/AlignEvents.vb",
+    "src/Greaseweazle/actions/Events/CleanEvents.vb",
+    "src/Greaseweazle/actions/Events/ConvertEvents.vb",
+    "src/Greaseweazle/actions/Events/EraseEvents.vb",
+    "src/Greaseweazle/actions/Events/ReadEvents.vb",
+    "src/Greaseweazle/actions/Events/RpmEvents.vb",
+    "src/Greaseweazle/actions/Events/UpdateEvents.vb",
+    "src/Greaseweazle/actions/Events/WriteEvents.vb",
+    "src/Greaseweazle/actions/GwCommandBase.vb",
+    "src/Greaseweazle/actions/Results/AlignSummary.vb",
+    "src/Greaseweazle/actions/Results/BandwidthResult.vb",
+    "src/Greaseweazle/actions/Results/CleanSummary.vb",
+    "src/Greaseweazle/actions/Results/ConvertSummary.vb",
+    "src/Greaseweazle/actions/Results/DelaysResult.vb",
+    "src/Greaseweazle/actions/Results/DeviceInfoResult.vb",
+    "src/Greaseweazle/actions/Results/EraseSummary.vb",
+    "src/Greaseweazle/actions/Results/PinResult.vb",
+    "src/Greaseweazle/actions/Results/ReadSummary.vb",
+    "src/Greaseweazle/actions/Results/RpmSummary.vb",
+    "src/Greaseweazle/actions/Results/SectorSummaryGrid.vb",
+    "src/Greaseweazle/actions/Results/SeekResult.vb",
+    "src/Greaseweazle/actions/Results/UpdateSummary.vb",
+    "src/Greaseweazle/actions/Results/WriteSummary.vb",
+    "src/Greaseweazle/codec/BitHelpers.vb",
+    "src/Greaseweazle/codec/DoubleBitCodec.vb",
+    "src/Greaseweazle/error/ByteArrayHelpers.vb",
+    "src/Greaseweazle/error/ByteOrder.vb",
+    "src/Greaseweazle/error/CollectionHelpers.vb",
+    "src/Greaseweazle/error/HostVersion.vb",
+    "src/Greaseweazle/error/LibraryDiagnostics.vb",
+    "src/Greaseweazle/tools/TrackResolution.vb"
   ],
   "layers": [
     {
@@ -17,10 +51,10 @@
         "src/greaseweazle/error.py"
       ],
       "vb_files": [
-        "dotnet/src/Greaseweazle/error/ErrorHandling.vb"
+        "src/Greaseweazle/error/ErrorHandling.vb"
       ],
       "python_symbol_count": 2,
-      "vb_symbol_count": 9,
+      "vb_symbol_count": 73,
       "matching_strict": 2,
       "missing_strict": [],
       "naming_only_resolved": [],
@@ -37,16 +71,16 @@
         "src/greaseweazle/optimised/__init__.py"
       ],
       "vb_files": [
-        "dotnet/src/Greaseweazle/flux/FluxModel.vb",
-        "dotnet/src/Greaseweazle/optimised/Apple2.vb",
-        "dotnet/src/Greaseweazle/optimised/AppleGcr62.vb",
-        "dotnet/src/Greaseweazle/optimised/C64.vb",
-        "dotnet/src/Greaseweazle/optimised/Mac.vb",
-        "dotnet/src/Greaseweazle/optimised/OptimizedFlux.vb",
-        "dotnet/src/Greaseweazle/optimised/Td0Lzss.vb"
+        "src/Greaseweazle/flux/FluxModel.vb",
+        "src/Greaseweazle/optimised/Apple2.vb",
+        "src/Greaseweazle/optimised/AppleGcr62.vb",
+        "src/Greaseweazle/optimised/C64.vb",
+        "src/Greaseweazle/optimised/Mac.vb",
+        "src/Greaseweazle/optimised/OptimizedFlux.vb",
+        "src/Greaseweazle/optimised/Td0Lzss.vb"
       ],
       "python_symbol_count": 22,
-      "vb_symbol_count": 113,
+      "vb_symbol_count": 115,
       "matching_strict": 8,
       "missing_strict": [
         "flux.__init__",
@@ -67,72 +101,72 @@
       "naming_only_resolved": [
         {
           "python_symbol": "Flux.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::New",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Flux.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::ToString",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Flux.cue_at_index",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::CueAtIndex",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::CueAtIndex",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Flux.flux_for_writeout",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::FluxForWriteout",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::FluxForWriteout",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Flux.identify_hard_sectors",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::IdentifyHardSectors",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::IdentifyHardSectors",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Flux.set_nr_revs",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::SetNrRevs",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::SetNrRevs",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Flux.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Flux.ticks_per_rev",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::TicksPerRev",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::TicksPerRev",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Flux.time_per_rev",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::TimePerRev",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::TimePerRev",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HasFlux.flux_for_writeout",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::FluxForWriteout",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::FluxForWriteout",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HasFlux.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "WriteoutFlux.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::New",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "WriteoutFlux.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::ToString",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "WriteoutFlux.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/flux/FluxModel.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/flux/FluxModel.vb::SummaryString",
           "match": "mapped-exact"
         }
       ],
@@ -154,7 +188,7 @@
         "src/greaseweazle/track.py"
       ],
       "vb_files": [
-        "dotnet/src/Greaseweazle/track/TrackModel.vb"
+        "src/Greaseweazle/track/TrackModel.vb"
       ],
       "python_symbol_count": 28,
       "vb_symbol_count": 115,
@@ -181,87 +215,87 @@
       "naming_only_resolved": [
         {
           "python_symbol": "flux_to_bitcells",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::FluxToBitcells",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::FluxToBitcells",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HasVerify.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::VerifyTrack",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::VerifyTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MasterTrack.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::New",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MasterTrack.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::ToString",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MasterTrack._flux",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::BuildFlux",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::BuildFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MasterTrack.flux_for_writeout",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::FluxForWriteout",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::FluxForWriteout",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MasterTrack.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PLL.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::New",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PLL.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::ToString",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PLLRevolution.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::New",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PLLTrack.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::New",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PLLTrack.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::ToString",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PLLTrack.get_all_data",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::GetAllData",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::GetAllData",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PLLTrack.get_revolution",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::GetRevolution",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::GetRevolution",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PLLTrack.import_flux_data",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::ImportFluxData",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::ImportFluxData",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Precomp.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::New",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Precomp.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/track/TrackModel.vb::ToString",
+          "vb_target": "src/Greaseweazle/track/TrackModel.vb::ToString",
           "match": "mapped-exact"
         }
       ],
@@ -286,9 +320,9 @@
         "src/greaseweazle/usb.py"
       ],
       "vb_files": [
-        "dotnet/src/Greaseweazle/usb/SerialPortTransport.vb",
-        "dotnet/src/Greaseweazle/usb/UsbProtocol.vb",
-        "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb"
+        "src/Greaseweazle/usb/SerialPortTransport.vb",
+        "src/Greaseweazle/usb/UsbProtocol.vb",
+        "src/Greaseweazle/usb/UsbUnitClient.vb"
       ],
       "python_symbol_count": 42,
       "vb_symbol_count": 239,
@@ -328,152 +362,152 @@
       "naming_only_resolved": [
         {
           "python_symbol": "CmdError.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbProtocol.vb::New",
+          "vb_target": "src/Greaseweazle/usb/UsbProtocol.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CmdError.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbProtocol.vb::ToString",
+          "vb_target": "src/Greaseweazle/usb/UsbProtocol.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CmdError.cmd_str",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbProtocol.vb::CmdStr",
+          "vb_target": "src/Greaseweazle/usb/UsbProtocol.vb::CmdStr",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CmdError.errcode_str",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbProtocol.vb::ErrcodeStr",
+          "vb_target": "src/Greaseweazle/usb/UsbProtocol.vb::ErrcodeStr",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DriveInfo.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::New",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DriveInfo.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::ToString",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/usb/SerialPortTransport.vb::New",
+          "vb_target": "src/Greaseweazle/usb/SerialPortTransport.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit._decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::DecodeFluxData",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::DecodeFluxData",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit._encode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::EncodeFluxData",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::EncodeFluxData",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit._read_track",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::ReadTrackRaw",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::ReadTrackRaw",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit._send_cmd",
-          "vb_target": "dotnet/src/Greaseweazle/usb/SerialPortTransport.vb::Write",
+          "vb_target": "src/Greaseweazle/usb/SerialPortTransport.vb::Write",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.bw_stats",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::BwStats",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::BwStats",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.drive_deselect",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::DriveDeselect",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::DriveDeselect",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.drive_motor",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::DriveMotor",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::DriveMotor",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.drive_select",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::DriveSelect",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::DriveSelect",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.erase_track",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::EraseTrack",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::EraseTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.get_current_drive_info",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::GetCurrentDriveInfo",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::GetCurrentDriveInfo",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.get_params",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::GetParams",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::GetParams",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.get_pin",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::GetPin",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::GetPin",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.power_on_reset",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::PowerOnReset",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::PowerOnReset",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.read_track",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::ReadTrack",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::ReadTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.set_bus_type",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::SetBusType",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::SetBusType",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.set_params",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::SetParams",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::SetParams",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.set_pin",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::SetPin",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::SetPin",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.sink_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::SinkBytes",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::SinkBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.source_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::SourceBytes",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::SourceBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.switch_fw_mode",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::SwitchFwMode",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::SwitchFwMode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.update_bootloader",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::UpdateBootloader",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::UpdateBootloader",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.update_main_firmware",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::UpdateMainFirmware",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::UpdateMainFirmware",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Unit.write_track",
-          "vb_target": "dotnet/src/Greaseweazle/usb/UsbUnitClient.vb::WriteTrack",
+          "vb_target": "src/Greaseweazle/usb/UsbUnitClient.vb::WriteTrack",
           "match": "mapped-exact"
         }
       ],
@@ -499,19 +533,19 @@
         "src/greaseweazle/tools/util.py"
       ],
       "vb_files": [
-        "dotnet/src/Greaseweazle/tools/ColumnFormatter.vb",
-        "dotnet/src/Greaseweazle/tools/OptionParser.vb",
-        "dotnet/src/Greaseweazle/tools/TrackResolution.vb",
-        "dotnet/src/Greaseweazle/tools/TrackSet.vb"
+        "src/Greaseweazle/tools/OptionParser.vb",
+        "src/Greaseweazle/tools/TrackResolution.vb",
+        "src/Greaseweazle/tools/TrackSet.vb"
       ],
       "python_symbol_count": 29,
-      "vb_symbol_count": 61,
-      "matching_strict": 2,
+      "vb_symbol_count": 59,
+      "matching_strict": 1,
       "missing_strict": [
         "argumentparser",
         "argumentparser.__init__",
         "cmdlinehelpformatter",
         "cmdlinehelpformatter._get_help_string",
+        "columnify",
         "drive",
         "drive.__call__",
         "find_port",
@@ -538,144 +572,97 @@
       ],
       "naming_only_resolved": [
         {
-          "python_symbol": "ArgumentParser",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::ArgumentParser",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "ArgumentParser.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::New",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "CmdlineHelpFormatter",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::CmdlineHelpFormatter",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "CmdlineHelpFormatter._get_help_string",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::GetHelpString",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "Drive",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::Drive",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "Drive.__call__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::Call",
-          "match": "mapped-exact"
-        },
-        {
           "python_symbol": "find_port",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::FindPort",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "get_image_class",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::GetImageClass",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "level",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::Level",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "min_int",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::MinInt",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "period",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::Period",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::FindPort",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "port_info",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::PortInfo",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "print_update_instructions",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::PrintUpdateInstructions",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::PortInfo",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "range_str",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::RangeStr",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::RangeToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "score_port",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::ScorePort",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::ScorePort",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "split_opts",
-          "vb_target": "dotnet/src/Greaseweazle/tools/OptionParser.vb::SplitOpts",
+          "vb_target": "src/Greaseweazle/tools/OptionParser.vb::SplitOpts",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.__contains__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::Contains",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::Contains",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::New",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.__iter__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::GetEnumerator",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::GetEnumerator",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::ToString",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.ch_to_pch",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::ChToPch",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::ChToPch",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.update_from_trackspec",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::UpdateFromTrackspec",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::UpdateFromTrackspec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "usb_mode_check",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::UsbModeCheck",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::UsbModeCheck",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "usb_open",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::UsbOpen",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::UsbOpen",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "usb_reopen",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::UsbReopen",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "valid_ser_id",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::ValidSerId",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::UsbReopen",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "with_drive_selected",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::WithDriveSelected",
+          "vb_target": "src/Greaseweazle/tools/InterruptControl.vb::Register",
           "match": "mapped-exact"
         }
       ],
-      "truly_missing": [],
-      "sample_matches": [
+      "truly_missing": [
+        "argumentparser",
+        "argumentparser.__init__",
+        "cmdlinehelpformatter",
+        "cmdlinehelpformatter._get_help_string",
         "columnify",
+        "drive",
+        "drive.__call__",
+        "get_image_class",
+        "level",
+        "min_int",
+        "period",
+        "print_update_instructions",
+        "valid_ser_id"
+      ],
+      "sample_matches": [
         "trackset"
       ]
     },
@@ -705,23 +692,26 @@
         "src/greaseweazle/codec/northstar/northstar.py"
       ],
       "vb_files": [
-        "dotnet/src/Greaseweazle/codec/BitcellCodec.vb",
-        "dotnet/src/Greaseweazle/codec/CodecContracts.vb",
-        "dotnet/src/Greaseweazle/codec/DiskDefParser.vb",
-        "dotnet/src/Greaseweazle/codec/DiskDefinitions.vb",
-        "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb",
-        "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb",
-        "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb",
-        "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb",
-        "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb",
-        "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb",
-        "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb",
-        "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb",
-        "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb",
-        "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb"
+        "src/Greaseweazle/codec/BitHelpers.vb",
+        "src/Greaseweazle/codec/BitcellCodec.vb",
+        "src/Greaseweazle/codec/CodecContracts.vb",
+        "src/Greaseweazle/codec/Crc16Ccitt.vb",
+        "src/Greaseweazle/codec/DiskDefParser.vb",
+        "src/Greaseweazle/codec/DiskDefinitions.vb",
+        "src/Greaseweazle/codec/DoubleBitCodec.vb",
+        "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb",
+        "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb",
+        "src/Greaseweazle/codec/commodore/C64GcrCodec.vb",
+        "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb",
+        "src/Greaseweazle/codec/hp/HpMmfmCodec.vb",
+        "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb",
+        "src/Greaseweazle/codec/ibm/IBMScanCodec.vb",
+        "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb",
+        "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb",
+        "src/Greaseweazle/codec/northstar/NorthStarCodec.vb"
       ],
       "python_symbol_count": 276,
-      "vb_symbol_count": 692,
+      "vb_symbol_count": 742,
       "matching_strict": 70,
       "missing_strict": [
         "_get_diskdef",
@@ -934,1032 +924,1032 @@
       "naming_only_resolved": [
         {
           "python_symbol": "_get_diskdef",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefParser.vb::GetDiskdefInner",
+          "vb_target": "src/Greaseweazle/codec/DiskDefParser.vb::GetDiskdefInner",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::VerifyTrackInterface",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::VerifyTrackInterface",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS_DD",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::AmigaDosDd",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::AmigaDosDd",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOS_HD",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::AmigaDosHd",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::AmigaDosHd",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOSDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOSDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "AmigaDOSDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/amiga/AmigaDosCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.set_vol_id",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::SetVolId",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::SetVolId",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCR.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::VerifyTrackInterface",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::VerifyTrackInterface",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCRDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCRDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apple2GCRDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/apple2/Apple2GcrCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrack.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrack.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrack.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrack.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrack.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrack.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrack.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrack.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrack.time_per_rev",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::TimePerRev",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::TimePerRev",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrackDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrackDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "BitcellTrackDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/BitcellCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/BitcellCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.set_disk_id",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::SetDiskId",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::SetDiskId",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCR.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::VerifyTrackInterface",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::VerifyTrackInterface",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCRDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCRDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "C64GCRDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/commodore/C64GcrCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/commodore/C64GcrCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Codec.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Codec.flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::Flux",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::Flux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Codec.flux_for_writeout",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::FluxForWriteout",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::FluxForWriteout",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Codec.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Codec.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Codec.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Codec.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Codec.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Codec.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DAM.__copy__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Copy",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Copy",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DAM.__eq__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Equals",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Equals",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DAM.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DAM.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToString",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneral.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneral.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneral.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneral.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneral.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneral.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneral.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneral.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneral.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::VerifyTrackInterface",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::VerifyTrackInterface",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneralDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneralDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DataGeneralDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/datageneral/DataGeneralCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DEC_MMFM",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::DecMmfm",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::DecMmfm",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DEC_MMFM.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DEC_MMFM.decode",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Decode",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Decode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DEC_MMFM.encode",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Encode",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Encode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DiskDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefinitions.vb::New",
+          "vb_target": "src/Greaseweazle/codec/DiskDefinitions.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DiskDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefinitions.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/DiskDefinitions.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DiskDef.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefinitions.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/DiskDefinitions.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DiskDef.default_revs",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefinitions.vb::DefaultRevs",
+          "vb_target": "src/Greaseweazle/codec/DiskDefinitions.vb::DefaultRevs",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DiskDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefinitions.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/DiskDefinitions.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DiskDef_File",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefParser.vb::DiskDefFile",
+          "vb_target": "src/Greaseweazle/codec/DiskDefParser.vb::DiskDefFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DiskDef_File.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefParser.vb::New",
+          "vb_target": "src/Greaseweazle/codec/DiskDefParser.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "fm_encode",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::FmEncode",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::FmEncode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Gaps.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "get_all_formats",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefParser.vb::CollectAllFormats",
+          "vb_target": "src/Greaseweazle/codec/DiskDefParser.vb::CollectAllFormats",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "get_diskdef",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefParser.vb::GetDiskdef",
+          "vb_target": "src/Greaseweazle/codec/DiskDefParser.vb::GetDiskdef",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFM.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFM.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFM.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFM.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFM.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFM.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFM.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFM.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFM.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::VerifyTrackInterface",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::VerifyTrackInterface",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFMDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFMDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HPMMFMDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IAM.__copy__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Copy",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Copy",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IAM.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToString",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.decode_raw",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::DecodeRaw",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::DecodeRaw",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.fm_decode_raw",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::FmDecodeRaw",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::FmDecodeRaw",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.fm_master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::FmMasterTrack",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::FmMasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.mfm_decode_raw",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MfmDecodeRaw",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MfmDecodeRaw",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.mfm_master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MfmMasterTrack",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MfmMasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::VerifyTrackInterface",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::VerifyTrackInterface",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Empty",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::IbmTrackEmpty",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::IbmTrackEmpty",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Empty.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Empty.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Empty.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Fixed",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::IbmTrackFixed",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::IbmTrackFixed",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Fixed.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Fixed.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/actions/Events/CommonEvents.vb::UnexpectedSectorEventArgs",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Fixed.from_config",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::FromConfig",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::FromConfig",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_FixedDef",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::IbmTrackFixedDef",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::IbmTrackFixedDef",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_FixedDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_FixedDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_FixedDef.finalise",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Finalise",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Finalise",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_FixedDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Scan",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::IbmTrackScan",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::IbmTrackScan",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Scan.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Scan.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Scan.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::GetImgTrack",
-          "match": "mapped-exact"
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::GetImgTrack",
+          "match": "mapped-normalized"
         },
         {
           "python_symbol": "IBMTrack_Scan.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::HasSec",
-          "match": "mapped-exact"
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::HasSec",
+          "match": "mapped-normalized"
         },
         {
           "python_symbol": "IBMTrack_Scan.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_Scan.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::NrMissing",
-          "match": "mapped-exact"
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::NrMissing",
+          "match": "mapped-normalized"
         },
         {
           "python_symbol": "IBMTrack_Scan.nsec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::Nsec",
-          "match": "mapped-exact"
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::Nsec",
+          "match": "mapped-normalized"
         },
         {
           "python_symbol": "IBMTrack_Scan.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::SetImgTrack",
-          "match": "mapped-exact"
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::SetImgTrack",
+          "match": "mapped-normalized"
         },
         {
           "python_symbol": "IBMTrack_Scan.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::SummaryString",
-          "match": "mapped-exact"
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::SummaryString",
+          "match": "mapped-normalized"
         },
         {
           "python_symbol": "IBMTrack_ScanDef",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::IbmTrackScanDef",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::IbmTrackScanDef",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_ScanDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_ScanDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_ScanDef.finalise",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::Finalise",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::Finalise",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IBMTrack_ScanDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMScanCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMScanCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IDAM.__copy__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Copy",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Copy",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IDAM.__eq__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Equals",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Equals",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IDAM.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IDAM.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToString",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCR.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCR.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCR.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCR.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCR.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCR.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCR.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCR.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCR.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::VerifyTrackInterface",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::VerifyTrackInterface",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCRDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCRDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MacGCRDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/macintosh/MacGcrCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "mfm_encode",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MfmEncode",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::MfmEncode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.bad_sector",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::BadSector",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::BadSector",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.img_bps",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::ImgBps",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::ImgBps",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Micropolis.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::VerifyTrackInterface",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::VerifyTrackInterface",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "micropolis_csum",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::MicropolisCsum",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::MicropolisCsum",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MicropolisDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MicropolisDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MicropolisDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/micropolis/MicropolisCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "mk_trackdef",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefinitions.vb::MkTrackdef",
+          "vb_target": "src/Greaseweazle/codec/DiskDefinitions.vb::MkTrackdef",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "mmfm_encode",
-          "vb_target": "dotnet/src/Greaseweazle/codec/hp/HpMmfmCodec.vb::MmfmEncode",
+          "vb_target": "src/Greaseweazle/codec/hp/HpMmfmCodec.vb::MmfmEncode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Mode.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToPythonString",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToPythonString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStar.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStar.decode_flux",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::DecodeFlux",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::DecodeFlux",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStar.get_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::GetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::GetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStar.has_sec",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::HasSec",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::HasSec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStar.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStar.nr_missing",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::NrMissing",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::NrMissing",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStar.set_img_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::SetImgTrack",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::SetImgTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStar.summary_string",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::SummaryString",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::SummaryString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStar.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::VerifyTrackInterface",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::VerifyTrackInterface",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStarDef.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStarDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NorthStarDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/northstar/NorthStarCodec.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/northstar/NorthStarCodec.vb::MkTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "print_formats",
-          "vb_target": "dotnet/src/Greaseweazle/codec/DiskDefParser.vb::PrintFormats",
+          "vb_target": "src/Greaseweazle/codec/DiskDefParser.vb::GetAllFormats",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "sec_map",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SecMap",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SecMap",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "sec_sz",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SecSz",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::SecSz",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Sector.__eq__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Equals",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Equals",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Sector.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Sector.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToString",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackArea.__eq__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Equals",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::Equals",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackArea.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
+          "vb_target": "src/Greaseweazle/codec/ibm/IBMFixedCodec.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackDef.add_param",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::AddParam",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::AddParam",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackDef.mk_track",
-          "vb_target": "dotnet/src/Greaseweazle/codec/CodecContracts.vb::MkTrack",
+          "vb_target": "src/Greaseweazle/codec/CodecContracts.vb::MkTrack",
           "match": "mapped-exact"
         }
       ],
@@ -2044,29 +2034,29 @@
         "src/greaseweazle/image/xdf.py"
       ],
       "vb_files": [
-        "dotnet/src/Greaseweazle/image/A2RImage.vb",
-        "dotnet/src/Greaseweazle/image/ApridiskImage.vb",
-        "dotnet/src/Greaseweazle/image/CAPSImage.vb",
-        "dotnet/src/Greaseweazle/image/D64Image.vb",
-        "dotnet/src/Greaseweazle/image/D88Image.vb",
-        "dotnet/src/Greaseweazle/image/DCPImage.vb",
-        "dotnet/src/Greaseweazle/image/DIMImage.vb",
-        "dotnet/src/Greaseweazle/image/DMKImage.vb",
-        "dotnet/src/Greaseweazle/image/EDSKImage.vb",
-        "dotnet/src/Greaseweazle/image/FDIImage.vb",
-        "dotnet/src/Greaseweazle/image/HFEImage.vb",
-        "dotnet/src/Greaseweazle/image/IMDImage.vb",
-        "dotnet/src/Greaseweazle/image/IMGImage.vb",
-        "dotnet/src/Greaseweazle/image/ImageBase.vb",
-        "dotnet/src/Greaseweazle/image/KryoFluxImage.vb",
-        "dotnet/src/Greaseweazle/image/MSAImage.vb",
-        "dotnet/src/Greaseweazle/image/NFDImage.vb",
-        "dotnet/src/Greaseweazle/image/NSIImage.vb",
-        "dotnet/src/Greaseweazle/image/SCPImage.vb",
-        "dotnet/src/Greaseweazle/image/TD0Image.vb"
+        "src/Greaseweazle/image/A2RImage.vb",
+        "src/Greaseweazle/image/ApridiskImage.vb",
+        "src/Greaseweazle/image/CAPSImage.vb",
+        "src/Greaseweazle/image/D64Image.vb",
+        "src/Greaseweazle/image/D88Image.vb",
+        "src/Greaseweazle/image/DCPImage.vb",
+        "src/Greaseweazle/image/DIMImage.vb",
+        "src/Greaseweazle/image/DMKImage.vb",
+        "src/Greaseweazle/image/EDSKImage.vb",
+        "src/Greaseweazle/image/FDIImage.vb",
+        "src/Greaseweazle/image/HFEImage.vb",
+        "src/Greaseweazle/image/IMDImage.vb",
+        "src/Greaseweazle/image/IMGImage.vb",
+        "src/Greaseweazle/image/ImageBase.vb",
+        "src/Greaseweazle/image/KryoFluxImage.vb",
+        "src/Greaseweazle/image/MSAImage.vb",
+        "src/Greaseweazle/image/NFDImage.vb",
+        "src/Greaseweazle/image/NSIImage.vb",
+        "src/Greaseweazle/image/SCPImage.vb",
+        "src/Greaseweazle/image/TD0Image.vb"
       ],
       "python_symbol_count": 231,
-      "vb_symbol_count": 762,
+      "vb_symbol_count": 765,
       "matching_strict": 78,
       "missing_strict": [
         "a2r.__init__",
@@ -2226,737 +2216,741 @@
       "naming_only_resolved": [
         {
           "python_symbol": "A2R.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/A2RImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/A2RImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "A2R.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/A2RImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/A2RImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "A2R.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/A2RImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/A2RImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "A2R.process_rwcp",
-          "vb_target": "dotnet/src/Greaseweazle/image/A2RImage.vb::ProcessRwcp",
+          "vb_target": "src/Greaseweazle/image/A2RImage.vb::ProcessRwcp",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "A2RTrack.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/A2RImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/A2RImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "A2RTrack.add_cap",
-          "vb_target": "dotnet/src/Greaseweazle/image/A2RImage.vb::AddCap",
+          "vb_target": "src/Greaseweazle/image/A2RImage.vb::AddCap",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "A2RTrack.best_cap",
-          "vb_target": "dotnet/src/Greaseweazle/image/A2RImage.vb::BestCap",
+          "vb_target": "src/Greaseweazle/image/A2RImage.vb::BestCap",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Apridisk.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/ApridiskImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/ApridiskImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "ApridiskRecord.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/ApridiskImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/ApridiskImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "ApridiskRecord._match_compression",
-          "vb_target": "dotnet/src/Greaseweazle/image/ApridiskImage.vb::MatchCompression",
+          "vb_target": "src/Greaseweazle/image/ApridiskImage.vb::MatchCompression",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "ApridiskRecord._match_pos",
-          "vb_target": "dotnet/src/Greaseweazle/image/ApridiskImage.vb::MatchPos",
+          "vb_target": "src/Greaseweazle/image/ApridiskImage.vb::MatchPos",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "ApridiskRecord.expand_record",
-          "vb_target": "dotnet/src/Greaseweazle/image/ApridiskImage.vb::ExpandRecord",
+          "vb_target": "src/Greaseweazle/image/ApridiskImage.vb::ExpandRecord",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "ApridiskRecord.split_apridisk_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/ApridiskImage.vb::SplitApridiskFile",
+          "vb_target": "src/Greaseweazle/image/ApridiskImage.vb::SplitApridiskFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "ApridiskSecType.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/ApridiskImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/ApridiskImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CAPS.__del__",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::Finalize",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::Finalize",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CAPS.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CAPS.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::ToString",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CAPS.from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::FromFile",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::FromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CAPS.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::GetTrackBase",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::GetTrackBase",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CAPSTrackInfo.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CTRaw.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::ToString",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CTRaw.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "D64.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/D64Image.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/D64Image.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "D64.get_disk_id",
-          "vb_target": "dotnet/src/Greaseweazle/image/D64Image.vb::GetDiskId",
+          "vb_target": "src/Greaseweazle/image/D64Image.vb::GetDiskId",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "D88.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/D88Image.vb::New",
+          "vb_target": "src/Greaseweazle/image/D88Image.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "D88.disk_from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/D88Image.vb::DiskFromFile",
+          "vb_target": "src/Greaseweazle/image/D88Image.vb::DiskFromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "D88.from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/D88Image.vb::FromFile",
+          "vb_target": "src/Greaseweazle/image/D88Image.vb::FromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "D88.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/D88Image.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/D88Image.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "D88.remove_duplicate_sectors",
-          "vb_target": "dotnet/src/Greaseweazle/image/D88Image.vb::RemoveDuplicateSectors",
+          "vb_target": "src/Greaseweazle/image/D88Image.vb::RemoveDuplicateSectors",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "D88.track_from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/D88Image.vb::TrackFromFile",
+          "vb_target": "src/Greaseweazle/image/D88Image.vb::TrackFromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "D88Opts.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/D88Image.vb::New",
+          "vb_target": "src/Greaseweazle/image/D88Image.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DCP.format_from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/DCPImage.vb::FormatFromFile",
+          "vb_target": "src/Greaseweazle/image/DCPImage.vb::FormatFromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DCP.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/DCPImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/DCPImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DI_LOCK",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::Pi",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::Pi",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DIM",
-          "vb_target": "dotnet/src/Greaseweazle/image/DIMImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/DIMImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DIM.format_from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/DIMImage.vb::FormatFromFile",
+          "vb_target": "src/Greaseweazle/image/DIMImage.vb::FormatFromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DIM.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/DIMImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/DIMImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DMK.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DMK.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DMK.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DMKTrack.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DMKTrack.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DO",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::Po",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::Po",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DSK.from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::FromFile",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::FromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSK.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSK._build_8k_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::Build8KTrack",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::Build8KTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSK._build_kbi19_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::BuildKbi19Track",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::BuildKbi19Track",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSK.emit_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::EmitTrack",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::EmitTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSK.find_weak_ranges",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::FindWeakRanges",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::FindWeakRanges",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSK.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSK.get_image",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::GetImage",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::GetImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSK.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSKTrack.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSKTrack._find_sync",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::FindSync",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::FindSync",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSKTrack.master_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::MasterTrack",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::MasterTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "EDSKTrack.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::VerifyTrack",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::VerifyTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Encoding.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Encoding._off",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::ApplyOffAreas",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::ApplyOffAreas",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Encoding.fm_off",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::FmOff",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::FmOff",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Encoding.mfm_off",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::MfmOff",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::MfmOff",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Encoding.move_cursor",
-          "vb_target": "dotnet/src/Greaseweazle/image/DMKImage.vb::MoveCursor",
+          "vb_target": "src/Greaseweazle/image/DMKImage.vb::MoveCursor",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "FDI.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/FDIImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/FDIImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "get_libcaps",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::GetLibcaps",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::GetLibcaps",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFE.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFE.emit_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::EmitTrack",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::EmitTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFE.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFE.get_image",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::GetImage",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::GetImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFE.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::GetTrack",
+          "match": "mapped-exact"
+        },
+        {
+          "python_symbol": "HFE.hfev1_get_image",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::BuildHfev1Image",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEOpts.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Chunk",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::Hfev3Chunk",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::Hfev3Chunk",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Chunk.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Chunk.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::ToString",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Generator",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::Hfev3Generator",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::Hfev3Generator",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Generator.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Generator.empty",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::CreateEmpty",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::CreateEmpty",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Generator.increment_position",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::IncrementPosition",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::IncrementPosition",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Generator.next_chunk",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::NextChunk",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::NextChunk",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Generator.raw_hfe_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::RawHfeBytes",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::RawHfeBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "hfev3_get_image",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::GetImageV3",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::GetImageV3",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Op",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::Hfev3Op",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::Hfev3Op",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Range",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::Hfev3Range",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::Hfev3Range",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Range.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "HFEv3_Range.e",
-          "vb_target": "dotnet/src/Greaseweazle/image/HFEImage.vb::E",
+          "vb_target": "src/Greaseweazle/image/HFEImage.vb::E",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.__enter__",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::Enter",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::Enter",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.__exit__",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::Exit",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::Exit",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::New",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.apply_r_opts",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::ApplyROpts",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::ApplyROpts",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.apply_w_opts",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::ApplyWOpts",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::ApplyWOpts",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.emit_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::EmitTrack",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::EmitTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::FromFile",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::FromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.get_image",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::GetImage",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::GetImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.max_cylinder",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::MaxCylinder",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::MaxCylinder",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Image.to_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::ToFile",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::ToFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "ImageOpts._set",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::Set",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::Set",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "ImageOpts.r_set",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::RSet",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::RSet",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "ImageOpts.w_set",
-          "vb_target": "dotnet/src/Greaseweazle/image/ImageBase.vb::WSet",
+          "vb_target": "src/Greaseweazle/image/ImageBase.vb::WSet",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMD.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMDImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/IMDImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMD.emit_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMDImage.vb::EmitTrack",
+          "vb_target": "src/Greaseweazle/image/IMDImage.vb::EmitTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMD.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMDImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/IMDImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMD.get_image",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMDImage.vb::GetImage",
+          "vb_target": "src/Greaseweazle/image/IMDImage.vb::GetImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMD.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMDImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/IMDImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMG.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMG.emit_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::EmitTrack",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::EmitTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMG.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMG.get_image",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::GetImage",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::GetImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMG.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMG.track_list",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::TrackList",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::TrackList",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMG_AutoFormat",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::ImgAutoFormat",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::ImgAutoFormat",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMG_AutoFormat.format_from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::FormatFromFile",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::FormatFromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IMG_AutoFormat.from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/IMGImage.vb::FromFile",
+          "vb_target": "src/Greaseweazle/image/IMGImage.vb::FromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IPF.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::ToString",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::FormatPlatformList",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IPF.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IPFTrack.strong_data",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::StrongData",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::StrongData",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "IPFTrack.verify_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::VerifyTrackImpl",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::VerifyTrackImpl",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "KFOpts.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/KryoFluxImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/KryoFluxImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "KryoFlux.__enter__",
-          "vb_target": "dotnet/src/Greaseweazle/image/KryoFluxImage.vb::Enter",
+          "vb_target": "src/Greaseweazle/image/KryoFluxImage.vb::Enter",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "KryoFlux.__exit__",
-          "vb_target": "dotnet/src/Greaseweazle/image/KryoFluxImage.vb::Exit",
+          "vb_target": "src/Greaseweazle/image/KryoFluxImage.vb::Exit",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "KryoFlux.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/KryoFluxImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/KryoFluxImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "KryoFlux.emit_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/KryoFluxImage.vb::EmitTrack",
+          "vb_target": "src/Greaseweazle/image/KryoFluxImage.vb::EmitTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "KryoFlux.from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/KryoFluxImage.vb::FromFile",
+          "vb_target": "src/Greaseweazle/image/KryoFluxImage.vb::FromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "KryoFlux.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/KryoFluxImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/KryoFluxImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MSA.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/MSAImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/MSAImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MSA.emit_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/MSAImage.vb::EmitTrack",
+          "vb_target": "src/Greaseweazle/image/MSAImage.vb::EmitTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MSA.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/MSAImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/MSAImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MSA.get_image",
-          "vb_target": "dotnet/src/Greaseweazle/image/MSAImage.vb::GetImage",
+          "vb_target": "src/Greaseweazle/image/MSAImage.vb::GetImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "MSA.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/MSAImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/MSAImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NFD.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/NFDImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/NFDImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NFD.from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/NFDImage.vb::FromFile",
+          "vb_target": "src/Greaseweazle/image/NFDImage.vb::FromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NFD.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/NFDImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/NFDImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NSI.format_from_file",
-          "vb_target": "dotnet/src/Greaseweazle/image/NSIImage.vb::FormatFromFile",
+          "vb_target": "src/Greaseweazle/image/NSIImage.vb::FormatFromFile",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "NSI.track_list",
-          "vb_target": "dotnet/src/Greaseweazle/image/NSIImage.vb::TrackList",
+          "vb_target": "src/Greaseweazle/image/NSIImage.vb::TrackList",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "open_libcaps",
-          "vb_target": "dotnet/src/Greaseweazle/image/CAPSImage.vb::OpenLibcaps",
+          "vb_target": "src/Greaseweazle/image/CAPSImage.vb::OpenLibcaps",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "SCP.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/SCPImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/SCPImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "SCP.emit_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/SCPImage.vb::EmitTrack",
+          "vb_target": "src/Greaseweazle/image/SCPImage.vb::EmitTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "SCP.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/SCPImage.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/SCPImage.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "SCP.get_image",
-          "vb_target": "dotnet/src/Greaseweazle/image/SCPImage.vb::GetImage",
+          "vb_target": "src/Greaseweazle/image/SCPImage.vb::GetImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "SCP.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/SCPImage.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/SCPImage.vb::GetTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "SCP.side_count",
-          "vb_target": "dotnet/src/Greaseweazle/image/SCPImage.vb::SideCount",
+          "vb_target": "src/Greaseweazle/image/SCPImage.vb::SideCount",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "SCPOpts.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/SCPImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/SCPImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "SCPTrack.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/SCPImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/SCPImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "SectorErrors.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/EDSKImage.vb::New",
+          "vb_target": "src/Greaseweazle/image/EDSKImage.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TD0.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/image/TD0Image.vb::New",
+          "vb_target": "src/Greaseweazle/image/TD0Image.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TD0.from_bytes",
-          "vb_target": "dotnet/src/Greaseweazle/image/TD0Image.vb::FromBytes",
+          "vb_target": "src/Greaseweazle/image/TD0Image.vb::FromBytes",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TD0.get_track",
-          "vb_target": "dotnet/src/Greaseweazle/image/TD0Image.vb::GetTrack",
+          "vb_target": "src/Greaseweazle/image/TD0Image.vb::GetTrack",
           "match": "mapped-exact"
         }
       ],
       "truly_missing": [
-        "hfe.hfev1_get_image",
         "hfetrack",
         "hfetrack.__init__",
         "hfetrack.from_bitarray",
@@ -3029,39 +3023,45 @@
         "src/greaseweazle/tools/write.py"
       ],
       "vb_files": [
-        "dotnet/src/Greaseweazle/tools/Align.vb",
-        "dotnet/src/Greaseweazle/tools/Bandwidth.vb",
-        "dotnet/src/Greaseweazle/tools/BasicActions.vb",
-        "dotnet/src/Greaseweazle/tools/Clean.vb",
-        "dotnet/src/Greaseweazle/tools/ColumnFormatter.vb",
-        "dotnet/src/Greaseweazle/tools/Convert.vb",
-        "dotnet/src/Greaseweazle/tools/Delays.vb",
-        "dotnet/src/Greaseweazle/tools/Erase.vb",
-        "dotnet/src/Greaseweazle/tools/Info.vb",
-        "dotnet/src/Greaseweazle/tools/OptionParser.vb",
-        "dotnet/src/Greaseweazle/tools/Pin.vb",
-        "dotnet/src/Greaseweazle/tools/ReadWrite.vb",
-        "dotnet/src/Greaseweazle/tools/Reset.vb",
-        "dotnet/src/Greaseweazle/tools/Rpm.vb",
-        "dotnet/src/Greaseweazle/tools/Seek.vb",
-        "dotnet/src/Greaseweazle/tools/Tooling.vb",
-        "dotnet/src/Greaseweazle/tools/TrackResolution.vb",
-        "dotnet/src/Greaseweazle/tools/TrackSet.vb",
-        "dotnet/src/Greaseweazle/tools/Update.vb",
-        "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb"
+        "src/Greaseweazle/tools/Align.vb",
+        "src/Greaseweazle/tools/Bandwidth.vb",
+        "src/Greaseweazle/tools/BasicActions.vb",
+        "src/Greaseweazle/tools/Clean.vb",
+        "src/Greaseweazle/tools/Convert.vb",
+        "src/Greaseweazle/tools/Delays.vb",
+        "src/Greaseweazle/tools/Erase.vb",
+        "src/Greaseweazle/tools/ImageDefaults.vb",
+        "src/Greaseweazle/tools/Info.vb",
+        "src/Greaseweazle/tools/InterruptControl.vb",
+        "src/Greaseweazle/tools/OptionParser.vb",
+        "src/Greaseweazle/tools/Pin.vb",
+        "src/Greaseweazle/tools/ReadWrite.vb",
+        "src/Greaseweazle/tools/Reset.vb",
+        "src/Greaseweazle/tools/Rpm.vb",
+        "src/Greaseweazle/tools/Seek.vb",
+        "src/Greaseweazle/tools/Tooling.vb",
+        "src/Greaseweazle/tools/TrackResolution.vb",
+        "src/Greaseweazle/tools/TrackSet.vb",
+        "src/Greaseweazle/tools/TrackSetSpec.vb",
+        "src/Greaseweazle/tools/Update.vb",
+        "src/Greaseweazle/tools/WindowsPortDiscovery.vb",
+        "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb"
       ],
       "python_symbol_count": 152,
-      "vb_symbol_count": 926,
-      "matching_strict": 40,
+      "vb_symbol_count": 886,
+      "matching_strict": 33,
       "missing_strict": [
         "_pin_get",
         "align_track",
+        "argumentparser",
         "argumentparser.__init__",
         "cached_property",
         "cached_property.__get__",
         "cached_property.__init__",
         "cm_power_data",
+        "cmdlinehelpformatter",
         "cmdlinehelpformatter._get_help_string",
+        "columnify",
         "delays.__init__",
         "deviceinterface.__init__",
         "deviceinterface.enumerate_device",
@@ -3090,6 +3090,7 @@
         "deviceregistry.get_location_string",
         "deviceregistry.get_usb_info",
         "deviceregistry.request_usb_info",
+        "devpropkey",
         "download_by_tag",
         "download_latest",
         "drive.__call__",
@@ -3113,6 +3114,7 @@
         "open_input_image",
         "open_output_image",
         "parse_device_property",
+        "period",
         "pin_get",
         "pin_set",
         "port_info",
@@ -3130,6 +3132,7 @@
         "read_to_image",
         "read_with_retry",
         "score_port",
+        "setuppacket",
         "speed_str",
         "split_opts",
         "trackidentity.__init__",
@@ -3140,6 +3143,7 @@
         "trackset.ch_to_pch",
         "trackset.update_from_trackspec",
         "update_firmware",
+        "usage",
         "usb_common_descriptor",
         "usb_configuration_descriptor",
         "usb_descriptor_request",
@@ -3170,571 +3174,536 @@
       "naming_only_resolved": [
         {
           "python_symbol": "_pin_get",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Pin.vb::PinGetInner",
+          "vb_target": "src/Greaseweazle/tools/Pin.vb::PinGetInner",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "align_track",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Align.vb::AlignTrack",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "ArgumentParser.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::New",
+          "vb_target": "src/Greaseweazle/tools/Align.vb::AlignTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "cached_property",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::CachedProperty",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::DeviceNode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "cached_property.__get__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::Get",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::DeviceNode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "cached_property.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::DeviceNode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "CM_POWER_DATA",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::CmPowerData",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "CmdlineHelpFormatter._get_help_string",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::GetHelpString",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::CmPowerData",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "Delays.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Delays.vb::New",
+          "vb_target": "src/Greaseweazle/tools/Delays.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceInterface.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceInterface.enumerate_device",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::EnumerateDevice",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::EnumerateInterfaces",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceInterface.get_interface_property",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetInterfaceProperty",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetInterfaceProperty",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceInterface.instance_handle",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::InstanceHandle",
-          "match": "mapped-exact"
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::InstanceHandle",
+          "match": "mapped-normalized"
         },
         {
           "python_symbol": "DeviceInterface.instance_identifier",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::InstanceIdentifier",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::InstanceIdentifier",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.__eq__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::Equals",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::Equals",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.__hash__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetHashCode",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetHashCode",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.__lt__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::CompareTo",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::CompareTo",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::ToString",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.bus_reported_device_description",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::BusReportedDeviceDescriptionProperty",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::BusReportedDeviceDescription",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.friendly_name",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::FriendlyNameProperty",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::FriendlyName",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.get_property",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetProperty",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetProperty",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.instance_handle",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::InstanceHandle",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::InstanceHandle",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.instance_identifier",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::InstanceIdentifier",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::InstanceIdentifier",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.location_paths",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::LocationPathsProperty",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::LocationPaths",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.port_name",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::PortNameProperty",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::PortName",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceNode.power_data",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::PowerDataProperty",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::PowerData",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceRegistry.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceRegistry.find_parent_chain",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::FindParentChain",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::FindParentChain",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceRegistry.find_parent_host_controller",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::FindParentHostController",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::FindParentHostController",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceRegistry.find_parent_hub_and_usb",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::FindParentHubAndUsb",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::FindParentHubAndUsb",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceRegistry.get_bus_number",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetBusNumber",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetBusNumber",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceRegistry.get_cache_key",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetCacheKey",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetCacheKey",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceRegistry.get_location_string",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetLocationString",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetLocationString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceRegistry.get_usb_info",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetUsbInfo",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::GetUsbInfo",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "DeviceRegistry.request_usb_info",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbInfo",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbInfo",
+          "match": "mapped-exact"
+        },
+        {
+          "python_symbol": "DEVPROPKEY",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeDevpropkey",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "download_by_tag",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Update.vb::DownloadByTag",
+          "vb_target": "src/Greaseweazle/tools/Update.vb::DownloadByTag",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "download_latest",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Update.vb::DownloadLatest",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "Drive.__call__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::Call",
+          "vb_target": "src/Greaseweazle/tools/Update.vb::DownloadLatest",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "extract_update",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Update.vb::ExtractUpdate",
+          "vb_target": "src/Greaseweazle/tools/Update.vb::ExtractUpdate",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "find_from_iterable",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::FindFromIterable",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeBuffers",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "find_port",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::FindPort",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::FindPort",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "generate_random_buffer",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Bandwidth.vb::GenerateRandomBuffer",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "get_image_class",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::GetImageClass",
+          "vb_target": "src/Greaseweazle/tools/Bandwidth.vb::GenerateRandomBuffer",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "gh_request_get",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Update.vb::GhRequestGet",
+          "vb_target": "src/Greaseweazle/tools/Update.vb::GhRequestGet",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "GUID",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::GuidStruct",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeGuids",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "GUID.__eq__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::Equals",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeGuids",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "GUID.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::ToString",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeGuids",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "iterate_comports",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::IterateComports",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::IterateComports",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "latest_firmware",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Info.vb::LatestFirmware",
+          "vb_target": "src/Greaseweazle/tools/Info.vb::LatestFirmware",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "LegacyPortDevice.enumerate_device",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::EnumerateDevice",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::EnumerateDevice",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "LegacyPortDevice.wake_up_device",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::WakeUpDevice",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::WakeUpDevice",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "main",
-          "vb_target": "dotnet/src/Greaseweazle/tools/BasicActions.vb::AlignAction",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "measure_bandwidth",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Bandwidth.vb::MeasureBandwidth",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "min_int",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::MinInt",
+          "vb_target": "src/Greaseweazle/tools/BasicActions.vb::AlignAction",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "open_image",
-          "vb_target": "dotnet/src/Greaseweazle/tools/ReadWrite.vb::OpenImage",
+          "vb_target": "src/Greaseweazle/tools/ReadWrite.vb::OpenImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "open_input_image",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Convert.vb::OpenInputImage",
+          "vb_target": "src/Greaseweazle/tools/Convert.vb::OpenInputImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "open_output_image",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Convert.vb::OpenOutputImage",
+          "vb_target": "src/Greaseweazle/tools/Convert.vb::OpenOutputImage",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "parse_device_property",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::ParseDeviceProperty",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "pin_get",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Pin.vb::PinGet",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "pin_set",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Pin.vb::PinSet",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeBuffers",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "port_info",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::PortInfo",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::PortInfo",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PortDevice.wake_up_device",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::WakeUpDevice",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::WakeUpDevice",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PrecompSpec.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::New",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PrecompSpec.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::ToString",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "PrecompSpec.track_precomp",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::TrackPrecomp",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::TrackPrecomp",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "print_info_line",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Delays.vb::PrintInfoLine",
+          "vb_target": "src/Greaseweazle/tools/Delays.vb::PrintInfoLine",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "print_rpm",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Rpm.vb::PrintRpm",
+          "vb_target": "src/Greaseweazle/tools/Rpm.vb::PrintRpm",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "print_summary",
-          "vb_target": "dotnet/src/Greaseweazle/tools/ReadWrite.vb::PrintSummary",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "print_update_instructions",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::PrintUpdateInstructions",
+          "vb_target": "src/Greaseweazle/tools/ReadWrite.vb::BuildSectorSummary",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "process_input_track",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Convert.vb::ProcessInputTrack",
+          "vb_target": "src/Greaseweazle/tools/Convert.vb::ProcessInputTrack",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "range_str",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::RangeStr",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::RangeToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "read_and_normalise",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Align.vb::ReadAndNormalise",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "read_to_image",
-          "vb_target": "dotnet/src/Greaseweazle/tools/ReadWrite.vb::ReadToImage",
+          "vb_target": "src/Greaseweazle/tools/Align.vb::ReadAndNormalise",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "read_with_retry",
-          "vb_target": "dotnet/src/Greaseweazle/tools/ReadWrite.vb::ReadWithRetry",
+          "vb_target": "src/Greaseweazle/tools/ReadWrite.vb::ReadWithRetry",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "score_port",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::ScorePort",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::ScorePort",
+          "match": "mapped-exact"
+        },
+        {
+          "python_symbol": "SetupPacket",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeSetupPacket",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "speed_str",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Rpm.vb::SpeedString",
+          "vb_target": "src/Greaseweazle/tools/Rpm.vb::SpeedString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "split_opts",
-          "vb_target": "dotnet/src/Greaseweazle/tools/OptionParser.vb::SplitOpts",
+          "vb_target": "src/Greaseweazle/tools/OptionParser.vb::SplitOpts",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackIdentity.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Convert.vb::New",
+          "vb_target": "src/Greaseweazle/tools/Convert.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.__contains__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::Contains",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::Contains",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::New",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.__iter__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::GetEnumerator",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::GetEnumerator",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.__str__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::ToString",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::ToString",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.ch_to_pch",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::ChToPch",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::ChToPch",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "TrackSet.update_from_trackspec",
-          "vb_target": "dotnet/src/Greaseweazle/tools/TrackSet.vb::UpdateFromTrackspec",
+          "vb_target": "src/Greaseweazle/tools/TrackSet.vb::UpdateFromTrackspec",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "update_firmware",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Update.vb::UpdateFirmware",
+          "vb_target": "src/Greaseweazle/tools/Update.vb::UpdateFirmware",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USB_COMMON_DESCRIPTOR",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::UsbCommonDescriptor",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeBuffers",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USB_CONFIGURATION_DESCRIPTOR",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::UsbConfigurationDescriptor",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeUsbConfigurationDescriptor",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USB_DESCRIPTOR_REQUEST",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::UsbDescriptorRequest",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeUsbDescriptorRequest",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USB_DEVICE_DESCRIPTOR",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::UsbDeviceDescriptor",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeUsbDeviceDescriptor",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USB_INTERFACE_ASSOCIATION_DESCRIPTOR",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::UsbInterfaceAssociationDescriptor",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeUsbInterfaceAssociationDescriptor",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USB_INTERFACE_DESCRIPTOR",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::UsbInterfaceDescriptor",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeUsbInterfaceDescriptor",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "usb_mode_check",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::UsbModeCheck",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::UsbModeCheck",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USB_NODE_CONNECTION_INFORMATION_EX",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::UsbNodeConnectionInformationEx",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeUsbNodeConnectionInformationEx",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "usb_open",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::UsbOpen",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::UsbOpen",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "usb_reopen",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::UsbReopen",
+          "vb_target": "src/Greaseweazle/tools/Tooling.vb::UsbReopen",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USB_STRING_DESCRIPTOR",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::UsbStringDescriptor",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscoveryNative.vb::NativeBuffers",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.__enter__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::Enter",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::Dispose",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.__exit__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::Exit",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::Dispose",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
-          "match": "mapped-exact"
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
+          "match": "mapped-normalized"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.is_open",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::IsOpen",
-          "match": "mapped-exact"
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::IsOpen",
+          "match": "mapped-normalized"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.request_supported_languages",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestSupportedLanguages",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestSupportedLanguages",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.request_usb_configuration_description",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbConfigurationDescription",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbConfigurationDescription",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.request_usb_connection_info",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbConnectionInfo",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbConnectionInfo",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.request_usb_device_description",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbDeviceDescription",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbDeviceDescription",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.request_usb_interface_descriptions",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbInterfaceDescriptions",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbInterfaceDescriptions",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.request_usb_string_description",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbStringDescription",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::RequestUsbStringDescription",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBHubDeviceIOControl.suggest_language_id",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::SuggestLanguageId",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::SuggestLanguageId",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "USBInfo.__init__",
-          "vb_target": "dotnet/src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "valid_ser_id",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::ValidSerId",
+          "vb_target": "src/Greaseweazle/tools/WindowsPortDiscovery.vb::New",
           "match": "mapped-exact"
         },
         {
           "python_symbol": "with_drive_selected",
-          "vb_target": "dotnet/src/Greaseweazle/tools/Tooling.vb::WithDriveSelected",
-          "match": "mapped-exact"
-        },
-        {
-          "python_symbol": "write_from_image",
-          "vb_target": "dotnet/src/Greaseweazle/tools/ReadWrite.vb::WriteFromImage",
+          "vb_target": "src/Greaseweazle/tools/InterruptControl.vb::Register",
           "match": "mapped-exact"
         }
       ],
-      "truly_missing": [],
-      "sample_matches": [
+      "truly_missing": [
         "argumentparser",
-        "clean",
+        "argumentparser.__init__",
         "cmdlinehelpformatter",
+        "cmdlinehelpformatter._get_help_string",
         "columnify",
+        "drive.__call__",
+        "get_image_class",
+        "measure_bandwidth",
+        "min_int",
+        "period",
+        "pin_get",
+        "pin_set",
+        "print_update_instructions",
+        "read_to_image",
+        "usage",
+        "valid_ser_id",
+        "write_from_image"
+      ],
+      "sample_matches": [
+        "clean",
         "comports",
         "convert",
         "delays",
@@ -3749,22 +3718,18 @@
         "devicenode.parent",
         "devicenode.status",
         "deviceregistry",
-        "devpropkey",
         "download",
         "drive",
         "erase",
         "legacyportdevice",
         "level",
-        "period",
         "portdevice",
         "precompspec",
         "precompspec.importspec",
         "seek",
-        "setuppacket",
         "skipupdate",
         "trackidentity",
         "trackset",
-        "usage",
         "usbhostcontrollerdevice",
         "usbhubdevice",
         "usbhubdeviceiocontrol",
@@ -3778,19 +3743,20 @@
       "python_files": [
         "src/greaseweazle/cli.py"
       ],
-      "vb_files": [
-        "dotnet/src/Greaseweazle/cli/Program.vb"
-      ],
+      "vb_files": [],
       "python_symbol_count": 2,
-      "vb_symbol_count": 19,
-      "matching_strict": 2,
-      "missing_strict": [],
-      "naming_only_resolved": [],
-      "truly_missing": [],
-      "sample_matches": [
+      "vb_symbol_count": 0,
+      "matching_strict": 0,
+      "missing_strict": [
         "main",
         "usage"
-      ]
+      ],
+      "naming_only_resolved": [],
+      "truly_missing": [
+        "main",
+        "usage"
+      ],
+      "sample_matches": []
     }
   ]
 }

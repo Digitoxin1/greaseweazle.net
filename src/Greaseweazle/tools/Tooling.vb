@@ -101,6 +101,29 @@ Namespace Greaseweazle.Tools
             Return Nothing
         End Function
 
+        ' Returns the COM port device name (e.g. "COM3") for the
+        ' Greaseweazle whose USB serial number matches serialId, or
+        ' Nothing if no attached device qualifies. Match is
+        ' case-insensitive and restricted to ports that look like a
+        ' Greaseweazle (same gating used by ScorePort). On non-Windows
+        ' platforms the SerialPort.GetPortNames() fallback in
+        ' EnumeratePorts has no USB metadata to match against, so this
+        ' lookup only yields results on Windows.
+        Public Shared Function FindPortBySerial(serialId As String) As String
+            If String.IsNullOrWhiteSpace(serialId) Then
+                Return Nothing
+            End If
+            For Each p In EnumeratePorts()
+                If ScorePort(p) <= 0 Then
+                    Continue For
+                End If
+                If String.Equals(p.SerialNumber, serialId, StringComparison.OrdinalIgnoreCase) Then
+                    Return p.Device
+                End If
+            Next
+            Return Nothing
+        End Function
+
         ' Python map: src/greaseweazle/tools/util.py::usb_reopen
         Public Shared Function UsbReopen(usb As Unit, isUpdate As Boolean) As Unit
             Dim mode = If(isUpdate, 0, 1)

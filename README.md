@@ -111,6 +111,12 @@ Module Example
         Dim info = engine.Info.Run(New InfoOptions())
         Console.WriteLine($"Port {info.Device.Port}, firmware {info.Device.FirmwareMajor}.{info.Device.FirmwareMinor}")
 
+        ' Multi-device: enumerate every connected Greaseweazle (no network calls).
+        For Each result In engine.Info.EnumerateDevices()
+            Dim dev = result.Device
+            Console.WriteLine($"Port {dev.Port}, firmware {dev.FirmwareMajor}.{dev.FirmwareMinor}")
+        Next
+
         ' Streaming: subscribe to events before calling Run.
         AddHandler engine.Read.TrackProcessed,
             Sub(sender, e)

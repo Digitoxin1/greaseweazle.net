@@ -106,6 +106,86 @@ Namespace Greaseweazle.Tools
                 End If
             End Try
         End Function
+
+        ' Enumerates every Greaseweazle currently attached, returning one
+        ' DeviceInfoResult per successfully probed device. Ports that fail to
+        ' open (absent, in use, non-Greaseweazle that throws) are silently
+        ' skipped — the returned list contains only working Greaseweazles.
+        ' List is sorted by ToolOptions.ScorePort descending so
+        ' `list.FirstOrDefault()` matches the device RunFromOptions would
+        ' have picked.
+        '
+        ' This method is intentionally read-only: it does NOT mode-switch
+        ' devices (RunFromOptions does), and it does NOT call
+        ' Info.LatestFirmware() to populate Device.FirmwareUpdate (always
+        ' Nothing here). Callers that need either of those behaviours
+        ' should use RunFromOptions(InfoOptions) per device.
+        Public Shared Function EnumerateDevices() As IReadOnlyList(Of Greaseweazle.Actions.DeviceInfoResult)
+            Dim hostVersion As String = Nothing
+            Dim infoAttr = TryCast(Reflection.CustomAttributeExtensions.GetCustomAttribute(Of Reflection.AssemblyInformationalVersionAttribute)(Reflection.Assembly.GetExecutingAssembly()), Reflection.AssemblyInformationalVersionAttribute)
+            If infoAttr IsNot Nothing AndAlso Not String.IsNullOrEmpty(infoAttr.InformationalVersion) Then
+                hostVersion = infoAttr.InformationalVersion
+            Else
+                hostVersion = Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
+            End If
+
+            Dim results As New List(Of Greaseweazle.Actions.DeviceInfoResult)()
+            For Each port In ToolOptions.FindAllPorts()
+                Dim result = TryProbeDevice(port.Device, hostVersion)
+                If result IsNot Nothing Then
+                    results.Add(result)
+                End If
+            Next
+            Return results.AsReadOnly()
+        End Function
+
+        ' Read-only single-device probe used by EnumerateDevices. Returns
+        ' Nothing on any port-open failure (mirrors the catches in
+        ' RunFromOptions). On success returns a DeviceInfoResult with
+        ' ConnectionState=Connected and FirmwareUpdate=Nothing (no network
+        ' call). Does not mode-switch.
+        Private Shared Function TryProbeDevice(deviceName As String,
+                                               hostVersion As String) As Greaseweazle.Actions.DeviceInfoResult
+            Dim usb As Unit = Nothing
+            Try
+                Try
+                    usb = ToolOptions.UsbOpen(deviceName, modeCheck:=False)
+                Catch ex As IO.IOException
+                    Return Nothing
+                Catch ex As UnauthorizedAccessException
+                    Return Nothing
+                Catch ex As FatalException
+                    Return Nothing
+                End Try
+
+                Dim fw = usb.ReadFirmwareInfo()
+                Dim port = If(usb.PortDevice, String.Empty)
+                Dim hwModel = usb.HwModel
+                Dim hwSubmodel = usb.HwSubmodel
+                Dim mcuId = usb.McuId
+                Dim mcuMhz = usb.McuMhz
+                Dim mcuSramKb = usb.McuSramKb
+                Dim firmwareMajor = fw.Major
+                Dim firmwareMinor = fw.Minor
+                Dim isBootloader = usb.UpdateMode
+                Dim serialNumber = If(usb.PortSerialNumber, String.Empty)
+                Dim usbSpeedRaw = usb.UsbSpeed
+                Dim usbBufferKb = usb.UsbBufferKb
+                Dim jumperlessUpdate = usb.JumperlessUpdate
+
+                Dim block As New Greaseweazle.Actions.DeviceInfoBlock(
+                    port, hwModel, hwSubmodel, mcuId, mcuMhz, mcuSramKb,
+                    firmwareMajor, firmwareMinor, isBootloader, serialNumber,
+                    usbSpeedRaw, usbBufferKb, jumperlessUpdate, firmwareUpdate:=Nothing)
+
+                Return New Greaseweazle.Actions.DeviceInfoResult(
+                    hostVersion, Greaseweazle.Actions.DeviceConnectionState.Connected, block)
+            Finally
+                If usb IsNot Nothing AndAlso usb.Serial IsNot Nothing Then
+                    Try : usb.Serial.Close() : Catch : End Try
+                End If
+            End Try
+        End Function
     End Class
 
     ' Python map: src/greaseweazle/tools/read.py::main (direct command execution mapping).

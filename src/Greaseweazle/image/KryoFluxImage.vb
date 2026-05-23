@@ -253,7 +253,8 @@ Namespace Greaseweazle.Images
 
             Dim now = DateTime.Now
             Dim info = String.Format(CultureInfo.InvariantCulture,
-                                     "name=Greaseweazle, version=0.0, host_date={0}, host_time={1}, sck={2:F7}, ick={3:F7}",
+                                     "name=Greaseweazle, version={0}, host_date={1}, host_time={2}, sck={3:F7}, ick={4:F7}",
+                                     HostVersion.MajorMinor,
                                      now.ToString("yyyy.MM.dd", CultureInfo.InvariantCulture),
                                      now.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
                                      sck,

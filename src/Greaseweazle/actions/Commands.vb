@@ -48,6 +48,22 @@ Namespace Greaseweazle.Actions
             Return InfoAction.RunFromOptions(options)
         End Function
 
+        ' Enumerates every Greaseweazle currently connected. Each device is
+        ' opened, probed read-only, and closed; ports that fail to open are
+        ' silently skipped. The returned list is sorted by ScorePort
+        ' descending so `list.FirstOrDefault()` matches the device that
+        ' Run(InfoOptions) would have picked. Returns an empty list when no
+        ' devices are detected.
+        '
+        ' No network calls are made: every entry's Device.FirmwareUpdate is
+        ' Nothing. For targeted single-device probing (or for --test,
+        ' --bootloader, or firmware-update banner support), use
+        ' Run(InfoOptions) instead.
+        Public Function EnumerateDevices(Optional cancellationToken As CancellationToken = Nothing) As IReadOnlyList(Of DeviceInfoResult)
+            ThrowIfCancellationRequested(cancellationToken)
+            Return InfoAction.EnumerateDevices()
+        End Function
+
     End Class
 
     ' Streaming command. Reads each track in ReadOptions.TrackSet,

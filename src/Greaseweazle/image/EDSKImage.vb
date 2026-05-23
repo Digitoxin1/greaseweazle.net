@@ -140,7 +140,7 @@ Namespace Greaseweazle.Images
             Dim sigBytes = System.Text.Encoding.ASCII.GetBytes("EXTENDED CPC DSK File" & vbCrLf & "Disk-Info" & vbCrLf)
             header.AddRange(sigBytes)
             header.AddRange(Enumerable.Repeat(CByte(0), 34 - sigBytes.Length))
-            Dim creator = String.Format("GW {0}", If(Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(), "0.0"))
+            Dim creator = String.Format("GW {0}", HostVersion.MajorMinor)
             Dim creatorBytes = System.Text.Encoding.ASCII.GetBytes(creator)
             If creatorBytes.Length > 13 Then
                 creatorBytes = creatorBytes.Take(13).ToArray()

@@ -66,6 +66,24 @@ Namespace Greaseweazle.Tools
             Return best
         End Function
 
+        ' Returns every detected Greaseweazle-scored serial port, sorted by
+        ' ScorePort descending (stable on ties). Drives the multi-device probe
+        ' in InfoAction.EnumerateDevices. EnumeratePorts stays Private because
+        ' its result also includes non-Greaseweazle serial ports; this helper
+        ' is the filtered + ordered public view callers actually want.
+        Public Shared Function FindAllPorts() As List(Of PortDescriptor)
+            Dim scored As New List(Of Tuple(Of PortDescriptor, Integer))()
+            For Each p In EnumeratePorts()
+                Dim s = ScorePort(p)
+                If s > 0 Then
+                    scored.Add(Tuple.Create(p, s))
+                End If
+            Next
+            Return scored.OrderByDescending(Function(t) t.Item2).
+                          Select(Function(t) t.Item1).
+                          ToList()
+        End Function
+
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration FindPortDevice)
         Public Shared Function FindPortDevice(ports As IEnumerable(Of PortDescriptor),
                                               Optional oldPort As PortDescriptor = Nothing) As String

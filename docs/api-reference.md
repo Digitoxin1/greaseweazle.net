@@ -89,6 +89,31 @@ Function Run(options As InfoOptions,
   - `Device As String` — explicit COM port; `Nothing` auto-discovers
 - **Return: `DeviceInfoResult`** — see §3.1
 
+Multi-device variant, for when the caller wants every connected
+Greaseweazle rather than just the best-scoring one:
+
+```vb
+Function EnumerateDevices(Optional cancellationToken As CancellationToken = Nothing) As IReadOnlyList(Of DeviceInfoResult)
+```
+
+- Parameterless (beyond the cancellation token). Always probes every
+  port whose `ToolOptions.ScorePort` is greater than zero.
+- Each list entry is a regular `DeviceInfoResult` with
+  `ConnectionState = Connected` (failed probes are silently skipped) and
+  `Device.FirmwareUpdate = Nothing` (no network call is made — the GitHub
+  `LatestFirmware` lookup is intentionally skipped here for speed and
+  to keep `EnumerateDevices` offline-safe).
+- List is sorted by `ScorePort` descending so
+  `list.FirstOrDefault()?.Device` matches what `Run(...)` would have
+  picked.
+- Read-only by design: no mode switching is performed, so devices
+  currently in bootloader mode are reported as `IsBootloader = True`
+  rather than being switched into firmware mode just to be enumerated.
+- Returns an empty list when no Greaseweazles are detected.
+- For targeted single-device probing, for `--test` dry-run, for
+  `--bootloader` mode switching, or for the firmware-update banner,
+  use `Run(InfoOptions)` instead.
+
 ### 2.2 `ReadCommand`
 
 Streaming command that reads each track in `ReadOptions.TrackSet`,

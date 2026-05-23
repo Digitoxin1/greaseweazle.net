@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>gw-vb</AssemblyName>
+    <AssemblyName>gw</AssemblyName>
     <RootNamespace></RootNamespace>
     <OutputType>Exe</OutputType>
     <StartupObject>Greaseweazle.Cli.Driver</StartupObject>

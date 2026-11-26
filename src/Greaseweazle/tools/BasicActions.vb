@@ -231,6 +231,30 @@ Namespace Greaseweazle.Tools
             Return TrackResolution.ResolveSpec(preview.TrackSet, formatDefaults, "c=0-81:h=0-1")
         End Function
 
+        ' A cancelled read never reaches the end-of-run summary. Publish the
+        ' tracks that already decoded so a later read can merge its own map
+        ' onto them. The grid lists only those tracks, not the unread remainder.
+        Private Shared Sub EmitPartialReadSummary(cmd As Greaseweazle.Actions.ReadCommand,
+                                                  imgDisk As DiskDef,
+                                                  summary As Dictionary(Of Tuple(Of Integer, Integer), Codec))
+            If cmd Is Nothing OrElse imgDisk Is Nothing OrElse summary Is Nothing OrElse summary.Count = 0 Then
+                Return
+            End If
+
+            Dim doneCyls = summary.Keys.Select(Function(k) k.Item1).Distinct().OrderBy(Function(c) c).ToList()
+            Dim doneHeads = summary.Keys.Select(Function(k) k.Item2).Distinct().OrderBy(Function(h) h).ToList()
+            Dim partialTracks As New TrackSet("c=0:h=0")
+            partialTracks.Cyls = doneCyls
+            partialTracks.Heads = doneHeads
+
+            Dim grid = ReadWrite.BuildSectorSummary(partialTracks, summary)
+            If grid Is Nothing Then
+                Return
+            End If
+
+            cmd.OnSummaryReady(New Greaseweazle.Actions.SectorSummaryReadyEventArgs(grid, isPartial:=True))
+        End Sub
+
         ' Live-mode body for Read. Pure logic — all output flows
         ' through ReadCommand events.
         Private Shared Function RunLive(preview As ReadOptions,
@@ -450,6 +474,9 @@ Namespace Greaseweazle.Tools
                     New UsbDriveControlAdapter(usbClient),
                     preview.Drive,
                     motor:=True)
+            Catch ex As OperationCanceledException
+                EmitPartialReadSummary(cmd, imgDisk, summaryDict)
+                Throw
             Finally
                 If usbClient IsNot Nothing AndAlso (preview.Densel.HasValue OrElse preview.GenTg43) AndAlso prevPin2.HasValue Then
                     ' Tolerate SetPin errors so an in-flight Ctrl-C path

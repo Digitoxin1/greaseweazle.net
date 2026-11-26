@@ -395,9 +395,6 @@ Namespace Greaseweazle.Images
             footer.Add(CByte(AscW("C"c)))
             footer.Add(CByte(AscW("S"c)))
 
-            Dim payload = tlut.Concat(wrsp).Concat(trackData).Concat(footer).ToArray()
-            Dim checksum As UInteger = CUInt(payload.Aggregate(0UI, Function(acc, b) acc + b))
-
             Dim flags As Byte = &H2 ' 96 TPI
             ' Python: SCP_FLAG_INDEXED is only set when self.index_cued (i.e. all
             ' emitted tracks reported flux.index_cued=True).
@@ -405,8 +402,33 @@ Namespace Greaseweazle.Images
                 flags = CByte(flags Or 1)
             End If
             flags = CByte(flags Or &H20) ' footer present
-            Dim header As New List(Of Byte)()
-            header.AddRange(New Byte() {
+
+            ' Assemble header + payload into a single buffer. A multi-revolution
+            ' 80-cylinder flux image runs to tens of megabytes, so the previous
+            ' Concat/ToArray chain kept four copies of it alive at once (the
+            ' trackData list plus its doubled backing store, the payload array,
+            ' and the concatenated result) in what is a 32-bit process by default.
+            Dim imageBytes(16 + tlut.Count + wrsp.Count + trackData.Count + footer.Count - 1) As Byte
+            Dim pos = 16
+            tlut.CopyTo(imageBytes, pos)
+            pos += tlut.Count
+            wrsp.CopyTo(imageBytes, pos)
+            pos += wrsp.Count
+            trackData.CopyTo(imageBytes, pos)
+            pos += trackData.Count
+            footer.CopyTo(imageBytes, pos)
+
+            ' Python: sum(data) & 0xffffffff. The byte sum of a large image
+            ' exceeds UInt32 range, and VB integer arithmetic is checked, so
+            ' accumulate in 64-bit and mask -- as FromBytes does for the
+            ' read-side comparison.
+            Dim sum As ULong = 0
+            For i = 16 To imageBytes.Length - 1
+                sum += imageBytes(i)
+            Next
+            Dim checksum As UInteger = CUInt(sum And &HFFFFFFFFUL)
+
+            Dim header As Byte() = New Byte() {
                 CByte(AscW("S"c)), CByte(AscW("C"c)), CByte(AscW("P"c)),
                 0,          ' version
                 CByte(diskType And &HFF),
@@ -417,10 +439,11 @@ Namespace Greaseweazle.Images
                 0,          ' cell width
                 CByte(singleSided),
                 0           ' 25ns capture
-            })
-            header.AddRange(BitConverter.GetBytes(checksum))
+            }
+            Array.Copy(header, 0, imageBytes, 0, header.Length)
+            Array.Copy(BitConverter.GetBytes(checksum), 0, imageBytes, 12, 4)
 
-            Return header.Concat(payload).ToArray()
+            Return imageBytes
         End Function
 
         ' Python map: src/greaseweazle/...::(no direct 1:1 symbol; VB function declaration ResolveLegacySingleSided)

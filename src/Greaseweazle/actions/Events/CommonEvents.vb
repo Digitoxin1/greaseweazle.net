@@ -108,11 +108,16 @@ Namespace Greaseweazle.Actions
     Public NotInheritable Class SectorSummaryReadyEventArgs
         Inherits EventArgs
 
-        Public Sub New(grid As SectorSummaryGrid)
+        Public Sub New(grid As SectorSummaryGrid, Optional isPartial As Boolean = False)
             Me.Grid = grid
+            Me.IsPartial = isPartial
         End Sub
 
         Public ReadOnly Property Grid As SectorSummaryGrid
+
+        ' True when the read was cancelled after some tracks had already been decoded.
+        ' The grid contains only those tracks. A later read merges its own grid on top.
+        Public ReadOnly Property IsPartial As Boolean
 
     End Class
 
